@@ -31,7 +31,6 @@ This repository is the "Execution Core" for algorithmic trading. The main philos
 
 ## Documentation
 
-You can find in-depth technical documentation in the `docs/` directory and the core planning document:
-* [Project Master Plan](trading_bot_plan.md)
+You can find in-depth technical documentation in the `docs/` directory:
 * [Documentation Index](docs/README.md)
 * [Configuration Guide](docs/configuration.md)
