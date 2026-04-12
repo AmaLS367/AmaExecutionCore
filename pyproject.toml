@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "amaexecutioncore"
+version = "0.1.0"
+description = "Trading Bot — Мастер-план проекта для Bybit Spot"
+readme = "trading_bot_plan.md"
+requires-python = ">=3.10"
+dependencies = [
+    # Web Framework
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.5.0",
+    
+    # Exchange API & WebSocket
+    "pybit>=5.8.0",
+    "websockets>=13.0",
+    
+    # Database
+    "sqlalchemy>=2.0.35",
+    "asyncpg>=0.29.0",
+    "alembic>=1.13.3",
+    
+    # Utilities
+    "loguru>=0.7.2"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.6.9",
+    "mypy>=1.11.0"
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.mypy]
+strict = true
