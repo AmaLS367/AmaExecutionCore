@@ -1,13 +1,18 @@
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import settings
-from backend.safety_guard.exceptions import CircuitBreakerTrippedError, DailyLossLimitError
-from backend.trade_journal.models import DailyStat, SystemEvent, SystemEventType
+from backend.safety_guard.exceptions import (
+    CooldownActiveError,
+    DailyLossLimitError,
+    WeeklyLossLimitError,
+)
+from backend.trade_journal.models import DailyStat, PauseReason, SystemEventType
+from backend.trade_journal.store import TradeJournalStore
 
 
 class CircuitBreaker:
@@ -40,17 +45,31 @@ class CircuitBreaker:
         Call before every order submission, after kill switch guard.
         """
         stat = await self._get_or_create_today(session)
+        store = TradeJournalStore(session)
+        state = await store.clear_pause_if_expired()
+        await session.flush()
+
+        if state.pause_reason == PauseReason.DAILY_LOSS:
+            raise DailyLossLimitError("Daily loss pause is active until manual reset.")
+
+        if state.pause_reason == PauseReason.WEEKLY_LOSS:
+            raise WeeklyLossLimitError("Weekly loss pause is active until manual reset.")
+
+        if state.pause_reason == PauseReason.COOLDOWN:
+            raise CooldownActiveError("Cooldown is active; new entries are temporarily blocked.")
 
         if stat.daily_loss_pct is not None and stat.daily_loss_pct >= Decimal(
             str(settings.max_daily_loss_pct)
         ):
             stat.circuit_breaker_triggered = True
-            session.add(
-                SystemEvent(
-                    event_type=SystemEventType.CIRCUIT_BREAKER,
-                    description="Daily loss limit reached.",
-                    event_metadata={"daily_loss_pct": str(stat.daily_loss_pct)},
-                )
+            await store.set_pause(
+                pause_reason=PauseReason.DAILY_LOSS,
+                manual_reset_required=True,
+            )
+            await store.append_system_event(
+                event_type=SystemEventType.CIRCUIT_BREAKER,
+                description="Daily loss limit reached.",
+                event_metadata={"daily_loss_pct": str(stat.daily_loss_pct)},
             )
             await session.commit()
             logger.warning("Circuit breaker: daily loss limit. pct={}", stat.daily_loss_pct)
@@ -59,16 +78,37 @@ class CircuitBreaker:
                 f"{settings.max_daily_loss_pct:.2%}."
             )
 
+        weekly_loss = await self._calculate_weekly_loss_pct(session)
+        if weekly_loss >= Decimal(str(settings.max_weekly_loss_pct)):
+            await store.set_pause(
+                pause_reason=PauseReason.WEEKLY_LOSS,
+                manual_reset_required=True,
+            )
+            await store.append_system_event(
+                event_type=SystemEventType.CIRCUIT_BREAKER,
+                description="Weekly loss limit reached.",
+                event_metadata={"weekly_loss_pct": str(weekly_loss)},
+            )
+            await session.commit()
+            raise WeeklyLossLimitError(
+                f"Weekly loss {weekly_loss:.2%} exceeds limit {settings.max_weekly_loss_pct:.2%}."
+            )
+
         if stat.consecutive_losses >= settings.max_consecutive_losses:
-            session.add(
-                SystemEvent(
-                    event_type=SystemEventType.CIRCUIT_BREAKER,
-                    description=f"{stat.consecutive_losses} consecutive losses — cooldown triggered.",
-                    event_metadata={
-                        "consecutive_losses": stat.consecutive_losses,
-                        "cooldown_hours": settings.cooldown_hours,
-                    },
-                )
+            cooldown_until = datetime.now(UTC) + timedelta(hours=settings.cooldown_hours)
+            await store.set_pause(
+                pause_reason=PauseReason.COOLDOWN,
+                manual_reset_required=False,
+                cooldown_until=cooldown_until,
+            )
+            await store.append_system_event(
+                event_type=SystemEventType.CIRCUIT_BREAKER,
+                description=f"{stat.consecutive_losses} consecutive losses — cooldown triggered.",
+                event_metadata={
+                    "consecutive_losses": stat.consecutive_losses,
+                    "cooldown_hours": settings.cooldown_hours,
+                    "cooldown_until": cooldown_until.isoformat(),
+                },
             )
             await session.commit()
             logger.warning(
@@ -76,7 +116,7 @@ class CircuitBreaker:
                 stat.consecutive_losses,
                 settings.cooldown_hours,
             )
-            raise CircuitBreakerTrippedError(
+            raise CooldownActiveError(
                 f"{stat.consecutive_losses} consecutive losses. "
                 f"Cooldown: {settings.cooldown_hours}h."
             )
@@ -103,6 +143,16 @@ class CircuitBreaker:
         stat.consecutive_losses = 0
         await session.commit()
         logger.info("Win recorded. consecutive losses reset.")
+
+    async def _calculate_weekly_loss_pct(self, session: AsyncSession) -> Decimal:
+        week_start = date.today() - timedelta(days=6)
+        result = await session.execute(
+            select(func.sum(DailyStat.daily_loss_pct)).where(DailyStat.stat_date >= week_start)
+        )
+        value = result.scalar_one_or_none()
+        if value is None:
+            return Decimal("0")
+        return Decimal(value)
 
 
 circuit_breaker = CircuitBreaker()

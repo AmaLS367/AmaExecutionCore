@@ -16,3 +16,7 @@ class DailyLossLimitError(SafetyGuardError):
 
 class CooldownActiveError(SafetyGuardError):
     """Raised when the bot is in a post-loss cooldown period."""
+
+
+class WeeklyLossLimitError(SafetyGuardError):
+    """Raised when weekly realized loss exceeds the configured percentage limit."""
