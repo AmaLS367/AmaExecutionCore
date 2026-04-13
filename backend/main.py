@@ -5,12 +5,16 @@ from typing import Any
 from fastapi import FastAPI
 
 from backend.config import settings
+from backend.database import AsyncSessionLocal
+from backend.exchange_sync.engine import ExchangeSyncEngine
 from backend.exchange_sync.listener import ws_listener
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+    sync_engine = ExchangeSyncEngine(session_factory=AsyncSessionLocal)
     ws_listener.start()
+    sync_engine.wire(ws_listener)
     yield
     ws_listener.stop()
 
