@@ -38,6 +38,7 @@ This document explains all environment variables found in the `.env.example` / `
 |---|---|---|---|
 | `TRADING_MODE` | `string` | `shadow`, `demo`, `real` | Controls execution flow. <br>• **shadow**: Calculates everything but places *no trades* on the exchange.<br>• **demo**: Executes in Bybit demo/testnet.<br>• **real**: Authorized to place live funds at risk. |
 | `ORDER_MODE` | `string` | `maker_only`, `maker_preferred`, `taker_allowed` | Affects order request types.<br>• **maker_only**: Forces Post-Only. Order is rejected if it executes instantly.<br>• **maker_preferred**: Tries Post-Only first, falls back to market.<br>• **taker_allowed**: Allows instant market execution. |
+| `SHADOW_EQUITY` | `float` | `10000.0` | Simulated account equity used in shadow mode for position sizing. |
 | `USE_TRAILING_STOP` | `bool` | `False` | Determines if trailing safety stops should be pushed to the exchange. Intentionally disabled for the MVP. |
 | `DEMO_CLOSE_TTL_SECONDS` | `int` | `30` | How long the demo runner waits after an entry reaches `POSITION_OPEN` before it submits a market close order. |
 | `DEMO_POLL_INTERVAL_SECONDS` | `float` | `1.0` | Poll interval used by the demo runner while waiting for DB state transitions driven by WebSocket events. |

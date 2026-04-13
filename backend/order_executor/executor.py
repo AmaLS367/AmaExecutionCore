@@ -68,7 +68,7 @@ class OrderExecutor:
         # 3. Fetch equity (simulated in shadow mode)
         equity: float
         if settings.trading_mode == "shadow":
-            equity = 10_000.0
+            equity = settings.shadow_equity
         else:
             balance = await asyncio.to_thread(self._client.get_wallet_balance)
             coin_list = balance.get("list", [{}])[0].get("coin", [])

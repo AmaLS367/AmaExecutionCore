@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # Trading Engine
     trading_mode: str = "shadow"
     order_mode: str = "maker_preferred"
+    shadow_equity: float = 10_000.0
     use_trailing_stop: bool = False
     demo_close_ttl_seconds: int = 30
     demo_poll_interval_seconds: float = 1.0

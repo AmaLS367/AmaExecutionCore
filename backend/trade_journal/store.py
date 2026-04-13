@@ -106,10 +106,13 @@ class TradeJournalStore:
 
     async def clear_pause_if_expired(self) -> SafetyState:
         state = await self.get_or_create_safety_state()
+        cooldown_until = state.cooldown_until
+        if cooldown_until is not None and cooldown_until.tzinfo is None:
+            cooldown_until = cooldown_until.replace(tzinfo=UTC)
         if (
             state.pause_reason == PauseReason.COOLDOWN
-            and state.cooldown_until is not None
-            and state.cooldown_until <= datetime.now(UTC)
+            and cooldown_until is not None
+            and cooldown_until <= datetime.now(UTC)
         ):
             state.pause_reason = None
             state.cooldown_until = None

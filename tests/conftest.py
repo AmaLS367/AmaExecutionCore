@@ -22,6 +22,7 @@ def reset_settings() -> Generator[None, None, None]:
         "database_url": settings.database_url,
         "trading_mode": settings.trading_mode,
         "order_mode": settings.order_mode,
+        "shadow_equity": getattr(settings, "shadow_equity", 10_000.0),
         "risk_per_trade_pct": settings.risk_per_trade_pct,
         "min_rrr": settings.min_rrr,
         "max_open_positions": settings.max_open_positions,

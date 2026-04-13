@@ -1,10 +1,10 @@
 import asyncio
+from typing import Protocol
 
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.bybit_client.rest import BybitRESTClient
 from backend.config import settings
 from backend.safety_guard.exceptions import KillSwitchActiveError
 from backend.trade_journal.models import SystemEventType, Trade, TradeStatus
@@ -15,6 +15,18 @@ _CANCELLABLE_STATUSES = {
     TradeStatus.ORDER_PENDING_UNKNOWN,
     TradeStatus.ORDER_PARTIALLY_FILLED,
 }
+
+
+class CancelOrderClient(Protocol):
+    def cancel_order(
+        self,
+        *,
+        category: str,
+        symbol: str,
+        order_id: str | None = None,
+        order_link_id: str | None = None,
+    ) -> dict[str, object]:
+        ...
 
 
 class KillSwitch:
@@ -48,7 +60,7 @@ class KillSwitch:
     async def activate(
         self,
         session: AsyncSession,
-        rest_client: BybitRESTClient | None = None,
+        rest_client: CancelOrderClient | None = None,
     ) -> None:
         """
         Activates the kill switch:
@@ -89,7 +101,7 @@ class KillSwitch:
         return await store.read_safety_state()
 
     async def _cancel_pending_orders(
-        self, session: AsyncSession, rest_client: BybitRESTClient
+        self, session: AsyncSession, rest_client: CancelOrderClient
     ) -> None:
         result = await session.execute(
             select(Trade).where(Trade.status.in_(list(_CANCELLABLE_STATUSES)))

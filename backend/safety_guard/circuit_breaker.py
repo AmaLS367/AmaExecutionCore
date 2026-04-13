@@ -21,7 +21,7 @@ class CircuitBreaker:
 
     Two tripwires:
     1. daily_loss_pct >= max_daily_loss_pct (3%) → DailyLossLimitError
-    2. consecutive_losses >= max_consecutive_losses (3) → CircuitBreakerTrippedError + cooldown
+    2. consecutive_losses >= max_consecutive_losses (3) → CooldownActiveError + cooldown
 
     record_loss / record_win update today's DailyStat and are called by
     ExchangeSyncEngine when positions close.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal
 import uuid
 
 import pytest
@@ -8,7 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.config import settings
 from backend.order_executor.executor import OrderExecutor
-from backend.trade_journal.models import SignalDirection, Trade, TradeStatus
+from backend.risk_manager.exceptions import RiskManagerError
+from backend.trade_journal.models import (
+    ExchangeSide,
+    MarketType,
+    SignalDirection,
+    Trade,
+    TradeStatus,
+    TradingMode,
+)
 
 
 class TimeoutRestClient:
@@ -47,3 +56,103 @@ async def test_executor_marks_pending_unknown_after_submit_timeout(
             await session.execute(select(Trade).where(Trade.id == trade.id))
         ).scalar_one()
         assert persisted_trade.status == TradeStatus.ORDER_PENDING_UNKNOWN
+
+
+@pytest.mark.asyncio
+async def test_executor_blocks_when_max_positions_reached(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "shadow"
+    settings.max_open_positions = 1
+    executor = OrderExecutor(rest_client=TimeoutRestClient())
+
+    async with sqlite_session_factory() as session:
+        session.add(
+            Trade(
+                signal_id=uuid.uuid4(),
+                order_link_id="open-1",
+                symbol="BTCUSDT",
+                signal_direction=SignalDirection.LONG,
+                exchange_side=ExchangeSide.BUY,
+                market_type=MarketType.SPOT,
+                mode=TradingMode.SHADOW,
+                risk_amount_usd=Decimal("100"),
+                status=TradeStatus.POSITION_OPEN,
+            )
+        )
+        await session.commit()
+
+        with pytest.raises(RiskManagerError, match="Max open positions"):
+            await executor.execute(
+                session=session,
+                signal_id=uuid.uuid4(),
+                symbol="ETHUSDT",
+                direction=SignalDirection.LONG,
+                entry=100.0,
+                stop=90.0,
+                target=130.0,
+            )
+
+
+@pytest.mark.asyncio
+async def test_executor_blocks_when_exposure_limit_reached(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "shadow"
+    settings.max_open_positions = 2
+    settings.max_total_risk_exposure_pct = 0.03
+    executor = OrderExecutor(rest_client=TimeoutRestClient())
+
+    async with sqlite_session_factory() as session:
+        session.add(
+            Trade(
+                signal_id=uuid.uuid4(),
+                order_link_id="open-2",
+                symbol="BTCUSDT",
+                signal_direction=SignalDirection.LONG,
+                exchange_side=ExchangeSide.BUY,
+                market_type=MarketType.SPOT,
+                mode=TradingMode.SHADOW,
+                risk_amount_usd=Decimal("300"),
+                qty=Decimal("1"),
+                filled_qty=Decimal("1"),
+                status=TradeStatus.POSITION_OPEN,
+            )
+        )
+        await session.commit()
+
+        with pytest.raises(RiskManagerError, match="Total risk exposure limit"):
+            await executor.execute(
+                session=session,
+                signal_id=uuid.uuid4(),
+                symbol="ETHUSDT",
+                direction=SignalDirection.LONG,
+                entry=100.0,
+                stop=90.0,
+                target=130.0,
+            )
+
+
+@pytest.mark.asyncio
+async def test_executor_uses_configured_shadow_equity(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "shadow"
+    settings.shadow_equity = 5_000.0
+    executor = OrderExecutor(rest_client=TimeoutRestClient())
+
+    async with sqlite_session_factory() as session:
+        trade = await executor.execute(
+            session=session,
+            signal_id=uuid.uuid4(),
+            symbol="BTCUSDT",
+            direction=SignalDirection.LONG,
+            entry=100.0,
+            stop=90.0,
+            target=130.0,
+        )
+
+        persisted_trade = (
+            await session.execute(select(Trade).where(Trade.id == trade.id))
+        ).scalar_one()
+        assert persisted_trade.equity_at_entry == Decimal("5000")
