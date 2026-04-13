@@ -46,8 +46,28 @@ class PositionManagerService:
             trade.status = TradeStatus.POSITION_CLOSE_PENDING
 
             if settings.trading_mode == "shadow":
-                trade.avg_exit_price = trade.target_price or trade.entry_price
+                if exit_reason == ExitReason.SL_HIT and trade.stop_price is not None:
+                    trade.avg_exit_price = trade.stop_price
+                elif exit_reason == ExitReason.TP_HIT and trade.target_price is not None:
+                    trade.avg_exit_price = trade.target_price
+                else:
+                    trade.avg_exit_price = trade.target_price or trade.entry_price or trade.stop_price
                 trade.closed_at = datetime.now(UTC)
+                exit_price = trade.avg_exit_price or Decimal("0")
+                realized_pnl = TradeJournalStore.calculate_realized_pnl(trade, exit_price)
+                trade.realized_pnl = realized_pnl
+                trade.pnl_pct = TradeJournalStore.calculate_pnl_pct(trade, realized_pnl)
+                trade.pnl_in_r = TradeJournalStore.calculate_pnl_in_r(trade, realized_pnl)
+                if trade.opened_at is not None:
+                    opened_at = trade.opened_at
+                    closed_at = trade.closed_at
+                    if opened_at.tzinfo is None:
+                        opened_at = opened_at.replace(tzinfo=UTC)
+                    if closed_at is not None and closed_at.tzinfo is None:
+                        closed_at = closed_at.replace(tzinfo=UTC)
+                    trade.hold_time_seconds = int(
+                        (closed_at - opened_at).total_seconds()
+                    )
                 trade.status = TradeStatus.PNL_RECORDED
                 await session.commit()
                 return trade
