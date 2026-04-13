@@ -10,6 +10,8 @@ This repository is the "Execution Core" for algorithmic trading. The main philos
 * **Trade State Machine**: Robust event-driven logging for every stage of a trade (from strategy signal to PnL realization).
 * **Idempotency**: Strict duplication protection via Bybit's `orderLinkId` constraints.
 * **Asynchronous Architecture**: Built on top of WebSocket streams, `asyncpg`, `sqlalchemy` (v2.0), and `alembic` migrations.
+* **Execution API**: REST entrypoint for standardized signals at `POST /signals/execute`.
+* **Runners**: Shadow runner for local strategy replay and demo runner for opt-in Bybit testnet validation.
 
 ## Quick Start
 
@@ -29,8 +31,36 @@ This repository is the "Execution Core" for algorithmic trading. The main philos
    alembic upgrade head
    ```
 
+4. Run the app:
+   ```bash
+   uv run uvicorn backend.main:app --reload
+   ```
+
+5. Execute a shadow signal:
+   ```bash
+   curl -X POST http://127.0.0.1:8000/signals/execute ^
+     -H "Content-Type: application/json" ^
+     -d "{\"symbol\":\"BTCUSDT\",\"direction\":\"long\",\"entry\":100,\"stop\":90,\"target\":130}"
+   ```
+
+6. Validate quality gates:
+   ```bash
+   uv run pytest
+   uv run ruff check .
+   uv run mypy backend tests
+   ```
+
+7. Optional live testnet flow:
+   ```bash
+   uv run pytest -m testnet
+   ```
+   Requires Bybit testnet credentials, PostgreSQL, `TRADING_MODE=demo`, and the `DEMO_TESTNET_*` values in `.env`.
+
 ## Documentation
 
 You can find in-depth technical documentation in the `docs/` directory:
 * [Documentation Index](docs/README.md)
 * [Configuration Guide](docs/configuration.md)
+* [API Guide](docs/api.md)
+* [Architecture Notes](docs/architecture.md)
+* [Database Guide](docs/database.md)

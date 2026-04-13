@@ -5,9 +5,10 @@ This directory hosts technical specifications, architectural diagrams, and compo
 ## Core Documentation
 
 * **[Configuration Guide](configuration.md)**: A detailed explanation of all `.env` system settings and parameters.
+* **[API Guide](api.md)**: Execution and safety endpoints, request/response shapes, and operational notes.
+* **[Architecture](architecture.md)**: Module boundaries, orchestration flow, runners, and lifecycle ownership.
+* **[Database Guide](database.md)**: Trading tables, safety state, and lifecycle persistence notes.
 
 ## Planned Documents
 
-* `architecture.md` — Detailed interaction flows across `market_data`, `strategy_engine`, `risk_manager`, `safety_guard`, and `order_executor`.
-* `api.md` — REST API endpoint documentation for manual overrides and dashboard integrations.
-* `database.md` — In-depth overview of the PostgreSQL tables and transaction logs.
+The original planned documents are now implemented and kept in this directory.
