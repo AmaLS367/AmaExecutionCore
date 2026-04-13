@@ -21,3 +21,13 @@ The project strictly separates responsibilities into these pipelines:
 2. Ensure strict types using `mypy`. Leave no `Any` implicitly. Format and lint strictly via `ruff`.
 3. Never use generic or placeholder credentials in source code. 
 4. Be precise with tool calls and edits. Do not rewrite files top-to-bottom unless implementing entirely new components. Apply edits surgically.
+
+## 4. Git Commit Style
+* **Use Conventional Commits only**: All commit messages must follow the `type(scope): subject` format whenever a scope is applicable.
+* **Preferred types**: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
+* **Preferred scopes**: Use existing module boundaries such as `risk-manager`, `safety-guard`, `order-executor`, `exchange-sync`, `trade-journal`, `strategy-engine`, `market-data`, `backtest`, `bybit-client`, `api`.
+* **Examples**:
+  * `feat(safety-guard): persist kill switch and circuit breaker state`
+  * `fix(order-executor): handle submit timeout as pending unknown`
+  * `docs(api): document signal execution endpoint`
+* **Do not use free-form commit titles** like `Update stuff`, `Add changes`, or scope-less summaries when a clear scope exists.
