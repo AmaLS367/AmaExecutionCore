@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.exchange_sync.engine import ExchangeSyncEngine
+from backend.exchange_sync.listener import BybitWebSocketListener
 from backend.trade_journal.models import (
     ExchangeSide,
     ExitReason,
@@ -63,3 +64,16 @@ async def test_exchange_sync_records_close_and_pnl(
         assert persisted_trade.status == TradeStatus.PNL_RECORDED
         assert persisted_trade.exit_reason == ExitReason.MANUAL
         assert persisted_trade.realized_pnl == Decimal("10")
+
+
+@pytest.mark.asyncio
+async def test_exchange_sync_wire_uses_running_loop(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    engine = ExchangeSyncEngine(session_factory=sqlite_session_factory)
+    listener = BybitWebSocketListener()
+
+    engine.wire(listener)
+
+    assert engine._loop is not None  # noqa: SLF001
+    assert engine._loop.is_running()  # noqa: SLF001

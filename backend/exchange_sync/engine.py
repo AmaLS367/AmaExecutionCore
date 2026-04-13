@@ -38,7 +38,7 @@ class ExchangeSyncEngine:
 
     def wire(self, listener: BybitWebSocketListener) -> None:
         """Register handlers on the listener. Must be called after the event loop starts."""
-        self._loop = asyncio.get_event_loop()
+        self._loop = asyncio.get_running_loop()
         listener.on_order(self._on_order)
         listener.on_execution(self._on_execution)
         logger.info("ExchangeSyncEngine wired to WebSocket listener.")
