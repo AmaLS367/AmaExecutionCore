@@ -15,6 +15,7 @@ from backend.risk_manager.calculator import (
     check_rrr,
 )
 from backend.risk_manager.exceptions import RiskManagerError
+from backend.safety_guard.circuit_breaker import circuit_breaker
 from backend.safety_guard.kill_switch import kill_switch
 from backend.trade_journal.models import (
     ExchangeSide,
@@ -54,7 +55,10 @@ class OrderExecutor:
         # 1. Guard: kill switch active?
         kill_switch.guard()
 
-        # 2. Guard: trade for this signal already in progress?
+        # 2. Guard: daily loss / consecutive loss limits
+        await circuit_breaker.check(session)
+
+        # 4. Guard: trade for this signal already in progress?
         if await is_order_already_submitted(session, signal_id):
             raise OrderAlreadySubmittedError(
                 f"Non-terminal trade already exists for signal {signal_id}."
