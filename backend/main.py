@@ -9,6 +9,7 @@ from backend.config import settings
 from backend.database import AsyncSessionLocal
 from backend.exchange_sync.engine import ExchangeSyncEngine
 from backend.exchange_sync.listener import ws_listener
+from backend.position_manager.router import router as position_router
 from backend.position_manager.service import PositionManagerService
 from backend.safety_guard.router import router as safety_router
 from backend.signal_execution.router import router as signal_router
@@ -74,6 +75,7 @@ def create_app(
     app.state.position_manager = position_manager
     app.include_router(safety_router)
     app.include_router(signal_router)
+    app.include_router(position_router)
     return app
 
 
