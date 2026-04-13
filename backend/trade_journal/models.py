@@ -1,14 +1,14 @@
 import enum
 import uuid
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Boolean, Enum as SAEnum, ForeignKey, Integer, Numeric, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Integer, JSON, Numeric, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database import Base
+
 
 class SignalDirection(str, enum.Enum):
     LONG = "long"
@@ -44,6 +44,7 @@ class TradeStatus(str, enum.Enum):
     RISK_CALCULATED = "risk_calculated"
     SAFETY_CHECKED = "safety_checked"
     ORDER_SUBMITTED = "order_submitted"
+    ORDER_PENDING_UNKNOWN = "order_pending_unknown"
     ORDER_CONFIRMED = "order_confirmed"
     ORDER_REJECTED = "order_rejected"
     ORDER_CANCELLED = "order_cancelled"
@@ -60,15 +61,22 @@ class SystemEventType(str, enum.Enum):
     COOLDOWN = "cooldown"
     ERROR = "error"
 
+
+class PauseReason(str, enum.Enum):
+    DAILY_LOSS = "daily_loss"
+    WEEKLY_LOSS = "weekly_loss"
+    COOLDOWN = "cooldown"
+
+
 class Signal(Base):
     __tablename__ = "signals"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     symbol: Mapped[str] = mapped_column(String(20), nullable=False)
     signal_direction: Mapped[SignalDirection] = mapped_column(SAEnum(SignalDirection, native_enum=False), nullable=False)
     reason: Mapped[str | None] = mapped_column(Text)
     strategy_version: Mapped[str | None] = mapped_column(String(20))
-    indicators_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    indicators_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
 
     trades: Mapped[list["Trade"]] = relationship("Trade", back_populates="signal")
@@ -77,10 +85,12 @@ class Signal(Base):
 class Trade(Base):
     __tablename__ = "trades"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    signal_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("signals.id"))
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    signal_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("signals.id"))
     order_link_id: Mapped[str | None] = mapped_column(String(64), unique=True)
     exchange_order_id: Mapped[str | None] = mapped_column(String(64))
+    close_order_link_id: Mapped[str | None] = mapped_column(String(64), unique=True)
+    close_exchange_order_id: Mapped[str | None] = mapped_column(String(64))
 
     symbol: Mapped[str] = mapped_column(String(20), nullable=False)
     signal_direction: Mapped[SignalDirection] = mapped_column(SAEnum(SignalDirection, native_enum=False), nullable=False)
@@ -106,6 +116,7 @@ class Trade(Base):
     filled_qty: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
     fee_paid: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
     slippage: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    avg_exit_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
 
     # Result
     status: Mapped[TradeStatus] = mapped_column(
@@ -121,8 +132,8 @@ class Trade(Base):
     mfe: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
     hold_time_seconds: Mapped[int | None] = mapped_column(Integer)
 
-    opened_at: Mapped[datetime | None] = mapped_column()
-    closed_at: Mapped[datetime | None] = mapped_column()
+    opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
 
     signal: Mapped[Signal | None] = relationship("Signal", back_populates="trades")
@@ -151,5 +162,22 @@ class SystemEvent(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     event_type: Mapped[SystemEventType | None] = mapped_column(SAEnum(SystemEventType, native_enum=False))
     description: Mapped[str | None] = mapped_column(Text)
-    event_metadata: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB)
+    event_metadata: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+
+class SafetyState(Base):
+    __tablename__ = "safety_state"
+
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    kill_switch_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    pause_reason: Mapped[PauseReason | None] = mapped_column(SAEnum(PauseReason, native_enum=False))
+    cooldown_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    manual_reset_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    last_triggered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )

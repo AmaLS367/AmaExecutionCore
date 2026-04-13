@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     # General
     environment: str = "development"
@@ -18,6 +19,12 @@ class Settings(BaseSettings):
     trading_mode: str = "shadow"
     order_mode: str = "maker_preferred"
     use_trailing_stop: bool = False
+    demo_close_ttl_seconds: int = 30
+    demo_poll_interval_seconds: float = 1.0
+    demo_testnet_symbol: str = ""
+    demo_testnet_entry: float = 0.0
+    demo_testnet_stop: float = 0.0
+    demo_testnet_target: float = 0.0
 
     # Risk Management
     risk_per_trade_pct: float = 0.01
