@@ -1,6 +1,6 @@
 import enum
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 from typing import Any
 
@@ -54,6 +54,11 @@ class TradeStatus(str, enum.Enum):
     POSITION_CLOSE_FAILED = "position_close_failed"
     PNL_RECORDED = "pnl_recorded"
 
+class SystemEventType(str, enum.Enum):
+    KILL_SWITCH = "kill_switch"
+    CIRCUIT_BREAKER = "circuit_breaker"
+    COOLDOWN = "cooldown"
+    ERROR = "error"
 
 class Signal(Base):
     __tablename__ = "signals"
@@ -120,4 +125,31 @@ class Trade(Base):
     closed_at: Mapped[datetime | None] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
 
-    signal: Mapped[Signal | None] = relationship("Signal", back_populates="trades")
+    signal: Mapped[Signal | None] = relationship("Signal", back_populates="trades")
+
+class DailyStat(Base):
+    __tablename__ = "daily_stats"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    stat_date: Mapped[date] = mapped_column("date", unique=True, nullable=False)
+    starting_equity: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    ending_equity: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    total_trades: Mapped[int] = mapped_column(server_default="0", default=0, nullable=False)
+    winning_trades: Mapped[int] = mapped_column(server_default="0", default=0, nullable=False)
+    losing_trades: Mapped[int] = mapped_column(server_default="0", default=0, nullable=False)
+    consecutive_losses: Mapped[int] = mapped_column(server_default="0", default=0, nullable=False)
+    gross_pnl: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    total_fees: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    net_pnl: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    daily_loss_pct: Mapped[Decimal | None] = mapped_column(Numeric(6, 4))
+    circuit_breaker_triggered: Mapped[bool] = mapped_column(server_default="false", default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+class SystemEvent(Base):
+    __tablename__ = "system_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    event_type: Mapped[SystemEventType | None] = mapped_column(SAEnum(SystemEventType, native_enum=False))
+    description: Mapped[str | None] = mapped_column(Text)
+    event_metadata: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
