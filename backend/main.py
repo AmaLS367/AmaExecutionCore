@@ -1,17 +1,31 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from typing import Any
+
 from fastapi import FastAPI
+
 from backend.config import settings
+from backend.exchange_sync.listener import ws_listener
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+    ws_listener.start()
+    yield
+    ws_listener.stop()
+
 
 app = FastAPI(
     title="AmaExecutionCore API",
     version="0.1.0",
     description="Trading Bot execution core built on strict Risk Management rules.",
+    lifespan=lifespan,
 )
 
+
 @app.get("/health")
-async def health_check():
-    """
-    Basic health check to verify the app is running and config is loaded.
-    """
+async def health_check() -> dict[str, Any]:
+    """Basic health check to verify the app is running and config is loaded."""
     obfuscated_key = (
         f"{settings.bybit_api_key[:4]}***" if len(settings.bybit_api_key) > 4 else "Not Set"
     )
