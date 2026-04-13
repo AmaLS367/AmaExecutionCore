@@ -8,6 +8,7 @@ from backend.config import settings
 from backend.database import AsyncSessionLocal
 from backend.exchange_sync.engine import ExchangeSyncEngine
 from backend.exchange_sync.listener import ws_listener
+from backend.safety_guard.router import router as safety_router
 
 
 @asynccontextmanager
@@ -25,6 +26,8 @@ app = FastAPI(
     description="Trading Bot execution core built on strict Risk Management rules.",
     lifespan=lifespan,
 )
+
+app.include_router(safety_router)
 
 
 @app.get("/health")

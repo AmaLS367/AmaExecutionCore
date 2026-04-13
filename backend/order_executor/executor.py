@@ -15,6 +15,7 @@ from backend.risk_manager.calculator import (
     check_rrr,
 )
 from backend.risk_manager.exceptions import RiskManagerError
+from backend.safety_guard.kill_switch import kill_switch
 from backend.trade_journal.models import (
     ExchangeSide,
     MarketType,
@@ -50,13 +51,16 @@ class OrderExecutor:
         target: float,
         category: str = "spot",
     ) -> Trade:
-        # 1. Guard: trade for this signal already in progress?
+        # 1. Guard: kill switch active?
+        kill_switch.guard()
+
+        # 2. Guard: trade for this signal already in progress?
         if await is_order_already_submitted(session, signal_id):
             raise OrderAlreadySubmittedError(
                 f"Non-terminal trade already exists for signal {signal_id}."
             )
 
-        # 2. Fetch equity (simulated in shadow mode)
+        # 3. Fetch equity (simulated in shadow mode)
         equity: float
         if settings.trading_mode == "shadow":
             equity = 10_000.0
@@ -66,7 +70,7 @@ class OrderExecutor:
             usdt = next((c for c in coin_list if c.get("coin") == "USDT"), None)
             equity = float(usdt["equity"]) if usdt else 0.0
 
-        # 3. Position sizing
+        # 4. Position sizing
         qty_raw = calculate_position_raw(
             equity=equity,
             entry=entry,
@@ -74,13 +78,13 @@ class OrderExecutor:
             risk_pct=settings.risk_per_trade_pct,
         )
 
-        # 4. RRR validation
+        # 5. RRR validation
         if not check_rrr(entry=entry, stop=stop, target=target, min_rrr=settings.min_rrr):
             raise RiskManagerError(
                 f"RRR below minimum {settings.min_rrr} for signal {signal_id}."
             )
 
-        # 5. Apply exchange constraints (skipped in shadow — no live instrument data needed)
+        # 6. Apply exchange constraints (skipped in shadow — no live instrument data needed)
         qty: float
         if settings.trading_mode != "shadow":
             instrument = await asyncio.to_thread(
@@ -97,7 +101,7 @@ class OrderExecutor:
         else:
             qty = round(qty_raw, 8)
 
-        # 6. Max open positions check
+        # 7. Max open positions check
         count_result = await session.execute(
             select(func.count(Trade.id)).where(Trade.status == TradeStatus.POSITION_OPEN)
         )
@@ -107,7 +111,7 @@ class OrderExecutor:
                 f"Max open positions ({settings.max_open_positions}) already reached."
             )
 
-        # 7. Persist Trade record with RISK_CALCULATED status
+        # 8. Persist Trade record with RISK_CALCULATED status
         exchange_side = ExchangeSide.BUY if direction == SignalDirection.LONG else ExchangeSide.SELL
         order_link_id = generate_order_link_id(str(signal_id))
         rrr = Decimal(str(abs(target - entry) / abs(entry - stop)))
@@ -133,7 +137,7 @@ class OrderExecutor:
         session.add(trade)
         await session.flush()
 
-        # 8. Shadow: log and exit without REST call
+        # 9. Shadow: log and exit without REST call
         if settings.trading_mode == "shadow":
             trade.status = TradeStatus.ORDER_SUBMITTED
             await session.commit()
@@ -146,7 +150,7 @@ class OrderExecutor:
             )
             return trade
 
-        # 9. Real/Demo: submit to exchange
+        # 10. Real/Demo: submit to exchange
         trade.status = TradeStatus.SAFETY_CHECKED
         try:
             result = await asyncio.to_thread(
