@@ -8,6 +8,9 @@ from backend.trade_journal.models import Trade, TradeStatus
 _TERMINAL_STATUSES = {
     TradeStatus.ORDER_REJECTED,
     TradeStatus.ORDER_CANCELLED,
+    TradeStatus.POSITION_CLOSED,
+    TradeStatus.POSITION_CLOSE_FAILED,
+    TradeStatus.PNL_RECORDED,
 }
 
 

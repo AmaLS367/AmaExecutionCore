@@ -1,12 +1,13 @@
 import asyncio
 import uuid
 from decimal import Decimal
+from typing import Any
 
 from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.bybit_client.rest import BybitRESTClient
+from backend.bybit_client.exceptions import BybitAPIError, BybitConnectionError
 from backend.config import settings
 from backend.order_executor.idempotency import generate_order_link_id, is_order_already_submitted
 from backend.risk_manager.calculator import (
@@ -38,7 +39,7 @@ class OrderExecutor:
     idempotency guard → safety checks → REST submission (or shadow log).
     """
 
-    def __init__(self, rest_client: BybitRESTClient) -> None:
+    def __init__(self, rest_client: Any) -> None:
         self._client = rest_client
 
     async def execute(
@@ -53,7 +54,7 @@ class OrderExecutor:
         category: str = "spot",
     ) -> Trade:
         # 1. Guard: kill switch active?
-        kill_switch.guard()
+        await kill_switch.guard(session)
 
         # 2. Guard: daily loss / consecutive loss limits
         await circuit_breaker.check(session)
@@ -115,6 +116,8 @@ class OrderExecutor:
                 f"Max open positions ({settings.max_open_positions}) already reached."
             )
 
+        await self._ensure_total_exposure_within_limit(session, equity=Decimal(str(equity)))
+
         # 8. Persist Trade record with RISK_CALCULATED status
         exchange_side = ExchangeSide.BUY if direction == SignalDirection.LONG else ExchangeSide.SELL
         order_link_id = generate_order_link_id(str(signal_id))
@@ -156,33 +159,179 @@ class OrderExecutor:
 
         # 10. Real/Demo: submit to exchange
         trade.status = TradeStatus.SAFETY_CHECKED
+        trade.order_type = "Limit"
         try:
+            submitted_order_link_id = await self._submit_order(
+                trade=trade,
+                category=category,
+                symbol=symbol,
+                exchange_side=exchange_side,
+                qty=qty,
+                entry=entry,
+                stop=stop,
+                target=target,
+            )
+            logger.info(
+                "Order submitted. symbol={} order_link_id={} exchange_order_id={}",
+                symbol,
+                submitted_order_link_id,
+                trade.exchange_order_id,
+            )
+        except BybitAPIError as exc:
+            trade.status = TradeStatus.ORDER_REJECTED
+            logger.error("Order submission rejected for {}: {}", order_link_id, exc)
+            await session.commit()
+            raise
+        except (BybitConnectionError, TimeoutError) as exc:
+            await self._handle_submit_uncertainty(
+                session=session,
+                trade=trade,
+                category=category,
+                symbol=symbol,
+                exc=exc,
+            )
+
+        await session.commit()
+        return trade
+
+    async def _submit_order(
+        self,
+        *,
+        trade: Trade,
+        category: str,
+        symbol: str,
+        exchange_side: ExchangeSide,
+        qty: float,
+        entry: float,
+        stop: float,
+        target: float,
+    ) -> str:
+        order_mode = settings.order_mode
+        current_order_link_id = trade.order_link_id or generate_order_link_id(str(trade.signal_id))
+
+        if order_mode == "taker_allowed":
             result = await asyncio.to_thread(
                 self._client.place_order,
                 category=category,
                 symbol=symbol,
                 side=exchange_side.value,
-                order_type="Limit",
+                order_type="Market",
                 qty=str(qty),
-                price=str(entry),
-                order_link_id=order_link_id,
-                is_post_only=(settings.order_mode == "maker_only"),
+                order_link_id=current_order_link_id,
                 sl_price=str(stop),
                 tp_price=str(target),
+                market_unit="baseCoin" if exchange_side == ExchangeSide.BUY else None,
             )
-            trade.exchange_order_id = result.get("orderId")
-            trade.status = TradeStatus.ORDER_SUBMITTED
-            logger.info(
-                "Order submitted. symbol={} order_link_id={} exchange_order_id={}",
-                symbol,
-                order_link_id,
-                trade.exchange_order_id,
-            )
-        except Exception as exc:
-            trade.status = TradeStatus.ORDER_REJECTED
-            logger.error("Order submission failed for {}: {}", order_link_id, exc)
-            await session.commit()
-            raise
+            trade.order_type = "Market"
+            trade.is_post_only = False
+        else:
+            try:
+                result = await asyncio.to_thread(
+                    self._client.place_order,
+                    category=category,
+                    symbol=symbol,
+                    side=exchange_side.value,
+                    order_type="Limit",
+                    qty=str(qty),
+                    price=str(entry),
+                    order_link_id=current_order_link_id,
+                    is_post_only=True,
+                    sl_price=str(stop),
+                    tp_price=str(target),
+                )
+                trade.order_type = "Limit"
+                trade.is_post_only = True
+            except BybitAPIError as exc:
+                if order_mode == "maker_preferred" and self._looks_like_post_only_rejection(exc):
+                    current_order_link_id = generate_order_link_id(str(trade.signal_id))
+                    trade.order_link_id = current_order_link_id
+                    result = await asyncio.to_thread(
+                        self._client.place_order,
+                        category=category,
+                        symbol=symbol,
+                        side=exchange_side.value,
+                        order_type="Market",
+                        qty=str(qty),
+                        order_link_id=current_order_link_id,
+                        sl_price=str(stop),
+                        tp_price=str(target),
+                        market_unit="baseCoin" if exchange_side == ExchangeSide.BUY else None,
+                    )
+                    trade.order_type = "Market"
+                    trade.is_post_only = False
+                else:
+                    raise
 
+        trade.exchange_order_id = result.get("orderId")
+        trade.status = TradeStatus.ORDER_SUBMITTED
+        trade.order_link_id = current_order_link_id
+        return current_order_link_id
+
+    async def _handle_submit_uncertainty(
+        self,
+        *,
+        session: AsyncSession,
+        trade: Trade,
+        category: str,
+        symbol: str,
+        exc: Exception,
+    ) -> None:
+        logger.warning("Order submission uncertain for {}: {}", trade.order_link_id, exc)
+        trade.status = TradeStatus.ORDER_PENDING_UNKNOWN
+        resolved_order = await asyncio.to_thread(
+            self._client.get_order_status,
+            category=category,
+            symbol=symbol,
+            order_link_id=trade.order_link_id,
+        )
+        if resolved_order is not None:
+            trade.exchange_order_id = resolved_order.get("orderId")
+            trade.status = self._map_remote_order_status(
+                resolved_order.get("orderStatus", ""),
+            )
         await session.commit()
-        return trade
+
+    async def _ensure_total_exposure_within_limit(
+        self,
+        session: AsyncSession,
+        *,
+        equity: Decimal,
+    ) -> None:
+        result = await session.execute(
+            select(Trade).where(
+                Trade.status.in_(
+                    [
+                        TradeStatus.POSITION_OPEN,
+                        TradeStatus.POSITION_CLOSE_PENDING,
+                        TradeStatus.ORDER_PARTIALLY_FILLED,
+                    ]
+                )
+            )
+        )
+        open_risk = Decimal("0")
+        for trade in result.scalars().all():
+            risk_amount = trade.risk_amount_usd or Decimal("0")
+            if trade.status == TradeStatus.ORDER_PARTIALLY_FILLED and trade.qty and trade.filled_qty:
+                risk_amount = risk_amount * (trade.filled_qty / trade.qty)
+            open_risk += risk_amount
+
+        max_exposure = equity * Decimal(str(settings.max_total_risk_exposure_pct))
+        if open_risk + (equity * Decimal(str(settings.risk_per_trade_pct))) > max_exposure:
+            raise RiskManagerError("Total risk exposure limit would be exceeded.")
+
+    @staticmethod
+    def _looks_like_post_only_rejection(exc: BybitAPIError) -> bool:
+        message = exc.ret_msg.lower()
+        return "postonly" in message or "post only" in message
+
+    @staticmethod
+    def _map_remote_order_status(order_status: str) -> TradeStatus:
+        if order_status == "Filled":
+            return TradeStatus.ORDER_CONFIRMED
+        if order_status == "Cancelled":
+            return TradeStatus.ORDER_CANCELLED
+        if order_status == "PartiallyFilled":
+            return TradeStatus.ORDER_PARTIALLY_FILLED
+        if order_status == "Rejected":
+            return TradeStatus.ORDER_REJECTED
+        return TradeStatus.ORDER_PENDING_UNKNOWN

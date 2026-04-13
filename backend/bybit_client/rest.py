@@ -1,7 +1,6 @@
 from typing import Any
 
 from loguru import logger
-from pybit.unified_trading import HTTP  # type: ignore[import-not-found]
 
 from backend.bybit_client.exceptions import (
     BybitAPIError,
@@ -25,7 +24,12 @@ class BybitRESTClient:
     """
 
     def __init__(self) -> None:
-        self._session: HTTP = HTTP(
+        try:
+            from pybit.unified_trading import HTTP  # type: ignore[import-not-found]
+        except ModuleNotFoundError as exc:
+            raise BybitConnectionError("pybit is not installed in the current environment.") from exc
+
+        self._session: Any = HTTP(
             testnet=settings.bybit_testnet,
             api_key=settings.bybit_api_key,
             api_secret=settings.bybit_api_secret,
