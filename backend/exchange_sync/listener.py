@@ -2,7 +2,6 @@ from collections.abc import Callable
 from typing import Any
 
 from loguru import logger
-from pybit.unified_trading import WebSocket  # type: ignore[import-not-found]
 
 from backend.config import settings
 
@@ -20,7 +19,7 @@ class BybitWebSocketListener:
     """
 
     def __init__(self) -> None:
-        self._ws: WebSocket | None = None
+        self._ws: Any | None = None
         self._order_handlers: list[Callable[[dict[str, Any]], None]] = []
         self._execution_handlers: list[Callable[[dict[str, Any]], None]] = []
 
@@ -69,6 +68,12 @@ class BybitWebSocketListener:
         logger.info(
             "Starting Bybit WebSocket listener. testnet={}", settings.bybit_testnet
         )
+        try:
+            from pybit.unified_trading import WebSocket  # type: ignore[import-not-found]
+        except ModuleNotFoundError:
+            logger.warning("pybit is not installed — WebSocket listener not started.")
+            return
+
         self._ws = WebSocket(
             testnet=settings.bybit_testnet,
             channel_type="private",

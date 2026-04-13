@@ -4,11 +4,12 @@ from decimal import Decimal
 from typing import Any
 
 from loguru import logger
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.exchange_sync.listener import BybitWebSocketListener
-from backend.trade_journal.models import Trade, TradeStatus
+from backend.safety_guard.circuit_breaker import circuit_breaker
+from backend.trade_journal.models import ExitReason, SystemEventType, TradeStatus
+from backend.trade_journal.store import TradeJournalStore
 
 _ORDER_STATUS_MAP: dict[str, TradeStatus] = {
     "Filled": TradeStatus.ORDER_CONFIRMED,
@@ -79,10 +80,8 @@ class ExchangeSyncEngine:
             return
 
         async with self._session_factory() as session:
-            result = await session.execute(
-                select(Trade).where(Trade.order_link_id == order_link_id)
-            )
-            trade = result.scalar_one_or_none()
+            store = TradeJournalStore(session)
+            trade = await store.get_trade_by_order_link_id(order_link_id)
             if trade is None:
                 logger.warning(
                     "WS order event: no trade found for order_link_id={}", order_link_id
@@ -91,7 +90,9 @@ class ExchangeSyncEngine:
 
             trade.status = new_status
 
-            if new_status == TradeStatus.ORDER_CONFIRMED:
+            is_close_order = trade.close_order_link_id == order_link_id
+
+            if new_status == TradeStatus.ORDER_CONFIRMED and not is_close_order:
                 avg_price = data.get("avgPrice")
                 cum_exec_qty = data.get("cumExecQty")
                 trade.avg_fill_price = Decimal(avg_price) if avg_price else None
@@ -100,6 +101,44 @@ class ExchangeSyncEngine:
                 # Fully filled → promote to POSITION_OPEN
                 if data.get("leavesQty") == "0":
                     trade.status = TradeStatus.POSITION_OPEN
+            elif is_close_order and new_status == TradeStatus.ORDER_CONFIRMED:
+                exit_price = Decimal(data.get("avgPrice", "0"))
+                trade.avg_exit_price = exit_price
+                trade.status = TradeStatus.POSITION_CLOSED
+                trade.closed_at = datetime.now(timezone.utc)
+                if trade.opened_at is not None:
+                    opened_at = trade.opened_at
+                    closed_at = trade.closed_at
+                    if opened_at.tzinfo is None:
+                        opened_at = opened_at.replace(tzinfo=timezone.utc)
+                    if closed_at.tzinfo is None:
+                        closed_at = closed_at.replace(tzinfo=timezone.utc)
+                    trade.hold_time_seconds = int((closed_at - opened_at).total_seconds())
+                if trade.exit_reason is None:
+                    trade.exit_reason = ExitReason.MANUAL
+
+                realized_pnl = store.calculate_realized_pnl(trade, exit_price)
+                trade.realized_pnl = realized_pnl
+                trade.pnl_pct = store.calculate_pnl_pct(trade, realized_pnl)
+                trade.pnl_in_r = store.calculate_pnl_in_r(trade, realized_pnl)
+                trade.status = TradeStatus.PNL_RECORDED
+                if realized_pnl < 0 and trade.pnl_pct is not None:
+                    await circuit_breaker.record_loss(session, abs(trade.pnl_pct))
+                else:
+                    await circuit_breaker.record_win(session)
+            elif is_close_order and new_status in {
+                TradeStatus.ORDER_REJECTED,
+                TradeStatus.ORDER_CANCELLED,
+            }:
+                trade.status = TradeStatus.POSITION_CLOSE_FAILED
+                await store.append_system_event(
+                    event_type=SystemEventType.ERROR,
+                    description="Close order failed and position may remain open.",
+                    event_metadata={
+                        "trade_id": str(trade.id),
+                        "close_order_link_id": order_link_id,
+                    },
+                )
 
             await session.commit()
             logger.info(
@@ -119,16 +158,15 @@ class ExchangeSyncEngine:
             return
 
         async with self._session_factory() as session:
-            result = await session.execute(
-                select(Trade).where(Trade.order_link_id == order_link_id)
-            )
-            trade = result.scalar_one_or_none()
+            store = TradeJournalStore(session)
+            trade = await store.get_trade_by_order_link_id(order_link_id)
             if trade is None:
                 return
 
             if exec_fee:
-                trade.fee_paid = Decimal(exec_fee)
-            if exec_price and trade.entry_price:
+                current_fee = trade.fee_paid or Decimal("0")
+                trade.fee_paid = current_fee + Decimal(exec_fee)
+            if trade.order_link_id == order_link_id and exec_price and trade.entry_price:
                 trade.slippage = abs(Decimal(exec_price) - trade.entry_price)
 
             await session.commit()
