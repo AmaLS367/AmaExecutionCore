@@ -1,3 +1,4 @@
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +15,22 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = ""
+
+    @field_validator("database_url")
+    @classmethod
+    def database_url_must_be_set(cls, v: str) -> str:
+        if not v:
+            raise ValueError("DATABASE_URL must be set in environment or .env file")
+        return v
+
+    @model_validator(mode="after")
+    def api_keys_required_outside_shadow(self) -> "Settings":
+        if self.trading_mode != "shadow":
+            if not self.bybit_api_key:
+                raise ValueError("BYBIT_API_KEY must be set when trading_mode is not 'shadow'")
+            if not self.bybit_api_secret:
+                raise ValueError("BYBIT_API_SECRET must be set when trading_mode is not 'shadow'")
+        return self
 
     # Trading Engine
     trading_mode: str = "shadow"

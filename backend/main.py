@@ -54,10 +54,7 @@ def create_app(
     rest_client: Any | None = None,
 ) -> FastAPI:
     if rest_client is None:
-        try:
-            rest_client = BybitRESTClient()
-        except Exception:
-            rest_client = NullRestClient()
+        rest_client = BybitRESTClient()
 
     order_executor = OrderExecutor(rest_client=rest_client)
     execution_service = ExecutionService(
