@@ -68,14 +68,23 @@ These settings are critical. They determine when the bot should forcibly stop ac
 |---|---|---|---|
 | `MAX_DAILY_LOSS_PCT` | `float` | `0.03` (3%) | If the daily realized PnL drops below this threshold, all new signals are blocked. |
 | `MAX_WEEKLY_LOSS_PCT` | `float` | `0.05` (5%) | Hard weekly circuit breaker. Requires manual intervention/reset if breached. |
-| `MAX_CONSECUTIVE_LOSSES` | `int` | `3` | Number of sequential Stop-Loss hits permitted before taking a pause. |
-| `COOLDOWN_HOURS` | `int` | `4` | How many hours the bot remains paused internally after stringing together `MAX_CONSECUTIVE_LOSSES`. |
+| `MAX_CONSECUTIVE_LOSSES` | `int` | `3` | Cooldown threshold. Once today’s consecutive losing-trade counter reaches this value, new entries are paused until the cooldown window expires or an operator resets safety state. |
+| `HARD_PAUSE_CONSECUTIVE_LOSSES` | `int` | `5` | Hard loss-streak threshold. Once today’s consecutive losing-trade counter reaches this value, the bot enters a manual-reset-required pause. |
+| `COOLDOWN_HOURS` | `int` | `4` | How long the cooldown pause stays active after the cooldown threshold is hit. |
 
 ## Safety State Semantics
 
 - `kill_switch_active=true` blocks all new entries until `POST /safety/reset` clears it.
 - `pause_reason=daily_loss` or `pause_reason=weekly_loss` also require `POST /safety/reset`.
-- `pause_reason=cooldown` is cleared automatically after `cooldown_until`.
+- `pause_reason=hard_loss_streak` requires `POST /safety/reset`.
+- `pause_reason=cooldown` is cleared automatically after `cooldown_until`, and the runtime also clears the active consecutive-loss streak when that auto-expiry happens.
+
+## Reset Behavior
+
+- `POST /safety/reset` always clears `kill_switch_active`, `pause_reason`, `cooldown_until`, and `manual_reset_required`.
+- Reseting a `cooldown` or `hard_loss_streak` pause also clears the currently tracked daily consecutive-loss counter.
+- Resetting `daily_loss` or `weekly_loss` does not erase the underlying realized-loss statistics. If the same daily or weekly threshold is still breached, the next safety check pauses trading again immediately.
+- The kill switch never auto-closes positions. It only blocks new entries and cancels pending entry orders in `demo` / `real` mode.
 
 ## Demo/Testnet Notes
 

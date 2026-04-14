@@ -17,7 +17,7 @@ async def activate_kill_switch(
 ) -> dict[str, Any]:
     """
     Activates the kill switch. Cancels all pending exchange orders.
-    Blocks all new order submissions until app is restarted.
+    Blocks all new order submissions until POST /safety/reset clears it.
     Does NOT close open positions — manual action required.
     """
     await kill_switch.activate(session=session, rest_client=request.app.state.rest_client)

@@ -25,8 +25,8 @@ class CircuitBreaker:
     2. consecutive_losses >= max_consecutive_losses (3) → CooldownActiveError + cooldown
     3. consecutive_losses >= hard_pause_consecutive_losses (5) → manual hard pause
 
-    record_loss / record_win update today's DailyStat and are called by
-    ExchangeSyncEngine when positions close.
+    DailyStat is updated from realized close events, and check() reads the
+    current persisted state before each new submission.
     """
 
     async def _get_or_create_today(self, session: AsyncSession) -> DailyStat:
