@@ -97,10 +97,12 @@ class OrderExecutor:
                 self._client.get_instruments_info, symbol, category
             )
             lot = instrument["lotSizeFilter"]
+            # Spot uses basePrecision; futures/linear use qtyStep
+            qty_step = float(lot.get("qtyStep") or lot.get("basePrecision", "0.000001"))
             qty = apply_exchange_constraints(
                 qty=qty_raw,
                 entry_price=entry,
-                qty_step=float(lot["qtyStep"]),
+                qty_step=qty_step,
                 min_qty=float(lot["minOrderQty"]),
                 min_notional=float(lot.get("minOrderAmt", 0)),
             )
@@ -230,6 +232,9 @@ class OrderExecutor:
         current_order_link_id = trade.order_link_id or generate_order_link_id(str(trade.signal_id))
 
         if order_mode == "taker_allowed":
+            # Spot market orders: SL/TP prices are derived from the signal's limit entry price
+            # and may be invalid relative to the unknown market fill price — skip them.
+            is_spot_market = category == "spot"
             result = await asyncio.to_thread(
                 self._client.place_order,
                 category=category,
@@ -238,8 +243,8 @@ class OrderExecutor:
                 order_type="Market",
                 qty=str(qty),
                 order_link_id=current_order_link_id,
-                sl_price=str(stop),
-                tp_price=str(target),
+                sl_price=None if is_spot_market else str(stop),
+                tp_price=None if is_spot_market else str(target),
                 market_unit="baseCoin" if exchange_side == ExchangeSide.BUY else None,
             )
             trade.order_type = "Market"
@@ -273,8 +278,8 @@ class OrderExecutor:
                         order_type="Market",
                         qty=str(qty),
                         order_link_id=current_order_link_id,
-                        sl_price=str(stop),
-                        tp_price=str(target),
+                        sl_price=None if category == "spot" else str(stop),
+                        tp_price=None if category == "spot" else str(target),
                         market_unit="baseCoin" if exchange_side == ExchangeSide.BUY else None,
                     )
                     trade.order_type = "Market"
@@ -340,13 +345,23 @@ class OrderExecutor:
             await session.flush()
             return trade
 
+        store = TradeJournalStore(session)
         if resolved_order is not None:
             trade.exchange_order_id = resolved_order.get("orderId")
-            store = TradeJournalStore(session)
             await store.transition_trade_status(
                 trade,
                 self._map_remote_order_status(resolved_order.get("orderStatus", "")),
                 event_metadata={"source": "pending_unknown_reconciliation"},
+            )
+        else:
+            # No exchange record — order was never placed; unblock idempotency guard
+            await store.transition_trade_status(
+                trade,
+                TradeStatus.ORDER_CANCELLED,
+                event_metadata={
+                    "source": "pending_unknown_reconciliation",
+                    "reason": "not_found_on_exchange",
+                },
             )
         await session.flush()
         return trade

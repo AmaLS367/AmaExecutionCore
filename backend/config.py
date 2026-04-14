@@ -8,13 +8,27 @@ class Settings(BaseSettings):
     debug: bool = True
     log_level: str = "DEBUG"
 
-    # Bybit API
+    # Bybit API — mainnet credentials
     bybit_testnet: bool = True
     bybit_api_key: str = ""
     bybit_api_secret: str = ""
 
+    # Bybit API — testnet credentials
+    bybit_testnet_api_key: str = ""
+    bybit_testnet_api_secret: str = ""
+
     # Database
     database_url: str = ""
+
+    @property
+    def active_api_key(self) -> str:
+        """Returns the API key for the currently active environment."""
+        return self.bybit_testnet_api_key if self.bybit_testnet else self.bybit_api_key
+
+    @property
+    def active_api_secret(self) -> str:
+        """Returns the API secret for the currently active environment."""
+        return self.bybit_testnet_api_secret if self.bybit_testnet else self.bybit_api_secret
 
     @field_validator("database_url")
     @classmethod
@@ -25,11 +39,26 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def api_keys_required_outside_shadow(self) -> "Settings":
-        if self.trading_mode != "shadow":
+        if self.trading_mode == "shadow":
+            return self
+        if self.bybit_testnet:
+            if not self.bybit_testnet_api_key:
+                raise ValueError(
+                    "BYBIT_TESTNET_API_KEY must be set when trading_mode is not 'shadow' and bybit_testnet=True"
+                )
+            if not self.bybit_testnet_api_secret:
+                raise ValueError(
+                    "BYBIT_TESTNET_API_SECRET must be set when trading_mode is not 'shadow' and bybit_testnet=True"
+                )
+        else:
             if not self.bybit_api_key:
-                raise ValueError("BYBIT_API_KEY must be set when trading_mode is not 'shadow'")
+                raise ValueError(
+                    "BYBIT_API_KEY must be set when trading_mode is not 'shadow' and bybit_testnet=False"
+                )
             if not self.bybit_api_secret:
-                raise ValueError("BYBIT_API_SECRET must be set when trading_mode is not 'shadow'")
+                raise ValueError(
+                    "BYBIT_API_SECRET must be set when trading_mode is not 'shadow' and bybit_testnet=False"
+                )
         return self
 
     # Trading Engine

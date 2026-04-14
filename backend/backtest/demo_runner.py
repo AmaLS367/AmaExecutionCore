@@ -19,10 +19,12 @@ class DemoRunner:
         execution_service: Any,
         position_manager: Any,
         session_factory: async_sessionmaker[AsyncSession],
+        sync_engine: Any | None = None,
     ) -> None:
         self._execution_service = execution_service
         self._position_manager = position_manager
         self._session_factory = session_factory
+        self._sync_engine = sync_engine
 
     async def execute_and_close(self, *, signal: Any) -> Trade:
         result = await self._execution_service.execute_signal(signal=signal)
@@ -48,6 +50,8 @@ class DemoRunner:
     ) -> Trade:
         deadline = monotonic() + timeout_seconds
         while monotonic() < deadline:
+            if self._sync_engine is not None:
+                await self._sync_engine.reconcile_once()
             async with self._session_factory() as session:
                 trade = (
                     await session.execute(select(Trade).where(Trade.id == trade_id))

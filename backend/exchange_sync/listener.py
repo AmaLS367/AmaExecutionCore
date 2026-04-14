@@ -59,7 +59,7 @@ class BybitWebSocketListener:
         Skipped silently when API credentials are absent (shadow mode, tests).
         Pybit handles reconnection internally.
         """
-        if not settings.bybit_api_key or not settings.bybit_api_secret:
+        if not settings.active_api_key or not settings.active_api_secret:
             logger.warning(
                 "Bybit API credentials not set — WebSocket listener not started."
             )
@@ -77,8 +77,8 @@ class BybitWebSocketListener:
         self._ws = WebSocket(
             testnet=settings.bybit_testnet,
             channel_type="private",
-            api_key=settings.bybit_api_key,
-            api_secret=settings.bybit_api_secret,
+            api_key=settings.active_api_key,
+            api_secret=settings.active_api_secret,
         )
         self._ws.order_stream(callback=self._handle_order)
         self._ws.execution_stream(callback=self._handle_execution)

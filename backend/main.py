@@ -88,9 +88,8 @@ app = create_app()
 @app.get("/health")
 async def health_check() -> dict[str, Any]:
     """Basic health check to verify the app is running and config is loaded."""
-    obfuscated_key = (
-        f"{settings.bybit_api_key[:4]}***" if len(settings.bybit_api_key) > 4 else "Not Set"
-    )
+    active_key = settings.active_api_key
+    obfuscated_key = f"{active_key[:4]}***" if len(active_key) > 4 else "Not Set"
     return {
         "status": "ok",
         "trading_mode": settings.trading_mode,

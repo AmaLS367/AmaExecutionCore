@@ -53,12 +53,14 @@ class ExecutionService:
                             trade=existing_trade,
                         )
                         await session.commit()
-                    signal_id = submission.signal_id or replayed_trade.signal_id
-                    if signal_id is None:
-                        raise RuntimeError(
-                            f"Signal submission {submission.id} is missing its signal reference."
-                        )
-                    return self._build_result(signal_id, replayed_trade, replayed=True)
+                    if not is_trade_terminal(replayed_trade.status):
+                        signal_id = submission.signal_id or replayed_trade.signal_id
+                        if signal_id is None:
+                            raise RuntimeError(
+                                f"Signal submission {submission.id} is missing its signal reference."
+                            )
+                        return self._build_result(signal_id, replayed_trade, replayed=True)
+                    # Trade resolved to terminal during reconciliation — fall through to new trade
 
             if submission is None:
                 submission = await store.create_signal_submission(fingerprint=fingerprint)

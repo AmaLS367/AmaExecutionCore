@@ -44,8 +44,8 @@ class BybitRESTClient:
 
         self._session: Any = HTTP(
             testnet=settings.bybit_testnet,
-            api_key=settings.bybit_api_key,
-            api_secret=settings.bybit_api_secret,
+            api_key=settings.active_api_key,
+            api_secret=settings.active_api_secret,
         )
 
     def _unwrap(self, response: dict[str, Any]) -> dict[str, Any]:
@@ -181,7 +181,9 @@ class BybitRESTClient:
             params["timeInForce"] = "PostOnly"
         if sl_price is not None:
             params["stopLoss"] = sl_price
-            params["slOrderType"] = "Market"
+            # slOrderType is only valid for derivatives; spot ignores / rejects it
+            if category != "spot":
+                params["slOrderType"] = "Market"
         if tp_price is not None:
             params["takeProfit"] = tp_price
         if market_unit is not None:
@@ -198,6 +200,12 @@ class BybitRESTClient:
         try:
             response: dict[str, Any] = self._session.place_order(**params)
         except Exception as exc:
+            # InvalidRequestError = bad parameters (exchange rejection), not a network issue
+            if type(exc).__name__ == "InvalidRequestError":
+                raise BybitAPIError(
+                    ret_code=getattr(exc, "status_code", -1),
+                    ret_msg=str(exc),
+                ) from exc
             raise BybitConnectionError(f"Failed to place order: {exc}") from exc
         return self._unwrap(response)
 
