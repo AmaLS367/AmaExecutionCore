@@ -6,6 +6,7 @@ import pytest
 
 from backend.backtest import HistoricalReplayRequest, HistoricalReplayRunner
 from backend.market_data.contracts import MarketCandle, MarketSnapshot
+from backend.signal_execution.schemas import ExecuteSignalRequest
 from backend.strategy_engine.contracts import StrategySignal
 
 
@@ -28,9 +29,9 @@ class ThresholdStrategy:
 
 class RecordingExecutionService:
     def __init__(self) -> None:
-        self.executed_signals: list[StrategySignal] = []
+        self.executed_signals: list[ExecuteSignalRequest] = []
 
-    async def execute_signal(self, *, signal: object) -> dict[str, object]:
+    async def execute_signal(self, *, signal: ExecuteSignalRequest) -> dict[str, object]:
         self.executed_signals.append(signal)
         return {"symbol": signal.symbol, "entry": signal.entry}
 
