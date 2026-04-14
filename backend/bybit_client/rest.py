@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from loguru import logger
@@ -8,6 +10,17 @@ from backend.bybit_client.exceptions import (
     InvalidOrderParamsError,
 )
 from backend.config import settings
+
+
+@dataclass(slots=True, frozen=True)
+class BybitKline:
+    start_time: datetime
+    open_price: float
+    high_price: float
+    low_price: float
+    close_price: float
+    volume: float
+    turnover: float
 
 
 class BybitRESTClient:
@@ -96,6 +109,37 @@ class BybitRESTClient:
                 ret_msg=f"Symbol '{symbol}' not found in category '{category}'",
             )
         return items[0]
+
+    def get_klines(
+        self,
+        *,
+        symbol: str,
+        interval: str,
+        limit: int,
+        category: str = "spot",
+    ) -> list[BybitKline]:
+        logger.debug(
+            "Fetching klines. symbol={} interval={} limit={} category={}",
+            symbol,
+            interval,
+            limit,
+            category,
+        )
+        try:
+            response: dict[str, Any] = self._session.get_kline(
+                category=category,
+                symbol=symbol,
+                interval=interval,
+                limit=limit,
+            )
+        except Exception as exc:
+            raise BybitConnectionError(
+                f"Failed to fetch klines for {symbol} at interval {interval}: {exc}"
+            ) from exc
+
+        result = self._unwrap(response)
+        items: list[Any] = result.get("list", [])
+        return [self._parse_kline_item(item) for item in items]
 
     # ------------------------------------------------------------------
     # Orders
@@ -229,3 +273,17 @@ class BybitRESTClient:
             raise BybitConnectionError(
                 f"Failed to fetch order status: {exc}"
             ) from exc
+
+    @staticmethod
+    def _parse_kline_item(item: Any) -> BybitKline:
+        if not isinstance(item, list) or len(item) < 7:
+            raise BybitAPIError(ret_code=0, ret_msg=f"Unexpected kline payload: {item!r}")
+        return BybitKline(
+            start_time=datetime.fromtimestamp(int(item[0]) / 1000, tz=UTC),
+            open_price=float(item[1]),
+            high_price=float(item[2]),
+            low_price=float(item[3]),
+            close_price=float(item[4]),
+            volume=float(item[5]),
+            turnover=float(item[6]),
+        )
