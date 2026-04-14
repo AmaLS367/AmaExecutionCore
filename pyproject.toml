@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "amaexecutioncore"
 version = "0.1.0"
 description = "Trading Bot — Мастер-план проекта для Bybit Spot"
-readme = "trading_bot_plan.md"
+readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     # Web Framework

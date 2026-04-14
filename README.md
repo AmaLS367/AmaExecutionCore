@@ -17,7 +17,7 @@ This repository is the "Execution Core" for algorithmic trading. The main philos
 
 1. Clone the repository and install dependencies (including dev tools):
    ```bash
-   pip install -e ".[dev]"
+   uv sync
    ```
 
 2. Setup your environment variables:
@@ -28,7 +28,7 @@ This repository is the "Execution Core" for algorithmic trading. The main philos
 
 3. Run Database Migrations (once Alembic is initialized):
    ```bash
-   alembic upgrade head
+   uv run alembic upgrade head
    ```
 
 4. Run the app:
@@ -38,8 +38,8 @@ This repository is the "Execution Core" for algorithmic trading. The main philos
 
 5. Execute a shadow signal:
    ```bash
-   curl -X POST http://127.0.0.1:8000/signals/execute ^
-     -H "Content-Type: application/json" ^
+   curl -X POST http://127.0.0.1:8000/signals/execute \
+     -H "Content-Type: application/json" \
      -d "{\"symbol\":\"BTCUSDT\",\"direction\":\"long\",\"entry\":100,\"stop\":90,\"target\":130}"
    ```
 
