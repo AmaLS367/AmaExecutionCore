@@ -55,9 +55,25 @@
 |---|---|---|---|
 | `SIGNAL_LOOP_ENABLED` | `bool` | `False` | Включает автономный цикл стратегий на основе REST-опроса для day-trading интервалов. |
 | `SIGNAL_LOOP_SYMBOLS` | `list[str]` | `[]` | Список символов через запятую, например `BTCUSDT,ETHUSDT`. |
+| `SIGNAL_LOOP_STRATEGY` | `string` | `rsi_ema` | Day-trading стратегия для signal loop. Поддерживаемые значения: `rsi_ema`, `ema_crossover`. |
 | `SIGNAL_LOOP_INTERVAL` | `string` | `15` | Интервал Bybit kline, используемый циклом сигналов. |
 | `SIGNAL_LOOP_COOLDOWN_SECONDS` | `int` | `300` | Пауза после входа по каждому символу. |
 | `SIGNAL_LOOP_MAX_SYMBOLS_CONCURRENT` | `int` | `5` | Ограничение параллельных оценок стратегии по символам. |
+
+Рекомендуемые day-trading значения:
+
+- `SIGNAL_LOOP_STRATEGY=rsi_ema`
+- `SIGNAL_LOOP_INTERVAL=15`
+- `RISK_PER_TRADE_PCT=0.005`
+- `MIN_RRR=1.5`
+- `MAX_OPEN_POSITIONS=2`
+- `MAX_TOTAL_RISK_EXPOSURE_PCT=0.03`
+- `MAX_TRADES_PER_DAY=10`
+- `MAX_DAILY_LOSS_PCT=0.02`
+- `HARD_PAUSE_CONSECUTIVE_LOSSES=4`
+- `COOLDOWN_HOURS=2`
+
+Стратегия `rsi_ema` внутри использует цель `max(1.5, MIN_RRR)`, чтобы сгенерированный target не конфликтовал с execution-side проверкой минимального RRR.
 
 ## ⚡ Скальпинг
 

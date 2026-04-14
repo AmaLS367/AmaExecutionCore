@@ -102,6 +102,13 @@
 - `scripts/run_backtest.py`
 - `scripts/validate_strategy.py`
 
+`scripts/run_backtest.py` теперь является day-trading entry point:
+
+- по умолчанию использует `--interval 15`
+- по умолчанию использует `--strategy rsi_ema`
+- также поддерживает `--strategy ema_crossover`
+- использует `SimulationExecutionService`, поэтому replay-метрики считаются по будущим свечам и TP/SL/timeout, а не по production-ответам `ExecutionService`
+
 Текущие validation thresholds:
 
 - `win_rate > 0.55`
