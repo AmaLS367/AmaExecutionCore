@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Generic, Protocol, TypeVar
 
 from backend.market_data.contracts import MarketCandle, MarketSnapshot
@@ -42,6 +44,32 @@ class HistoricalReplayStep(Generic[ExecutionResultT]):
 class HistoricalReplayResult(Generic[ExecutionResultT]):
     request: HistoricalReplayRequest
     steps: tuple[HistoricalReplayStep[ExecutionResultT], ...]
+    report: "HistoricalReplayReport"
+
+
+@dataclass(slots=True, frozen=True)
+class HistoricalReplayMetrics:
+    closed_trades: int
+    winning_trades: int
+    losing_trades: int
+    expectancy: Decimal | None
+    win_rate: Decimal | None
+    profit_factor: Decimal | None
+    max_drawdown: Decimal | None
+
+
+@dataclass(slots=True, frozen=True)
+class HistoricalReplaySlippageSummary:
+    count: int
+    average: Decimal
+    minimum: Decimal
+    maximum: Decimal
+
+
+@dataclass(slots=True, frozen=True)
+class HistoricalReplayReport:
+    metrics: HistoricalReplayMetrics
+    slippage: HistoricalReplaySlippageSummary | None
 
 
 class HistoricalReplayRunner(Generic[ExecutionResultT]):
@@ -84,6 +112,7 @@ class HistoricalReplayRunner(Generic[ExecutionResultT]):
         return HistoricalReplayResult(
             request=normalized_request,
             steps=tuple(results),
+            report=_build_report(results),
         )
 
 
@@ -166,3 +195,85 @@ def _build_candle_replay_steps(
         )
         snapshots.append((step_index, snapshot))
     return snapshots
+
+
+def _build_report(
+    steps: list[HistoricalReplayStep[ExecutionResultT]],
+) -> HistoricalReplayReport:
+    realized_pnls: list[Decimal] = []
+    slippages: list[Decimal] = []
+    for step in steps:
+        if step.execution is None:
+            continue
+        realized_pnl = _coerce_decimal(_read_metric(step.execution, "realized_pnl"))
+        if realized_pnl is not None:
+            realized_pnls.append(realized_pnl)
+        slippage = _coerce_decimal(_read_metric(step.execution, "slippage"))
+        if slippage is not None:
+            slippages.append(slippage)
+
+    winning_trades = [pnl for pnl in realized_pnls if pnl > 0]
+    losing_trades = [pnl for pnl in realized_pnls if pnl < 0]
+    trade_count = len(realized_pnls)
+    expectancy = sum(realized_pnls, Decimal("0")) / Decimal(trade_count) if trade_count else None
+    win_rate = Decimal(len(winning_trades)) / Decimal(trade_count) if trade_count else None
+    profit_factor: Decimal | None = None
+    if losing_trades:
+        profit_factor = sum(winning_trades, Decimal("0")) / abs(sum(losing_trades, Decimal("0")))
+    max_drawdown = _calculate_max_drawdown(realized_pnls) if trade_count else None
+
+    slippage_summary: HistoricalReplaySlippageSummary | None = None
+    if slippages:
+        slippage_summary = HistoricalReplaySlippageSummary(
+            count=len(slippages),
+            average=sum(slippages, Decimal("0")) / Decimal(len(slippages)),
+            minimum=min(slippages),
+            maximum=max(slippages),
+        )
+
+    return HistoricalReplayReport(
+        metrics=HistoricalReplayMetrics(
+            closed_trades=trade_count,
+            winning_trades=len(winning_trades),
+            losing_trades=len(losing_trades),
+            expectancy=expectancy,
+            win_rate=win_rate,
+            profit_factor=profit_factor,
+            max_drawdown=max_drawdown,
+        ),
+        slippage=slippage_summary,
+    )
+
+
+def _read_metric(execution: object, field_name: str) -> object | None:
+    if isinstance(execution, Mapping):
+        return execution.get(field_name)
+    return getattr(execution, field_name, None)
+
+
+def _coerce_decimal(value: object | None) -> Decimal | None:
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, int):
+        return Decimal(value)
+    if isinstance(value, float):
+        return Decimal(str(value))
+    if isinstance(value, str):
+        return Decimal(value)
+    return None
+
+
+def _calculate_max_drawdown(realized_pnls: list[Decimal]) -> Decimal:
+    equity_curve = Decimal("0")
+    peak_equity = Decimal("0")
+    max_drawdown = Decimal("0")
+    for realized_pnl in realized_pnls:
+        equity_curve += realized_pnl
+        if equity_curve > peak_equity:
+            peak_equity = equity_curve
+        drawdown = peak_equity - equity_curve
+        if drawdown > max_drawdown:
+            max_drawdown = drawdown
+    return max_drawdown
