@@ -19,10 +19,16 @@ from backend.order_executor.executor import OrderExecutor
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    sync_engine = ExchangeSyncEngine(session_factory=app.state.session_factory)
+    sync_engine = ExchangeSyncEngine(
+        session_factory=app.state.session_factory,
+        rest_client=app.state.rest_client,
+    )
+    app.state.exchange_sync = sync_engine
     ws_listener.start()
     sync_engine.wire(ws_listener)
+    sync_engine.start_reconciliation_worker()
     yield
+    await sync_engine.stop_reconciliation_worker()
     ws_listener.stop()
 
 class NullRestClient:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -17,6 +18,7 @@ from backend.trade_journal.models import (
     SystemEvent,
     SystemEventType,
     Trade,
+    TradeStatus,
 )
 
 
@@ -94,6 +96,16 @@ class TradeJournalStore:
     async def get_trade(self, trade_id: uuid.UUID) -> Trade | None:
         result = await self._session.execute(select(Trade).where(Trade.id == trade_id))
         return result.scalar_one_or_none()
+
+    async def list_trades_by_status(self, statuses: Collection[TradeStatus]) -> list[Trade]:
+        if not statuses:
+            return []
+        result = await self._session.execute(
+            select(Trade)
+            .where(Trade.status.in_(tuple(statuses)))
+            .order_by(Trade.created_at.asc())
+        )
+        return list(result.scalars().all())
 
     async def get_or_create_safety_state(self) -> SafetyState:
         result = await self._session.execute(select(SafetyState).where(SafetyState.id == 1))
