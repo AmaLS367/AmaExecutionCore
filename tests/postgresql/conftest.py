@@ -5,14 +5,45 @@ import os
 
 from alembic import command
 from alembic.config import Config
+from fastapi.testclient import TestClient
 import pytest
 import pytest_asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.config import settings
+from backend.main import create_app
 
 TEST_POSTGRESQL_URL_ENV = "TEST_POSTGRESQL_URL"
+
+
+class PostgresqlApiRestClient:
+    def get_wallet_balance(self) -> dict[str, object]:
+        return {"list": [{"coin": [{"coin": "USDT", "equity": "1000"}]}]}
+
+    def get_instruments_info(self, symbol: str, category: str = "spot") -> dict[str, object]:
+        return {"lotSizeFilter": {"qtyStep": "0.1", "minOrderQty": "0.1", "minOrderAmt": "5"}}
+
+    def place_order(self, **_: object) -> dict[str, object]:
+        return {"orderId": "unused"}
+
+    def cancel_order(
+        self,
+        *,
+        category: str,
+        symbol: str,
+        order_id: str | None = None,
+        order_link_id: str | None = None,
+    ) -> dict[str, object]:
+        return {
+            "category": category,
+            "symbol": symbol,
+            "orderId": order_id,
+            "orderLinkId": order_link_id,
+        }
+
+    def get_order_status(self, **_: object) -> dict[str, object] | None:
+        return None
 
 
 def _require_postgresql_test_url() -> str:
@@ -75,3 +106,16 @@ async def postgresql_session_factory(
         yield session_factory
     finally:
         await engine.dispose()
+
+
+@pytest.fixture
+def postgresql_client(
+    postgresql_session_factory: async_sessionmaker[AsyncSession],
+) -> Generator[TestClient, None, None]:
+    settings.trading_mode = "shadow"
+    app = create_app(
+        session_factory=postgresql_session_factory,
+        rest_client=PostgresqlApiRestClient(),
+    )
+    with TestClient(app) as client:
+        yield client
