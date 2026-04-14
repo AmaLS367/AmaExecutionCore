@@ -35,6 +35,7 @@ def reset_settings() -> Generator[None, None, None]:
         "demo_close_ttl_seconds": getattr(settings, "demo_close_ttl_seconds", 30),
         "signal_loop_enabled": settings.signal_loop_enabled,
         "signal_loop_symbols": list(settings.signal_loop_symbols),
+        "signal_loop_strategy": settings.signal_loop_strategy,
         "signal_loop_interval": settings.signal_loop_interval,
         "signal_loop_cooldown_seconds": settings.signal_loop_cooldown_seconds,
         "signal_loop_max_symbols_concurrent": settings.signal_loop_max_symbols_concurrent,
