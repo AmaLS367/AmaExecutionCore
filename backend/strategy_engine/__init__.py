@@ -6,6 +6,7 @@ from backend.strategy_engine.service import (
     StrategyExecutionResult,
     StrategyExecutionService,
 )
+from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
 
 __all__ = [
     "BaseStrategy",
@@ -15,4 +16,5 @@ __all__ = [
     "StrategyExecutionResult",
     "StrategyExecutionService",
     "StrategySignal",
+    "VWAPReversionStrategy",
 ]

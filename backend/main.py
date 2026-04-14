@@ -1,24 +1,35 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
 
+from backend.bybit_client.exceptions import BybitConnectionError
 from backend.bybit_client.rest import BybitRESTClient
 from backend.config import settings
 from backend.database import AsyncSessionLocal
 from backend.exchange_sync.engine import ExchangeSyncEngine
 from backend.exchange_sync.listener import ws_listener
+from backend.market_data.bybit_spot import BybitSpotSnapshotProvider
+from backend.market_data.bybit_ws_feed import BybitCandleFeed
+from backend.order_executor.executor import OrderExecutor
 from backend.position_manager.router import router as position_router
 from backend.position_manager.service import PositionManagerService
 from backend.safety_guard.router import router as safety_router
 from backend.signal_execution.router import router as signal_router
 from backend.signal_execution.service import ExecutionService
-from backend.order_executor.executor import OrderExecutor
+from backend.signal_loop.runner import SignalLoopRunner
+from backend.signal_loop.ws_runner import WebSocketSignalRunner
+from backend.strategy_engine.ema_crossover import EMACrossoverStrategy
+from backend.strategy_engine.service import StrategyExecutionService
+from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    _validate_runner_configuration()
+
     sync_engine = ExchangeSyncEngine(
         session_factory=app.state.session_factory,
         rest_client=app.state.rest_client,
@@ -27,9 +38,57 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     ws_listener.start()
     sync_engine.wire(ws_listener)
     sync_engine.start_reconciliation_worker()
+
+    signal_loop_runner: SignalLoopRunner | None = None
+    signal_loop_task: asyncio.Task[None] | None = None
+    if settings.signal_loop_enabled and settings.signal_loop_symbols:
+        strategy_service = StrategyExecutionService(
+            snapshot_provider=BybitSpotSnapshotProvider(rest_client=app.state.rest_client),
+            strategy=EMACrossoverStrategy(),
+        )
+        signal_loop_runner = SignalLoopRunner(
+            strategy_service=strategy_service,
+            execution_service=app.state.execution_service,
+            symbols=settings.signal_loop_symbols,
+            interval=settings.signal_loop_interval,
+            cooldown_seconds=settings.signal_loop_cooldown_seconds,
+            max_symbols_concurrent=settings.signal_loop_max_symbols_concurrent,
+            session_factory=app.state.session_factory,
+        )
+        signal_loop_task = asyncio.create_task(signal_loop_runner.run_forever())
+
+    scalping_runner: WebSocketSignalRunner | None = None
+    scalping_task: asyncio.Task[None] | None = None
+    if settings.scalping_enabled and settings.scalping_symbols:
+        feed = BybitCandleFeed(
+            symbols=settings.scalping_symbols,
+            interval=settings.scalping_interval,
+            window_size=settings.scalping_ws_window_size,
+            testnet=settings.bybit_testnet,
+            rest_client=app.state.rest_client,
+        )
+        scalping_runner = WebSocketSignalRunner(
+            strategy=VWAPReversionStrategy(),
+            execution_service=app.state.execution_service,
+            feed=feed,
+            cooldown_seconds=settings.scalping_cooldown_seconds,
+            session_factory=app.state.session_factory,
+        )
+        scalping_task = asyncio.create_task(scalping_runner.run_forever())
+
     yield
+
+    if scalping_runner is not None:
+        scalping_runner.stop()
+    if signal_loop_runner is not None:
+        signal_loop_runner.stop()
+    if scalping_task is not None:
+        await asyncio.gather(scalping_task, return_exceptions=True)
+    if signal_loop_task is not None:
+        await asyncio.gather(signal_loop_task, return_exceptions=True)
     await sync_engine.stop_reconciliation_worker()
     ws_listener.stop()
+
 
 class NullRestClient:
     def get_wallet_balance(self) -> dict[str, object]:
@@ -47,6 +106,9 @@ class NullRestClient:
     def get_order_status(self, **_: object) -> dict[str, object] | None:
         raise RuntimeError("Bybit REST client is not available.")
 
+    def get_klines(self, **_: object) -> list[object]:
+        raise RuntimeError("Bybit REST client is not available.")
+
 
 def create_app(
     *,
@@ -54,7 +116,10 @@ def create_app(
     rest_client: Any | None = None,
 ) -> FastAPI:
     if rest_client is None:
-        rest_client = BybitRESTClient()
+        try:
+            rest_client = BybitRESTClient()
+        except BybitConnectionError:
+            rest_client = NullRestClient()
 
     order_executor = OrderExecutor(rest_client=rest_client)
     execution_service = ExecutionService(
@@ -80,6 +145,14 @@ def create_app(
     app.include_router(signal_router)
     app.include_router(position_router)
     return app
+
+
+def _validate_runner_configuration() -> None:
+    if not (settings.signal_loop_enabled and settings.scalping_enabled):
+        return
+    overlap = set(settings.signal_loop_symbols) & set(settings.scalping_symbols)
+    if overlap:
+        raise RuntimeError(f"Signal loop and scalping symbol sets overlap: {sorted(overlap)}")
 
 
 app = create_app()

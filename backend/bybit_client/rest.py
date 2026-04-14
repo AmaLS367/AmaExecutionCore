@@ -117,6 +117,7 @@ class BybitRESTClient:
         interval: str,
         limit: int,
         category: str = "spot",
+        end: int | None = None,
     ) -> list[BybitKline]:
         logger.debug(
             "Fetching klines. symbol={} interval={} limit={} category={}",
@@ -131,6 +132,7 @@ class BybitRESTClient:
                 symbol=symbol,
                 interval=interval,
                 limit=limit,
+                end=end,
             )
         except Exception as exc:
             raise BybitConnectionError(

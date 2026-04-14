@@ -14,6 +14,7 @@ class MarketCandle:
     high: float
     low: float
     close: float
+    volume: float = 0.0
 
 
 @dataclass(slots=True, frozen=True)
@@ -44,6 +45,10 @@ class MarketSnapshot:
     @property
     def lows(self) -> tuple[float, ...]:
         return tuple(candle.low for candle in self.candles)
+
+    @property
+    def volumes(self) -> tuple[float, ...]:
+        return tuple(candle.volume for candle in self.candles)
 
 
 class MarketSnapshotProvider(ABC, Generic[SnapshotT]):

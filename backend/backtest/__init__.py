@@ -8,6 +8,10 @@ from backend.backtest.replay_runner import (
     HistoricalReplaySlippageSummary,
     HistoricalReplayStep,
 )
+from backend.backtest.simulation_execution_service import (
+    SimulationExecutionResult,
+    SimulationExecutionService,
+)
 from backend.backtest.shadow_runner import ShadowRunRequest, ShadowRunResult, ShadowRunner
 
 __all__ = [
@@ -19,6 +23,8 @@ __all__ = [
     "HistoricalReplayRunner",
     "HistoricalReplaySlippageSummary",
     "HistoricalReplayStep",
+    "SimulationExecutionResult",
+    "SimulationExecutionService",
     "ShadowRunRequest",
     "ShadowRunResult",
     "ShadowRunner",

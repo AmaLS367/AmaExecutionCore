@@ -19,6 +19,7 @@ class SupportsBybitSpotKlines(Protocol):
         interval: str,
         limit: int,
         category: str = "spot",
+        end: int | None = None,
     ) -> list[BybitKline]:
         ...
 
@@ -49,6 +50,7 @@ class BybitSpotSnapshotProvider(MarketSnapshotProvider[MarketSnapshot]):
                 high=kline.high_price,
                 low=kline.low_price,
                 close=kline.close_price,
+                volume=kline.volume,
             )
             for kline in ordered_klines
         )

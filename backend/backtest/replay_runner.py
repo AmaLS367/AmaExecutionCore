@@ -3,14 +3,16 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Generic, Protocol, TypeVar
+from typing import Generic, Protocol, TypeGuard, TypeVar, cast
 
 from backend.market_data.contracts import MarketCandle, MarketSnapshot
+from backend.signal_execution.schemas import ExecuteSignalRequest
 from backend.strategy_engine.contracts import StrategySignal
 
 from backend.backtest.shadow_runner import SupportsExecutionService, _to_execute_signal_request
 
 ExecutionResultT = TypeVar("ExecutionResultT")
+ExecutionResultT_co = TypeVar("ExecutionResultT_co", covariant=True)
 
 
 class SupportsReplayStrategy(Protocol):
@@ -19,6 +21,17 @@ class SupportsReplayStrategy(Protocol):
         ...
 
     async def generate_signal(self, snapshot: MarketSnapshot) -> StrategySignal | None:
+        ...
+
+
+class SupportsReplayExecutionContext(Protocol[ExecutionResultT_co]):
+    async def execute_replay_signal(
+        self,
+        *,
+        signal: ExecuteSignalRequest,
+        future_candles: tuple[MarketCandle, ...],
+        step_index: int,
+    ) -> ExecutionResultT:
         ...
 
 
@@ -77,7 +90,8 @@ class HistoricalReplayRunner(Generic[ExecutionResultT]):
         self,
         *,
         strategy: SupportsReplayStrategy,
-        execution_service: SupportsExecutionService[ExecutionResultT],
+        execution_service: SupportsExecutionService[ExecutionResultT]
+        | SupportsReplayExecutionContext[ExecutionResultT],
     ) -> None:
         self._strategy = strategy
         self._execution_service = execution_service
@@ -97,9 +111,25 @@ class HistoricalReplayRunner(Generic[ExecutionResultT]):
             signal = await self._strategy.generate_signal(snapshot)
             execution: ExecutionResultT | None = None
             if signal is not None:
-                execution = await self._execution_service.execute_signal(
-                    signal=_to_execute_signal_request(signal)
-                )
+                execute_signal_request = _to_execute_signal_request(signal)
+                if _supports_replay_execution_context(self._execution_service):
+                    future_candles = _future_candles_for_step(
+                        normalized_request,
+                        step_index=step_index,
+                    )
+                    execution = await self._execution_service.execute_replay_signal(
+                        signal=execute_signal_request,
+                        future_candles=future_candles,
+                        step_index=step_index,
+                    )
+                else:
+                    execution_service = self._execution_service
+                    execution = await cast(
+                        SupportsExecutionService[ExecutionResultT],
+                        execution_service,
+                    ).execute_signal(
+                        signal=execute_signal_request
+                    )
             results.append(
                 HistoricalReplayStep(
                     step_index=step_index,
@@ -277,3 +307,19 @@ def _calculate_max_drawdown(realized_pnls: list[Decimal]) -> Decimal:
         if drawdown > max_drawdown:
             max_drawdown = drawdown
     return max_drawdown
+
+
+def _future_candles_for_step(
+    request: HistoricalReplayRequest,
+    *,
+    step_index: int,
+) -> tuple[MarketCandle, ...]:
+    if request.candles is None:
+        return ()
+    return request.candles[step_index + 1 :]
+
+
+def _supports_replay_execution_context(
+    execution_service: object,
+) -> TypeGuard[SupportsReplayExecutionContext[ExecutionResultT]]:
+    return hasattr(execution_service, "execute_replay_signal")
