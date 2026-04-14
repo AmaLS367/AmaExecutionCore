@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Awaitable
+from collections.abc import Coroutine
 from contextlib import suppress
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -25,10 +25,6 @@ _ENTRY_RECONCILIATION_STATUSES: tuple[TradeStatus, ...] = (
     TradeStatus.ORDER_PENDING_UNKNOWN,
 )
 _CLOSE_RECONCILIATION_STATUSES: tuple[TradeStatus, ...] = (TradeStatus.POSITION_CLOSE_PENDING,)
-_RECONCILIATION_STATUSES: tuple[TradeStatus, ...] = (
-    *_ENTRY_RECONCILIATION_STATUSES,
-    *_CLOSE_RECONCILIATION_STATUSES,
-)
 _DEFAULT_RECONCILIATION_INTERVAL_SECONDS = 5.0
 
 
@@ -104,24 +100,21 @@ class ExchangeSyncEngine:
         if self._rest_client is None:
             return 0
 
-        reconciled = 0
-        async with self._session_factory() as session:
-            store = TradeJournalStore(session)
-            trades = await store.list_trades_by_status(_RECONCILIATION_STATUSES)
-            for trade in trades:
-                try:
-                    if await self._reconcile_trade(session=session, store=store, trade=trade):
-                        reconciled += 1
-                except Exception:
-                    logger.exception("Failed to reconcile trade {}.", trade.id)
-            await session.commit()
-        return reconciled
+        reconciled_entries = await self.reconcile_entry_orders()
+        reconciled_closes = await self.reconcile_close_orders()
+        return reconciled_entries + reconciled_closes
+
+    async def reconcile_entry_orders(self) -> int:
+        return await self._reconcile_status_group(_ENTRY_RECONCILIATION_STATUSES)
+
+    async def reconcile_close_orders(self) -> int:
+        return await self._reconcile_status_group(_CLOSE_RECONCILIATION_STATUSES)
 
     # ------------------------------------------------------------------
     # Thread → asyncio bridge
     # ------------------------------------------------------------------
 
-    def _dispatch(self, coro: Awaitable[None]) -> None:
+    def _dispatch(self, coro: Coroutine[Any, Any, None]) -> None:
         if self._loop is None or self._loop.is_closed():
             logger.warning("Event loop unavailable — WS event dropped.")
             return
@@ -234,6 +227,23 @@ class ExchangeSyncEngine:
                 tracked_order_link_id,
             )
         return updated
+
+    async def _reconcile_status_group(self, statuses: tuple[TradeStatus, ...]) -> int:
+        if self._rest_client is None:
+            return 0
+
+        reconciled = 0
+        async with self._session_factory() as session:
+            store = TradeJournalStore(session)
+            trades = await store.list_trades_by_status(statuses)
+            for trade in trades:
+                try:
+                    if await self._reconcile_trade(session=session, store=store, trade=trade):
+                        reconciled += 1
+                except Exception:
+                    logger.exception("Failed to reconcile trade {}.", trade.id)
+            await session.commit()
+        return reconciled
 
     async def _apply_order_update(
         self,

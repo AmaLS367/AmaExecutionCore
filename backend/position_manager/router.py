@@ -15,17 +15,13 @@ from backend.position_manager.schemas import (
     TradeListItemResponse,
 )
 from backend.position_manager.service import PositionManagerService
-from backend.trade_journal.models import Trade, TradeStatus, TradingMode
+from backend.trade_journal.models import Trade, TradingMode
 
 router = APIRouter(tags=["positions", "trades"])
 
 
 def get_position_manager(request: Request) -> PositionManagerService:
     return cast(PositionManagerService, request.app.state.position_manager)
-
-
-def get_session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
-    return cast(async_sessionmaker[AsyncSession], request.app.state.session_factory)
 
 
 @router.post("/positions/{trade_id}/close", response_model=ClosePositionResponse)
@@ -50,14 +46,7 @@ async def close_position(
 
 @router.get("/positions/open", response_model=list[OpenPositionResponse])
 async def list_open_positions(request: Request) -> list[OpenPositionResponse]:
-    session_factory = get_session_factory(request)
-    async with session_factory() as session:
-        result = await session.execute(
-            select(Trade)
-            .where(Trade.status.in_([TradeStatus.POSITION_OPEN, TradeStatus.ORDER_PARTIALLY_FILLED]))
-            .order_by(Trade.created_at.desc())
-        )
-        trades = result.scalars().all()
+    trades = await get_position_manager(request).list_open_trades()
     return [
         OpenPositionResponse(
             trade_id=trade.id,
@@ -81,7 +70,7 @@ async def list_trades(
     offset: int = Query(default=0, ge=0),
     mode: TradingMode | None = Query(default=None),
 ) -> list[TradeListItemResponse]:
-    session_factory = get_session_factory(request)
+    session_factory = cast(async_sessionmaker[AsyncSession], request.app.state.session_factory)
     async with session_factory() as session:
         statement = select(Trade).order_by(Trade.created_at.desc()).limit(limit).offset(offset)
         if mode is not None:
@@ -110,7 +99,7 @@ async def list_trades(
 
 @router.get("/trades/{trade_id}", response_model=TradeDetailResponse)
 async def get_trade_detail(trade_id: UUID, request: Request) -> TradeDetailResponse:
-    session_factory = get_session_factory(request)
+    session_factory = cast(async_sessionmaker[AsyncSession], request.app.state.session_factory)
     async with session_factory() as session:
         trade = (await session.execute(select(Trade).where(Trade.id == trade_id))).scalar_one_or_none()
     if trade is None:
