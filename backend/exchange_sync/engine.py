@@ -267,7 +267,13 @@ class ExchangeSyncEngine:
             else:
                 trade.exchange_order_id = exchange_order_id
 
-        trade.status = new_status
+        if (
+            not is_close_order
+            and trade.status == TradeStatus.POSITION_OPEN
+            and new_status == TradeStatus.ORDER_CONFIRMED
+            and data.get("leavesQty") == "0"
+        ):
+            return False
 
         if new_status == TradeStatus.ORDER_CONFIRMED and not is_close_order:
             avg_price = data.get("avgPrice")
@@ -276,13 +282,33 @@ class ExchangeSyncEngine:
                 trade.avg_fill_price = Decimal(str(avg_price))
             if cum_exec_qty is not None:
                 trade.filled_qty = Decimal(str(cum_exec_qty))
+            await store.transition_trade_status(
+                trade,
+                TradeStatus.ORDER_CONFIRMED,
+                event_metadata={"source": "exchange_sync"},
+            )
             trade.opened_at = datetime.now(timezone.utc)
             if data.get("leavesQty") == "0":
-                trade.status = TradeStatus.POSITION_OPEN
+                await store.transition_trade_status(
+                    trade,
+                    TradeStatus.POSITION_OPEN,
+                    event_metadata={"source": "exchange_sync"},
+                )
         elif is_close_order and new_status == TradeStatus.ORDER_CONFIRMED:
+            if trade.status == TradeStatus.PNL_RECORDED:
+                return False
+            await store.transition_trade_status(
+                trade,
+                TradeStatus.ORDER_CONFIRMED,
+                event_metadata={"source": "exchange_sync"},
+            )
             exit_price = Decimal(str(data.get("avgPrice", "0")))
             trade.avg_exit_price = exit_price
-            trade.status = TradeStatus.POSITION_CLOSED
+            await store.transition_trade_status(
+                trade,
+                TradeStatus.POSITION_CLOSED,
+                event_metadata={"source": "exchange_sync"},
+            )
             trade.closed_at = datetime.now(timezone.utc)
             if trade.opened_at is not None:
                 opened_at = trade.opened_at
@@ -299,7 +325,11 @@ class ExchangeSyncEngine:
             trade.realized_pnl = realized_pnl
             trade.pnl_pct = store.calculate_pnl_pct(trade, realized_pnl)
             trade.pnl_in_r = store.calculate_pnl_in_r(trade, realized_pnl)
-            trade.status = TradeStatus.PNL_RECORDED
+            await store.transition_trade_status(
+                trade,
+                TradeStatus.PNL_RECORDED,
+                event_metadata={"source": "exchange_sync"},
+            )
             if realized_pnl < 0 and trade.pnl_pct is not None:
                 await circuit_breaker.record_loss(session, abs(trade.pnl_pct))
             else:
@@ -308,7 +338,16 @@ class ExchangeSyncEngine:
             TradeStatus.ORDER_REJECTED,
             TradeStatus.ORDER_CANCELLED,
         }:
-            trade.status = TradeStatus.POSITION_CLOSE_FAILED
+            await store.transition_trade_status(
+                trade,
+                new_status,
+                event_metadata={"source": "exchange_sync"},
+            )
+            await store.transition_trade_status(
+                trade,
+                TradeStatus.POSITION_CLOSE_FAILED,
+                event_metadata={"source": "exchange_sync"},
+            )
             await store.append_system_event(
                 event_type=SystemEventType.ERROR,
                 description="Close order failed and position may remain open.",
@@ -316,6 +355,12 @@ class ExchangeSyncEngine:
                     "trade_id": str(trade.id),
                     "close_order_link_id": order_link_id,
                 },
+            )
+        else:
+            await store.transition_trade_status(
+                trade,
+                new_status,
+                event_metadata={"source": "exchange_sync"},
             )
 
         return True

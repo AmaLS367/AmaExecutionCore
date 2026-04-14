@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Collection
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 import uuid
 
@@ -10,6 +10,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.trade_journal.models import (
+    DailyStat,
     PauseReason,
     SafetyState,
     Signal,
@@ -18,8 +19,12 @@ from backend.trade_journal.models import (
     SystemEvent,
     SystemEventType,
     Trade,
+    TradeEvent,
     TradeStatus,
 )
+
+TRADE_CREATED_EVENT = "trade_created"
+STATUS_TRANSITION_EVENT = "status_transition"
 
 
 @dataclass(slots=True)
@@ -96,6 +101,70 @@ class TradeJournalStore:
     async def get_trade(self, trade_id: uuid.UUID) -> Trade | None:
         result = await self._session.execute(select(Trade).where(Trade.id == trade_id))
         return result.scalar_one_or_none()
+
+    async def get_or_create_daily_stat(self, *, stat_date: date) -> DailyStat:
+        result = await self._session.execute(select(DailyStat).where(DailyStat.stat_date == stat_date))
+        stat = result.scalar_one_or_none()
+        if stat is None:
+            stat = DailyStat(stat_date=stat_date)
+            self._session.add(stat)
+            await self._session.flush()
+        return stat
+
+    async def append_trade_event(
+        self,
+        *,
+        trade: Trade,
+        event_type: str,
+        from_status: TradeStatus | None,
+        to_status: TradeStatus | None,
+        event_metadata: dict[str, object] | None = None,
+    ) -> TradeEvent:
+        event = TradeEvent(
+            trade_id=trade.id,
+            event_type=event_type,
+            from_status=from_status.value if from_status is not None else None,
+            to_status=to_status.value if to_status is not None else None,
+            event_metadata=event_metadata,
+        )
+        self._session.add(event)
+        await self._session.flush()
+        return event
+
+    async def record_trade_created(
+        self,
+        trade: Trade,
+        *,
+        event_metadata: dict[str, object] | None = None,
+    ) -> TradeEvent:
+        return await self.append_trade_event(
+            trade=trade,
+            event_type=TRADE_CREATED_EVENT,
+            from_status=None,
+            to_status=trade.status,
+            event_metadata=event_metadata,
+        )
+
+    async def transition_trade_status(
+        self,
+        trade: Trade,
+        new_status: TradeStatus,
+        *,
+        event_metadata: dict[str, object] | None = None,
+    ) -> bool:
+        previous_status = trade.status
+        if previous_status == new_status:
+            return False
+
+        trade.status = new_status
+        await self.append_trade_event(
+            trade=trade,
+            event_type=STATUS_TRANSITION_EVENT,
+            from_status=previous_status,
+            to_status=new_status,
+            event_metadata=event_metadata,
+        )
+        return True
 
     async def list_trades_by_status(self, statuses: Collection[TradeStatus]) -> list[Trade]:
         if not statuses:

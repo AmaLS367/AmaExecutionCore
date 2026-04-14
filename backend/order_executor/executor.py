@@ -26,6 +26,7 @@ from backend.trade_journal.models import (
     TradeStatus,
     TradingMode,
 )
+from backend.trade_journal.store import TradeJournalStore
 
 
 class OrderAlreadySubmittedError(Exception):
@@ -119,6 +120,7 @@ class OrderExecutor:
         await self._ensure_total_exposure_within_limit(session, equity=Decimal(str(equity)))
 
         # 8. Persist Trade record with RISK_CALCULATED status
+        store = TradeJournalStore(session)
         exchange_side = ExchangeSide.BUY if direction == SignalDirection.LONG else ExchangeSide.SELL
         order_link_id = generate_order_link_id(str(signal_id))
         rrr = Decimal(str(abs(target - entry) / abs(entry - stop)))
@@ -143,10 +145,18 @@ class OrderExecutor:
         )
         session.add(trade)
         await session.flush()
+        await store.record_trade_created(
+            trade,
+            event_metadata={"source": "order_executor"},
+        )
 
         # 9. Shadow: log and exit without REST call
         if settings.trading_mode == "shadow":
-            trade.status = TradeStatus.ORDER_SUBMITTED
+            await store.transition_trade_status(
+                trade,
+                TradeStatus.ORDER_SUBMITTED,
+                event_metadata={"source": "order_executor", "execution_mode": "shadow"},
+            )
             await session.commit()
             logger.info(
                 "Shadow order logged. symbol={} side={} qty={} order_link_id={}",
@@ -158,10 +168,15 @@ class OrderExecutor:
             return trade
 
         # 10. Real/Demo: submit to exchange
-        trade.status = TradeStatus.SAFETY_CHECKED
+        await store.transition_trade_status(
+            trade,
+            TradeStatus.SAFETY_CHECKED,
+            event_metadata={"source": "order_executor"},
+        )
         trade.order_type = "Limit"
         try:
             submitted_order_link_id = await self._submit_order(
+                session=session,
                 trade=trade,
                 category=category,
                 symbol=symbol,
@@ -178,7 +193,11 @@ class OrderExecutor:
                 trade.exchange_order_id,
             )
         except BybitAPIError as exc:
-            trade.status = TradeStatus.ORDER_REJECTED
+            await store.transition_trade_status(
+                trade,
+                TradeStatus.ORDER_REJECTED,
+                event_metadata={"source": "order_executor", "reason": "exchange_rejected"},
+            )
             logger.error("Order submission rejected for {}: {}", order_link_id, exc)
             await session.commit()
             raise
@@ -197,6 +216,7 @@ class OrderExecutor:
     async def _submit_order(
         self,
         *,
+        session: AsyncSession,
         trade: Trade,
         category: str,
         symbol: str,
@@ -263,7 +283,12 @@ class OrderExecutor:
                     raise
 
         trade.exchange_order_id = result.get("orderId")
-        trade.status = TradeStatus.ORDER_SUBMITTED
+        store = TradeJournalStore(session)
+        await store.transition_trade_status(
+            trade,
+            TradeStatus.ORDER_SUBMITTED,
+            event_metadata={"source": "order_executor"},
+        )
         trade.order_link_id = current_order_link_id
         return current_order_link_id
 
@@ -277,7 +302,12 @@ class OrderExecutor:
         exc: Exception,
     ) -> None:
         logger.warning("Order submission uncertain for {}: {}", trade.order_link_id, exc)
-        trade.status = TradeStatus.ORDER_PENDING_UNKNOWN
+        store = TradeJournalStore(session)
+        await store.transition_trade_status(
+            trade,
+            TradeStatus.ORDER_PENDING_UNKNOWN,
+            event_metadata={"source": "order_executor", "reason": "submit_uncertain"},
+        )
         await self.reconcile_pending_unknown(session=session, trade=trade, category=category, symbol=symbol)
         await session.commit()
 
@@ -312,8 +342,11 @@ class OrderExecutor:
 
         if resolved_order is not None:
             trade.exchange_order_id = resolved_order.get("orderId")
-            trade.status = self._map_remote_order_status(
-                resolved_order.get("orderStatus", ""),
+            store = TradeJournalStore(session)
+            await store.transition_trade_status(
+                trade,
+                self._map_remote_order_status(resolved_order.get("orderStatus", "")),
+                event_metadata={"source": "pending_unknown_reconciliation"},
             )
         await session.flush()
         return trade

@@ -152,6 +152,29 @@ class Trade(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
 
     signal: Mapped[Signal | None] = relationship("Signal", back_populates="trades")
+    events: Mapped[list["TradeEvent"]] = relationship(
+        "TradeEvent",
+        back_populates="trade",
+        order_by="TradeEvent.id",
+    )
+
+
+class TradeEvent(Base):
+    __tablename__ = "trade_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    trade_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("trades.id"),
+        nullable=False,
+    )
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    from_status: Mapped[str | None] = mapped_column(String(50))
+    to_status: Mapped[str | None] = mapped_column(String(50))
+    event_metadata: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+    trade: Mapped[Trade] = relationship("Trade", back_populates="events")
 
 class DailyStat(Base):
     __tablename__ = "daily_stats"

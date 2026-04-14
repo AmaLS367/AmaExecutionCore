@@ -85,6 +85,11 @@ class PositionManagerService:
                 trade=trade,
                 exit_reason=exit_reason,
             )
+            await store.transition_trade_status(
+                trade,
+                TradeStatus.POSITION_CLOSE_PENDING,
+                event_metadata={"source": "position_manager"},
+            )
 
             if settings.trading_mode == "shadow":
                 if exit_reason == ExitReason.SL_HIT and trade.stop_price is not None:
@@ -109,7 +114,11 @@ class PositionManagerService:
                     trade.hold_time_seconds = int(
                         (closed_at - opened_at).total_seconds()
                     )
-                trade.status = TradeStatus.PNL_RECORDED
+                await store.transition_trade_status(
+                    trade,
+                    TradeStatus.PNL_RECORDED,
+                    event_metadata={"source": "position_manager", "execution_mode": "shadow"},
+                )
                 await session.commit()
                 return trade
 
@@ -142,5 +151,4 @@ class PositionManagerService:
         trade.close_order_link_id = close_order_link_id
         trade.close_exchange_order_id = None
         trade.exit_reason = exit_reason
-        trade.status = TradeStatus.POSITION_CLOSE_PENDING
         return close_order_link_id, close_side, qty
