@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.config import settings
 from backend.exchange_sync.listener import BybitWebSocketListener
-from backend.safety_guard.circuit_breaker import circuit_breaker
 from backend.trade_journal.models import ExitReason, Trade, TradeStatus, SystemEventType
 from backend.trade_journal.store import TradeJournalStore
 
@@ -330,10 +329,7 @@ class ExchangeSyncEngine:
                 TradeStatus.PNL_RECORDED,
                 event_metadata={"source": "exchange_sync"},
             )
-            if realized_pnl < 0 and trade.pnl_pct is not None:
-                await circuit_breaker.record_loss(session, abs(trade.pnl_pct))
-            else:
-                await circuit_breaker.record_win(session)
+            await store.apply_trade_outcome_analytics(trade)
         elif is_close_order and new_status in {
             TradeStatus.ORDER_REJECTED,
             TradeStatus.ORDER_CANCELLED,

@@ -119,6 +119,7 @@ class PositionManagerService:
                     TradeStatus.PNL_RECORDED,
                     event_metadata={"source": "position_manager", "execution_mode": "shadow"},
                 )
+                await store.apply_trade_outcome_analytics(trade)
                 await session.commit()
                 return trade
 

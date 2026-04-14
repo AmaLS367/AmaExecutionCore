@@ -166,6 +166,36 @@ class TradeJournalStore:
         )
         return True
 
+    async def apply_trade_outcome_analytics(self, trade: Trade) -> DailyStat:
+        if trade.realized_pnl is None:
+            raise ValueError("Trade outcome analytics require realized_pnl.")
+
+        closed_at = trade.closed_at or datetime.now(UTC)
+        if closed_at.tzinfo is None:
+            closed_at = closed_at.replace(tzinfo=UTC)
+        stat = await self.get_or_create_daily_stat(stat_date=closed_at.date())
+
+        realized_pnl = trade.realized_pnl
+        fee_paid = trade.fee_paid or Decimal("0")
+        net_pnl = realized_pnl - fee_paid
+
+        stat.total_trades = (stat.total_trades or 0) + 1
+        stat.gross_pnl = (stat.gross_pnl or Decimal("0")) + realized_pnl
+        stat.total_fees = (stat.total_fees or Decimal("0")) + fee_paid
+        stat.net_pnl = (stat.net_pnl or Decimal("0")) + net_pnl
+
+        if realized_pnl < 0:
+            stat.losing_trades = (stat.losing_trades or 0) + 1
+            stat.consecutive_losses = (stat.consecutive_losses or 0) + 1
+            if trade.pnl_pct is not None:
+                stat.daily_loss_pct = (stat.daily_loss_pct or Decimal("0")) + abs(trade.pnl_pct)
+        else:
+            stat.winning_trades = (stat.winning_trades or 0) + 1
+            stat.consecutive_losses = 0
+
+        await self._session.flush()
+        return stat
+
     async def list_trades_by_status(self, statuses: Collection[TradeStatus]) -> list[Trade]:
         if not statuses:
             return []
