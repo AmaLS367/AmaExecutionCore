@@ -30,6 +30,7 @@ def reset_settings() -> Generator[None, None, None]:
         "max_daily_loss_pct": settings.max_daily_loss_pct,
         "max_weekly_loss_pct": settings.max_weekly_loss_pct,
         "max_consecutive_losses": settings.max_consecutive_losses,
+        "hard_pause_consecutive_losses": settings.hard_pause_consecutive_losses,
         "cooldown_hours": settings.cooldown_hours,
         "demo_close_ttl_seconds": getattr(settings, "demo_close_ttl_seconds", 30),
     }
