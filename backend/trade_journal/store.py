@@ -13,6 +13,7 @@ from backend.trade_journal.models import (
     SafetyState,
     Signal,
     SignalDirection,
+    SignalSubmission,
     SystemEvent,
     SystemEventType,
     Trade,
@@ -50,6 +51,34 @@ class TradeJournalStore:
         self._session.add(signal)
         await self._session.flush()
         return signal
+
+    async def get_signal_submission(self, fingerprint: str) -> SignalSubmission | None:
+        result = await self._session.execute(
+            select(SignalSubmission).where(SignalSubmission.fingerprint == fingerprint)
+        )
+        return result.scalar_one_or_none()
+
+    async def create_signal_submission(self, *, fingerprint: str) -> SignalSubmission:
+        submission = SignalSubmission(fingerprint=fingerprint)
+        self._session.add(submission)
+        await self._session.flush()
+        return submission
+
+    async def get_trade_for_submission(self, submission: SignalSubmission) -> Trade | None:
+        if submission.trade_id is not None:
+            trade = await self.get_trade(submission.trade_id)
+            if trade is not None:
+                return trade
+
+        if submission.signal_id is None:
+            return None
+
+        result = await self._session.execute(
+            select(Trade)
+            .where(Trade.signal_id == submission.signal_id)
+            .order_by(Trade.created_at.desc())
+        )
+        return result.scalars().first()
 
     async def get_trade_by_order_link_id(self, order_link_id: str) -> Trade | None:
         result = await self._session.execute(

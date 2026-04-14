@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-
 
 class ExecuteSignalRequest(BaseModel):
     symbol: str = Field(min_length=1, max_length=20)
@@ -14,7 +13,7 @@ class ExecuteSignalRequest(BaseModel):
     target: float
     reason: str | None = None
     strategy_version: str | None = None
-    indicators_snapshot: dict[str, Any] | None = None
+    indicators_snapshot: dict[str, object] | None = None
 
 
 class ExecuteSignalResponse(BaseModel):
@@ -23,3 +22,4 @@ class ExecuteSignalResponse(BaseModel):
     order_link_id: str | None
     status: str
     mode: str
+    replayed: bool

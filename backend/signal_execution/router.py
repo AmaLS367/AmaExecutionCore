@@ -35,4 +35,5 @@ async def execute_signal(request: Request, payload: ExecuteSignalRequest) -> Exe
         order_link_id=result.order_link_id,
         status=result.status,
         mode=result.mode,
+        replayed=result.replayed,
     )

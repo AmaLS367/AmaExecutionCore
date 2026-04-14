@@ -22,6 +22,10 @@ def generate_order_link_id(signal_id: str) -> str:
     return f"{signal_id}_{uuid.uuid4().hex[:8]}"
 
 
+def is_trade_terminal(status: TradeStatus) -> bool:
+    return status in _TERMINAL_STATUSES
+
+
 async def is_order_already_submitted(
     session: AsyncSession, signal_id: uuid.UUID
 ) -> bool:

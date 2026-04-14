@@ -82,6 +82,21 @@ class Signal(Base):
     trades: Mapped[list["Trade"]] = relationship("Trade", back_populates="signal")
 
 
+class SignalSubmission(Base):
+    __tablename__ = "signal_submissions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    fingerprint: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    signal_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("signals.id"))
+    trade_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("trades.id"))
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
 class Trade(Base):
     __tablename__ = "trades"
 
