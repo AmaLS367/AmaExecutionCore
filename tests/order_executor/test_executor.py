@@ -34,6 +34,11 @@ class TimeoutRestClient:
         return None
 
 
+class ResolvePendingUnknownRestClient:
+    def get_order_status(self, **_: object) -> dict[str, object] | None:
+        return {"orderId": "resolved-2", "orderStatus": "Filled"}
+
+
 @pytest.mark.asyncio
 async def test_executor_marks_pending_unknown_after_submit_timeout(
     sqlite_session_factory: async_sessionmaker[AsyncSession],
@@ -156,3 +161,35 @@ async def test_executor_uses_configured_shadow_equity(
             await session.execute(select(Trade).where(Trade.id == trade.id))
         ).scalar_one()
         assert persisted_trade.equity_at_entry == Decimal("5000")
+
+
+@pytest.mark.asyncio
+async def test_executor_reconciles_pending_unknown_without_changing_order_link_id(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    executor = OrderExecutor(rest_client=ResolvePendingUnknownRestClient())
+    signal_id = uuid.uuid4()
+
+    async with sqlite_session_factory() as session:
+        trade = Trade(
+            signal_id=signal_id,
+            order_link_id="existing-link-1",
+            symbol="BTCUSDT",
+            signal_direction=SignalDirection.LONG,
+            exchange_side=ExchangeSide.BUY,
+            market_type=MarketType.SPOT,
+            mode=TradingMode.DEMO,
+            status=TradeStatus.ORDER_PENDING_UNKNOWN,
+        )
+        session.add(trade)
+        await session.commit()
+
+        await executor.reconcile_pending_unknown(session=session, trade=trade)
+        await session.flush()
+
+        persisted_trade = (
+            await session.execute(select(Trade).where(Trade.id == trade.id))
+        ).scalar_one()
+        assert persisted_trade.order_link_id == "existing-link-1"
+        assert persisted_trade.exchange_order_id == "resolved-2"
+        assert persisted_trade.status == TradeStatus.ORDER_CONFIRMED
