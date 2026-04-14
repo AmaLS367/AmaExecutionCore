@@ -9,6 +9,7 @@ from backend.config import settings
 from backend.safety_guard.exceptions import (
     CooldownActiveError,
     DailyLossLimitError,
+    HardLossStreakPauseError,
     WeeklyLossLimitError,
 )
 from backend.trade_journal.models import DailyStat, PauseReason, SystemEventType
@@ -22,6 +23,7 @@ class CircuitBreaker:
     Two tripwires:
     1. daily_loss_pct >= max_daily_loss_pct (3%) → DailyLossLimitError
     2. consecutive_losses >= max_consecutive_losses (3) → CooldownActiveError + cooldown
+    3. consecutive_losses >= hard_pause_consecutive_losses (5) → manual hard pause
 
     record_loss / record_win update today's DailyStat and are called by
     ExchangeSyncEngine when positions close.
@@ -58,6 +60,9 @@ class CircuitBreaker:
         if state.pause_reason == PauseReason.COOLDOWN:
             raise CooldownActiveError("Cooldown is active; new entries are temporarily blocked.")
 
+        if state.pause_reason == PauseReason.HARD_LOSS_STREAK:
+            raise HardLossStreakPauseError("Hard loss-streak pause is active until manual reset.")
+
         if stat.daily_loss_pct is not None and stat.daily_loss_pct >= Decimal(
             str(settings.max_daily_loss_pct)
         ):
@@ -93,6 +98,24 @@ class CircuitBreaker:
             raise WeeklyLossLimitError(
                 f"Weekly loss {weekly_loss:.2%} exceeds limit {settings.max_weekly_loss_pct:.2%}."
             )
+
+        if stat.consecutive_losses >= settings.hard_pause_consecutive_losses:
+            await store.set_pause(
+                pause_reason=PauseReason.HARD_LOSS_STREAK,
+                manual_reset_required=True,
+            )
+            await store.append_system_event(
+                event_type=SystemEventType.CIRCUIT_BREAKER,
+                description=(
+                    f"{stat.consecutive_losses} consecutive losses — hard loss-streak pause triggered."
+                ),
+                event_metadata={
+                    "consecutive_losses": stat.consecutive_losses,
+                    "hard_pause_consecutive_losses": settings.hard_pause_consecutive_losses,
+                },
+            )
+            await session.commit()
+            raise HardLossStreakPauseError("Hard loss-streak pause is active until manual reset.")
 
         if stat.consecutive_losses >= settings.max_consecutive_losses:
             cooldown_until = datetime.now(UTC) + timedelta(hours=settings.cooldown_hours)

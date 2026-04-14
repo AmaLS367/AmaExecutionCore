@@ -16,3 +16,7 @@ class CooldownActiveError(SafetyGuardError):
 
 class WeeklyLossLimitError(SafetyGuardError):
     """Raised when weekly realized loss exceeds the configured percentage limit."""
+
+
+class HardLossStreakPauseError(SafetyGuardError):
+    """Raised when repeated losses require a manual trading pause."""

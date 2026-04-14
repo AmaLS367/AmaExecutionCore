@@ -66,6 +66,7 @@ class PauseReason(str, enum.Enum):
     DAILY_LOSS = "daily_loss"
     WEEKLY_LOSS = "weekly_loss"
     COOLDOWN = "cooldown"
+    HARD_LOSS_STREAK = "hard_loss_streak"
 
 
 class Signal(Base):

@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     max_daily_loss_pct: float = 0.03
     max_weekly_loss_pct: float = 0.05
     max_consecutive_losses: int = 3
+    hard_pause_consecutive_losses: int = 5
     cooldown_hours: int = 4
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
