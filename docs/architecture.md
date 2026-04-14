@@ -1,24 +1,63 @@
 # Architecture
 
-AmaExecutionCore targets the pipeline from `AGENTS.md`:
+AmaExecutionCore is organized around the pipeline defined in `AGENTS.md`:
 
 `market_data -> strategy_engine -> risk_manager -> safety_guard -> order_executor -> exchange_sync & trade_journal`
 
-Today the live runtime entrypoint is the API layer:
+That full pipeline is now partially implemented through two concrete entry flows.
+
+## Current Runtime Entry Flows
+
+### API execution flow
 
 `signal_execution -> order_executor -> exchange_sync -> trade_journal`
 
-`position_manager` sits beside that entry flow. It does not open positions; it manages operator/demo close requests for trades that are already considered open on the exchange side.
+This path is used when an external caller already has a fully formed trade idea and submits it to `POST /signals/execute`.
+
+### Shadow pipeline flow
+
+`market_data -> strategy_engine -> risk_manager -> safety_guard -> order_executor -> trade_journal`
+
+The current shadow pipeline is an on-demand entrypoint implemented by `backend/backtest/shadow_runner.py`:
+
+1. `market_data`
+   `BybitSpotSnapshotProvider` fetches recent spot klines over Bybit REST and normalizes them into a minimal `MarketSnapshot` made of ordered candles with `high`, `low`, and `close`.
+2. `strategy_engine`
+   `StrategyExecutionService` receives an explicit `symbol` and `interval`, normalizes them at the service boundary, requests the candle window required by the strategy, and runs the strategy against the normalized snapshot.
+3. `risk_manager -> safety_guard -> order_executor`
+   `OrderExecutor` still owns the pre-submit execution gate: position sizing, minimum RRR validation, open-position limit checks, total exposure checks, kill switch checks, and circuit-breaker checks.
+4. `trade_journal`
+   In `shadow` mode the trade is persisted with an execution record, but order placement stops before any exchange REST order submission.
+
+This shadow flow is not a historical replay engine and it is not a scheduler or daemon. It runs once per explicit call with a caller-provided `symbol` and `interval`.
+
+`position_manager` remains adjacent to these entry flows. It does not open positions; it manages operator/demo close requests for trades that are already considered open on the exchange side.
 
 ## Ownership
 
-- `strategy_engine`: produces `StrategySignal` and never touches exchange or DB services.
+- `market_data`: owns upstream market snapshot retrieval and normalization. The current implementation is a Bybit Spot REST-backed snapshot provider for the first strategy.
+- `strategy_engine`: produces `StrategySignal` from normalized snapshots and never touches exchange or DB persistence directly.
 - `signal_execution`: persists `Signal`, invokes `OrderExecutor`, and returns the current persisted trade snapshot.
-- `order_executor`: performs risk checks, safety checks, exposure checks, idempotency, and order submission.
-- `exchange_sync`: owns exchange-order reconciliation after an order has an exchange identifier. It consumes private Bybit WebSocket events and periodically re-checks persisted entry/close order link IDs over REST.
+- `risk_manager`: currently contributes risk math and execution-side validation used by `OrderExecutor`.
 - `safety_guard`: enforces persistent kill switch, daily/weekly pauses, and cooldown windows.
+- `order_executor`: performs risk checks, safety checks, exposure checks, idempotency, and order submission or shadow persistence.
+- `exchange_sync`: owns exchange-order reconciliation after an order has an exchange identifier. It consumes private Bybit WebSocket events and periodically re-checks persisted entry/close order link IDs over REST.
 - `position_manager`: owns the runtime definition of "still open enough to manage" and owns close submission plus close retry after `POSITION_CLOSE_FAILED`.
-- `backtest`: contains the `ShadowRunner` and `DemoRunner`.
+- `trade_journal`: stores `Signal`, `Trade`, daily stats, system events, and persistent safety state.
+- `backtest`: currently contains the reusable `ShadowRunner` entrypoint and the separate `DemoRunner` testnet helper.
+
+## Strategy Snapshot Contract
+
+The first strategy is `EMACrossoverStrategy`.
+
+Its current expectations are intentionally minimal:
+
+- `symbol`
+- `interval`
+- an ordered candle window with `high`, `low`, and `close`
+- at least `slow + 1` candles so the EMA crossover can compare the last two EMA points
+
+No historical replay abstraction, ticker stream, or broader market-universe orchestration has been added yet.
 
 ### Open-position truth
 
@@ -58,6 +97,8 @@ The in-memory `KillSwitch` object mirrors persisted state but does not replace i
 
 ## Lifecycle Notes
 
+- Shadow mode persists a `Trade` record but does not call exchange order placement endpoints.
+- The current shadow path therefore stops before `exchange_sync`; there is no exchange-side order to reconcile.
 - Open-order timeouts move trades into `ORDER_PENDING_UNKNOWN`.
 - Entry and close orders use separate link IDs.
 - The reconciliation worker runs during app lifespan for non-shadow modes.
