@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.config import settings
 from backend.safety_guard.exceptions import KillSwitchActiveError
 from backend.trade_journal.models import SystemEventType, Trade, TradeStatus
+from backend.trade_journal.models import PauseReason
 from backend.trade_journal.store import PersistedSafetyState, TradeJournalStore
 
 _CANCELLABLE_STATUSES = {
@@ -90,11 +91,19 @@ class KillSwitch:
 
     async def reset(self, session: AsyncSession) -> PersistedSafetyState:
         store = TradeJournalStore(session)
-        await store.reset_safety_state()
+        current_state = await store.get_or_create_safety_state()
+        reset_consecutive_losses = current_state.pause_reason in {
+            PauseReason.COOLDOWN,
+            PauseReason.HARD_LOSS_STREAK,
+        }
+        await store.reset_safety_state(reset_consecutive_losses=reset_consecutive_losses)
         await store.append_system_event(
             event_type=SystemEventType.KILL_SWITCH,
             description="Safety state reset.",
-            event_metadata={"trading_mode": settings.trading_mode},
+            event_metadata={
+                "trading_mode": settings.trading_mode,
+                "reset_consecutive_losses": reset_consecutive_losses,
+            },
         )
         await session.commit()
         self._active = False

@@ -254,18 +254,31 @@ class TradeJournalStore:
             and cooldown_until is not None
             and cooldown_until <= datetime.now(UTC)
         ):
+            await self.reset_consecutive_losses(
+                stat_date=self._loss_streak_stat_date(state),
+            )
             state.pause_reason = None
             state.cooldown_until = None
             state.manual_reset_required = False
         return state
 
-    async def reset_safety_state(self) -> SafetyState:
+    async def reset_safety_state(self, *, reset_consecutive_losses: bool = False) -> SafetyState:
         state = await self.get_or_create_safety_state()
+        if reset_consecutive_losses:
+            await self.reset_consecutive_losses(
+                stat_date=self._loss_streak_stat_date(state),
+            )
         state.kill_switch_active = False
         state.pause_reason = None
         state.cooldown_until = None
         state.manual_reset_required = False
         return state
+
+    async def reset_consecutive_losses(self, *, stat_date: date) -> DailyStat:
+        stat = await self.get_or_create_daily_stat(stat_date=stat_date)
+        stat.consecutive_losses = 0
+        await self._session.flush()
+        return stat
 
     async def append_system_event(
         self,
@@ -305,3 +318,13 @@ class TradeJournalStore:
             return None
         assert risk_amount is not None
         return realized_pnl / risk_amount
+
+    @staticmethod
+    def _loss_streak_stat_date(state: SafetyState) -> date:
+        if state.last_triggered_at is None:
+            return date.today()
+
+        last_triggered_at = state.last_triggered_at
+        if last_triggered_at.tzinfo is None:
+            last_triggered_at = last_triggered_at.replace(tzinfo=UTC)
+        return last_triggered_at.date()
