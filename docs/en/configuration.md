@@ -49,6 +49,28 @@ This document explains all environment variables found in the `.env.example` / `
 
 ---
 
+## 🔁 Autonomous Signal Loop
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `SIGNAL_LOOP_ENABLED` | `bool` | `False` | Enables the REST-polled autonomous strategy loop for day-trading intervals. |
+| `SIGNAL_LOOP_SYMBOLS` | `list[str]` | `[]` | Comma-separated symbols evaluated by the signal loop, for example `BTCUSDT,ETHUSDT`. |
+| `SIGNAL_LOOP_INTERVAL` | `string` | `15` | Bybit kline interval used by the signal loop. |
+| `SIGNAL_LOOP_COOLDOWN_SECONDS` | `int` | `300` | Per-symbol entry cooldown after the runner submits a signal. |
+| `SIGNAL_LOOP_MAX_SYMBOLS_CONCURRENT` | `int` | `5` | Concurrency cap for parallel per-symbol strategy evaluations. |
+
+## ⚡ Scalping
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `SCALPING_ENABLED` | `bool` | `False` | Enables the public WebSocket candle feed plus the event-driven scalping runner. |
+| `SCALPING_SYMBOLS` | `list[str]` | `[]` | Comma-separated symbols for the scalping runner. Do not overlap with `SIGNAL_LOOP_SYMBOLS`. |
+| `SCALPING_INTERVAL` | `string` | `5` | Confirmed kline interval used by the scalping feed. The first supported production path is `5`. |
+| `SCALPING_WS_WINDOW_SIZE` | `int` | `50` | Rolling candle buffer depth kept in memory per symbol. Must satisfy the active strategy candle requirement. |
+| `SCALPING_COOLDOWN_SECONDS` | `int` | `120` | Per-symbol cooldown for the WebSocket scalping runner after a successful entry. |
+
+---
+
 ## 💰 Risk Management
 
 | Variable | Type | Default | Description |
@@ -57,6 +79,20 @@ This document explains all environment variables found in the `.env.example` / `
 | `MIN_RRR` | `float` | `2.0` | Minimum Risk-to-Reward ratio allowed. Signals suggesting an RRR lower than this will be rejected automatically. |
 | `MAX_OPEN_POSITIONS` | `int` | `1` | Strict cap on simultaneous open positions to avoid over-exposure. |
 | `MAX_TOTAL_RISK_EXPOSURE_PCT` | `float` | `0.03` (3%) | The absolute maximum sum of all floating risks (`RISK_PER_TRADE_PCT` combined) allowed concurrently. |
+| `MAX_TRADES_PER_DAY` | `int` | `10` | Hard daily entry cap enforced before order submission. This protects autonomous runners from runaway signal generation. |
+
+Recommended scalping overrides:
+
+- `ORDER_MODE=maker_preferred`
+- `RISK_PER_TRADE_PCT=0.003`
+- `MIN_RRR=1.5`
+- `MAX_OPEN_POSITIONS=2`
+- `MAX_TOTAL_RISK_EXPOSURE_PCT=0.01`
+- `MAX_TRADES_PER_DAY=30`
+- `MAX_DAILY_LOSS_PCT=0.02`
+- `MAX_CONSECUTIVE_LOSSES=4`
+- `HARD_PAUSE_CONSECUTIVE_LOSSES=6`
+- `COOLDOWN_HOURS=1`
 
 ---
 
@@ -91,3 +127,4 @@ These settings are critical. They determine when the bot should forcibly stop ac
 - The default fast test suite does not hit Bybit.
 - `pytest -m testnet` is opt-in and requires valid Bybit demo credentials plus the `DEMO_TESTNET_*` price fields.
 - Market buy orders are standardized on base quantity via `marketUnit="baseCoin"`.
+- `SCALPING_SYMBOLS` and `SIGNAL_LOOP_SYMBOLS` must not overlap. The app fails fast during lifespan startup if they do.

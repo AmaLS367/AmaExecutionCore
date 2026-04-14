@@ -86,6 +86,31 @@
 - теневой режим (shadow mode) по-прежнему является путем проверки ядра исполнения, а не историческим симулятором
 - демо-режим (demo mode) по-прежнему является помощником для testnet, а не обобщенным средством запуска бэктестов
 
+## Simulation Execution
+
+`backend.backtest.SimulationExecutionService` теперь используется как paper execution helper для replay-сценариев, которым нужен доступ к будущим свечам после текущего шага.
+
+Поведение:
+
+- получает уже собранный `ExecuteSignalRequest`
+- получает срез будущих свечей после текущего replay-step
+- проверяет TP, SL или timeout по этим свечам
+- возвращает машиночитаемый результат с `realized_pnl`, `slippage`, `exit_reason` и `hold_candles`
+
+Этот helper используется в:
+
+- `scripts/run_backtest.py`
+- `scripts/validate_strategy.py`
+
+Текущие validation thresholds:
+
+- `win_rate > 0.55`
+- `expectancy > 0`
+- `max_drawdown < 10 * avg_risk_amount`
+- `closed_trades >= 30`
+
+Скрипт валидации применяет поправку на round-trip fee до вынесения финального pass/fail решения.
+
 ## Текущие ограничения
 
 Текущая реализация воспроизведения намеренно узкая:

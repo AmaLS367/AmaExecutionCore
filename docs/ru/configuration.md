@@ -49,6 +49,28 @@
 
 ---
 
+## 🔁 Автономный signal loop
+
+| Переменная | Тип | По умолчанию | Описание |
+|---|---|---|---|
+| `SIGNAL_LOOP_ENABLED` | `bool` | `False` | Включает автономный цикл стратегий на основе REST-опроса для day-trading интервалов. |
+| `SIGNAL_LOOP_SYMBOLS` | `list[str]` | `[]` | Список символов через запятую, например `BTCUSDT,ETHUSDT`. |
+| `SIGNAL_LOOP_INTERVAL` | `string` | `15` | Интервал Bybit kline, используемый циклом сигналов. |
+| `SIGNAL_LOOP_COOLDOWN_SECONDS` | `int` | `300` | Пауза после входа по каждому символу. |
+| `SIGNAL_LOOP_MAX_SYMBOLS_CONCURRENT` | `int` | `5` | Ограничение параллельных оценок стратегии по символам. |
+
+## ⚡ Скальпинг
+
+| Переменная | Тип | По умолчанию | Описание |
+|---|---|---|---|
+| `SCALPING_ENABLED` | `bool` | `False` | Включает публичный WebSocket candle feed и event-driven scalping runner. |
+| `SCALPING_SYMBOLS` | `list[str]` | `[]` | Список символов через запятую для scalping runner. Не должен пересекаться с `SIGNAL_LOOP_SYMBOLS`. |
+| `SCALPING_INTERVAL` | `string` | `5` | Интервал подтверждённых свечей для скальпинга. Первый поддержанный production-путь — `5`. |
+| `SCALPING_WS_WINDOW_SIZE` | `int` | `50` | Размер in-memory окна свечей на символ. Должен покрывать `required_candle_count` активной стратегии. |
+| `SCALPING_COOLDOWN_SECONDS` | `int` | `120` | Пауза после входа по каждому символу в WebSocket scalping runner. |
+
+---
+
 ## 💰 Управление рисками
 
 | Переменная | Тип | По умолчанию | Описание |
@@ -57,6 +79,20 @@
 | `MIN_RRR` | `float` | `2.0` | Минимально допустимое соотношение риска к прибыли (Risk-to-Reward ratio). Сигналы, предполагающие RRR ниже этого значения, будут отклонены автоматически. |
 | `MAX_OPEN_POSITIONS` | `int` | `1` | Строгое ограничение на одновременные открытые позиции, чтобы избежать чрезмерного риска. |
 | `MAX_TOTAL_RISK_EXPOSURE_PCT` | `float` | `0.03` (3%) | Абсолютная максимальная сумма всех плавающих рисков (комбинированный `RISK_PER_TRADE_PCT`), допустимая одновременно. |
+| `MAX_TRADES_PER_DAY` | `int` | `10` | Жёсткий дневной лимит новых входов, применяемый до отправки ордера. Защищает автономные раннеры от runaway-сигналов. |
+
+Рекомендуемые scalping overrides:
+
+- `ORDER_MODE=maker_preferred`
+- `RISK_PER_TRADE_PCT=0.003`
+- `MIN_RRR=1.5`
+- `MAX_OPEN_POSITIONS=2`
+- `MAX_TOTAL_RISK_EXPOSURE_PCT=0.01`
+- `MAX_TRADES_PER_DAY=30`
+- `MAX_DAILY_LOSS_PCT=0.02`
+- `MAX_CONSECUTIVE_LOSSES=4`
+- `HARD_PAUSE_CONSECUTIVE_LOSSES=6`
+- `COOLDOWN_HOURS=1`
 
 ---
 
@@ -91,3 +127,4 @@
 - Стандартный быстрый набор тестов не обращается к Bybit.
 - `pytest -m testnet` активируется по желанию и требует действительных учетных данных демо-версии Bybit плюс поля цен `DEMO_TESTNET_*`.
 - Рыночные ордера на покупку (Market buy orders) стандартизированы по базовому количеству (base quantity) через `marketUnit="baseCoin"`.
+- `SCALPING_SYMBOLS` и `SIGNAL_LOOP_SYMBOLS` не должны пересекаться. Если пересечение есть, приложение аварийно завершит startup lifecycle.

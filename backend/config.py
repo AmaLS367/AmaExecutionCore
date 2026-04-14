@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -20,6 +22,46 @@ class Settings(BaseSettings):
     # Database
     database_url: str = ""
 
+    # Trading Engine
+    trading_mode: str = "shadow"
+    order_mode: str = "maker_preferred"
+    shadow_equity: float = 10_000.0
+    use_trailing_stop: bool = False
+    demo_close_ttl_seconds: int = 30
+    demo_poll_interval_seconds: float = 1.0
+    demo_testnet_symbol: str = ""
+    demo_testnet_entry: float = 0.0
+    demo_testnet_stop: float = 0.0
+    demo_testnet_target: float = 0.0
+
+    # Signal loop
+    signal_loop_enabled: bool = False
+    signal_loop_symbols: list[str] = []
+    signal_loop_interval: str = "15"
+    signal_loop_cooldown_seconds: int = 300
+    signal_loop_max_symbols_concurrent: int = 5
+
+    # Scalping
+    scalping_enabled: bool = False
+    scalping_symbols: list[str] = []
+    scalping_interval: str = "5"
+    scalping_ws_window_size: int = 50
+    scalping_cooldown_seconds: int = 120
+
+    # Risk Management
+    risk_per_trade_pct: float = 0.01
+    min_rrr: float = 2.0
+    max_open_positions: int = 1
+    max_total_risk_exposure_pct: float = 0.03
+    max_trades_per_day: int = 10
+
+    # Safety Guard
+    max_daily_loss_pct: float = 0.03
+    max_weekly_loss_pct: float = 0.05
+    max_consecutive_losses: int = 3
+    hard_pause_consecutive_losses: int = 5
+    cooldown_hours: int = 4
+
     @property
     def active_api_key(self) -> str:
         """Returns the API key for the currently active environment."""
@@ -32,10 +74,21 @@ class Settings(BaseSettings):
 
     @field_validator("database_url")
     @classmethod
-    def database_url_must_be_set(cls, v: str) -> str:
-        if not v:
+    def database_url_must_be_set(cls, value: str) -> str:
+        if not value:
             raise ValueError("DATABASE_URL must be set in environment or .env file")
-        return v
+        return value
+
+    @field_validator("signal_loop_symbols", "scalping_symbols", mode="before")
+    @classmethod
+    def parse_symbol_lists(cls, value: object) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return _split_symbols(value)
+        if isinstance(value, Iterable):
+            return [str(item).strip().upper() for item in value if str(item).strip()]
+        raise TypeError(f"Unsupported symbol list value: {value!r}")
 
     @model_validator(mode="after")
     def api_keys_required_outside_shadow(self) -> "Settings":
@@ -61,31 +114,14 @@ class Settings(BaseSettings):
                 )
         return self
 
-    # Trading Engine
-    trading_mode: str = "shadow"
-    order_mode: str = "maker_preferred"
-    shadow_equity: float = 10_000.0
-    use_trailing_stop: bool = False
-    demo_close_ttl_seconds: int = 30
-    demo_poll_interval_seconds: float = 1.0
-    demo_testnet_symbol: str = ""
-    demo_testnet_entry: float = 0.0
-    demo_testnet_stop: float = 0.0
-    demo_testnet_target: float = 0.0
-
-    # Risk Management
-    risk_per_trade_pct: float = 0.01
-    min_rrr: float = 2.0
-    max_open_positions: int = 1
-    max_total_risk_exposure_pct: float = 0.03
-
-    # Safety Guard
-    max_daily_loss_pct: float = 0.03
-    max_weekly_loss_pct: float = 0.05
-    max_consecutive_losses: int = 3
-    hard_pause_consecutive_losses: int = 5
-    cooldown_hours: int = 4
-
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+
+def _split_symbols(raw_value: str) -> list[str]:
+    stripped = raw_value.strip()
+    if not stripped:
+        return []
+    return [part.strip().upper() for part in stripped.split(",") if part.strip()]
+
 
 settings = Settings()

@@ -86,6 +86,31 @@ Current boundaries:
 - shadow mode is still an execution-core validation path, not a historical simulator
 - demo mode is still a testnet helper, not a generalized backtest runner
 
+## Simulation Execution
+
+`backend.backtest.SimulationExecutionService` is now the replay-oriented paper execution helper for strategies that need step-aware future candles.
+
+Behavior:
+
+- receives the already-built `ExecuteSignalRequest`
+- receives the future candle slice after the current replay step
+- evaluates TP, SL, or timeout against those future candles
+- returns machine-readable execution results with `realized_pnl`, `slippage`, `exit_reason`, and `hold_candles`
+
+This is the execution helper used by:
+
+- `scripts/run_backtest.py`
+- `scripts/validate_strategy.py`
+
+Current validation defaults:
+
+- `win_rate > 0.55`
+- `expectancy > 0`
+- `max_drawdown < 10 * avg_risk_amount`
+- `closed_trades >= 30`
+
+The validation script applies a round-trip fee adjustment before deciding pass/fail.
+
 ## Current Limitations
 
 The current replay implementation is intentionally narrow:
