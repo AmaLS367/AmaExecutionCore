@@ -83,3 +83,46 @@ Audit trail for kill switch, circuit breaker, cooldown, and operational errors.
 ### `safety_state`
 
 Singleton-style table for global execution safety state. It persists bot stop conditions across process restarts.
+
+## Supported Test Matrix
+
+The repository intentionally keeps two DB test layers with different goals.
+
+### Fast SQLite tests
+
+Default tests use the in-memory `sqlite+aiosqlite` harness from `tests/conftest.py` and create tables through `Base.metadata.create_all`.
+
+What they validate:
+
+- service and router behavior
+- ORM mappings used by the current runtime
+- fast feedback for execution, safety, reconciliation, and backtest logic
+
+What they do not validate:
+
+- Alembic migration correctness
+- PostgreSQL-specific column types, constraints, and DDL behavior
+- drift between the runtime models and the migrated production schema
+
+### PostgreSQL + Alembic integration tests
+
+`tests/postgresql/` is the opt-in integration path for the real persistence stack. It requires `TEST_POSTGRESQL_URL` and runs `alembic upgrade head` before executing tests.
+
+What they validate:
+
+- schema creation through migrations rather than `Base.metadata.create_all`
+- compatibility of the current ORM/runtime code with the migrated PostgreSQL schema
+- critical persistence and API flows against PostgreSQL tables and constraints
+
+Current coverage includes:
+
+- trade-journal persistence for `Signal`, `Trade`, `SafetyState`, `DailyStat`, and `trade_events`
+- `POST /signals/execute` replay behavior on migrated schema
+- safety endpoints against persisted PostgreSQL state
+- a basic shadow trade close lifecycle against the migrated schema
+
+Limits:
+
+- these tests are not a full end-to-end production simulation
+- they do not prove exchange-side behavior, networking, or Bybit reconciliation correctness
+- the target database must be disposable; the opt-in fixture resets the `public` schema before migrations
