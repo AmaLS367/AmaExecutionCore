@@ -2,15 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from backend.market_data.contracts import MarketSnapshot
 from backend.strategy_engine.contracts import BaseStrategy, StrategySignal
-
-
-@dataclass(slots=True)
-class OHLCVSnapshot:
-    symbol: str
-    closes: list[float]
-    highs: list[float]
-    lows: list[float]
 
 
 def _calculate_ema(values: list[float], period: int) -> list[float]:
@@ -21,25 +14,33 @@ def _calculate_ema(values: list[float], period: int) -> list[float]:
     return ema_values
 
 
-class EMACrossoverStrategy(BaseStrategy[OHLCVSnapshot]):
+@dataclass(slots=True)
+class EMACrossoverStrategy(BaseStrategy[MarketSnapshot]):
     def __init__(self, fast: int = 9, slow: int = 21, min_rrr: float = 2.0) -> None:
         self._fast = fast
         self._slow = slow
         self._min_rrr = min_rrr
 
-    async def generate_signal(self, snapshot: OHLCVSnapshot) -> StrategySignal | None:
+    @property
+    def required_candle_count(self) -> int:
+        return self._slow + 1
+
+    async def generate_signal(self, snapshot: MarketSnapshot) -> StrategySignal | None:
         self._validate_snapshot(snapshot)
 
-        ema_fast = _calculate_ema(snapshot.closes, self._fast)
-        ema_slow = _calculate_ema(snapshot.closes, self._slow)
+        closes = list(snapshot.closes)
+        ema_fast = _calculate_ema(closes, self._fast)
+        ema_slow = _calculate_ema(closes, self._slow)
         previous_fast = ema_fast[-2]
         previous_slow = ema_slow[-2]
         current_fast = ema_fast[-1]
         current_slow = ema_slow[-1]
-        entry = snapshot.closes[-1]
+        entry = closes[-1]
+        lows = snapshot.lows
+        highs = snapshot.highs
 
         if previous_fast <= previous_slow and current_fast > current_slow and entry > current_fast:
-            stop = snapshot.lows[-1]
+            stop = lows[-1]
             if stop >= entry:
                 raise ValueError("Long setup requires the last low to be below the entry price.")
             target = entry + 2 * (entry - stop)
@@ -54,7 +55,7 @@ class EMACrossoverStrategy(BaseStrategy[OHLCVSnapshot]):
             )
 
         if previous_fast >= previous_slow and current_fast < current_slow and entry < current_fast:
-            stop = snapshot.highs[-1]
+            stop = highs[-1]
             if stop <= entry:
                 raise ValueError("Short setup requires the last high to be above the entry price.")
             target = entry - 2 * (stop - entry)
@@ -73,7 +74,7 @@ class EMACrossoverStrategy(BaseStrategy[OHLCVSnapshot]):
     def _build_signal(
         self,
         *,
-        snapshot: OHLCVSnapshot,
+        snapshot: MarketSnapshot,
         direction: str,
         entry: float,
         stop: float,
@@ -103,8 +104,8 @@ class EMACrossoverStrategy(BaseStrategy[OHLCVSnapshot]):
             },
         )
 
-    def _validate_snapshot(self, snapshot: OHLCVSnapshot) -> None:
-        minimum_candles = self._slow + 1
+    def _validate_snapshot(self, snapshot: MarketSnapshot) -> None:
+        minimum_candles = self.required_candle_count
         if len(snapshot.closes) < minimum_candles:
             raise ValueError(f"At least {minimum_candles} candles are required.")
         if len(snapshot.highs) != len(snapshot.closes) or len(snapshot.lows) != len(snapshot.closes):

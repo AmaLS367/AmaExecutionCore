@@ -20,6 +20,11 @@ class StrategySignal:
 
 
 class BaseStrategy(ABC, Generic[SnapshotT]):
+    @property
+    @abstractmethod
+    def required_candle_count(self) -> int:
+        raise NotImplementedError
+
     @abstractmethod
     async def generate_signal(self, snapshot: SnapshotT) -> StrategySignal | None:
         raise NotImplementedError
