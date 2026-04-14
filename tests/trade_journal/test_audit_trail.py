@@ -261,6 +261,9 @@ async def test_exchange_sync_close_updates_daily_analytics_and_records_events(
         (TradeStatus.ORDER_CONFIRMED.value, TradeStatus.POSITION_CLOSED.value),
         (TradeStatus.POSITION_CLOSED.value, TradeStatus.PNL_RECORDED.value),
     ]
+    assert daily_stat.symbol_stats == {
+        "BTCUSDT": {"wins": 1, "losses": 0, "consecutive_losses": 0}
+    }
 
 
 @pytest.mark.asyncio
@@ -301,3 +304,6 @@ async def test_shadow_close_updates_daily_analytics_and_records_events(
             TradeStatus.PNL_RECORDED.value,
         ),
     ]
+    assert daily_stat.symbol_stats == {
+        "BTCUSDT": {"wins": 0, "losses": 1, "consecutive_losses": 1}
+    }

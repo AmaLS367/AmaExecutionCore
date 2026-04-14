@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from backend.config import settings
 from backend.order_executor.executor import OrderExecutor
 from backend.risk_manager.exceptions import RiskManagerError
+from backend.safety_guard.exceptions import DailyLossLimitError
 from backend.trade_journal.models import (
     ExchangeSide,
     MarketType,
@@ -193,3 +194,34 @@ async def test_executor_reconciles_pending_unknown_without_changing_order_link_i
         assert persisted_trade.order_link_id == "existing-link-1"
         assert persisted_trade.exchange_order_id == "resolved-2"
         assert persisted_trade.status == TradeStatus.ORDER_CONFIRMED
+
+
+@pytest.mark.asyncio
+async def test_executor_blocks_when_daily_trade_cap_is_reached(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "shadow"
+    settings.max_trades_per_day = 1
+    executor = OrderExecutor(rest_client=TimeoutRestClient())
+
+    async with sqlite_session_factory() as session:
+        await executor.execute(
+            session=session,
+            signal_id=uuid.uuid4(),
+            symbol="BTCUSDT",
+            direction=SignalDirection.LONG,
+            entry=100.0,
+            stop=90.0,
+            target=130.0,
+        )
+
+        with pytest.raises(DailyLossLimitError, match="Daily trade cap"):
+            await executor.execute(
+                session=session,
+                signal_id=uuid.uuid4(),
+                symbol="ETHUSDT",
+                direction=SignalDirection.LONG,
+                entry=100.0,
+                stop=90.0,
+                target=130.0,
+            )

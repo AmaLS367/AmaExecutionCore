@@ -33,6 +33,17 @@ def reset_settings() -> Generator[None, None, None]:
         "hard_pause_consecutive_losses": settings.hard_pause_consecutive_losses,
         "cooldown_hours": settings.cooldown_hours,
         "demo_close_ttl_seconds": getattr(settings, "demo_close_ttl_seconds", 30),
+        "signal_loop_enabled": settings.signal_loop_enabled,
+        "signal_loop_symbols": list(settings.signal_loop_symbols),
+        "signal_loop_interval": settings.signal_loop_interval,
+        "signal_loop_cooldown_seconds": settings.signal_loop_cooldown_seconds,
+        "signal_loop_max_symbols_concurrent": settings.signal_loop_max_symbols_concurrent,
+        "scalping_enabled": settings.scalping_enabled,
+        "scalping_symbols": list(settings.scalping_symbols),
+        "scalping_interval": settings.scalping_interval,
+        "scalping_ws_window_size": settings.scalping_ws_window_size,
+        "scalping_cooldown_seconds": settings.scalping_cooldown_seconds,
+        "max_trades_per_day": settings.max_trades_per_day,
     }
     yield
     for field_name, field_value in original_values.items():

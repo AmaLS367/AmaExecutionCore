@@ -20,6 +20,7 @@ class RecordingKlineClient:
         interval: str,
         limit: int,
         category: str = "spot",
+        end: int | None = None,
     ) -> list[BybitKline]:
         self.calls.append((symbol, interval, limit, category))
         return [
@@ -58,3 +59,5 @@ async def test_bybit_spot_snapshot_provider_normalizes_klines() -> None:
     assert [candle.close for candle in snapshot.candles] == [101.0, 109.0]
     assert [candle.high for candle in snapshot.candles] == [110.0, 111.0]
     assert [candle.low for candle in snapshot.candles] == [95.0, 96.0]
+    assert [candle.volume for candle in snapshot.candles] == [12.0, 14.0]
+    assert snapshot.volumes == (12.0, 14.0)
