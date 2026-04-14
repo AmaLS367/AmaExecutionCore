@@ -59,8 +59,5 @@ This repository is the "Execution Core" for algorithmic trading. The main philos
 ## Documentation
 
 You can find in-depth technical documentation in the `docs/` directory:
-* [Documentation Index](docs/README.md)
-* [Configuration Guide](docs/configuration.md)
-* [API Guide](docs/api.md)
-* [Architecture Notes](docs/architecture.md)
-* [Database Guide](docs/database.md)
+* [English Documentation Index](docs/en/README.md)
+* [Russian Documentation Index](docs/ru/README.md)

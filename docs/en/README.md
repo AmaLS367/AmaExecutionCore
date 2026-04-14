@@ -4,6 +4,7 @@ This directory hosts technical specifications, architectural diagrams, and compo
 
 ## Core Documentation
 
+* **[Understanding the System](understanding_the_system.md)**: A conceptual, plain-language guide to how the bot works, perfect for beginners and high-level overviews.
 * **[Configuration Guide](configuration.md)**: A detailed explanation of all `.env` system settings and parameters.
 * **[API Guide](api.md)**: Execution and safety endpoints, request/response shapes, and operational notes.
 * **[Architecture](architecture.md)**: Module boundaries, orchestration flow, runners, and lifecycle ownership.
