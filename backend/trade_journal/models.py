@@ -4,7 +4,20 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Integer, JSON, Numeric, String, Text, Uuid, func
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Enum as SAEnum,
+    ForeignKey,
+    Index,
+    Integer,
+    JSON,
+    Numeric,
+    String,
+    Text,
+    Uuid,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database import Base
@@ -100,6 +113,10 @@ class SignalSubmission(Base):
 
 class Trade(Base):
     __tablename__ = "trades"
+    __table_args__ = (
+        Index("ix_trades_status", "status"),
+        Index("ix_trades_symbol_status", "symbol", "status"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     signal_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("signals.id"))
@@ -162,6 +179,7 @@ class Trade(Base):
 
 class TradeEvent(Base):
     __tablename__ = "trade_events"
+    __table_args__ = (Index("ix_trade_events_trade_id", "trade_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     trade_id: Mapped[uuid.UUID] = mapped_column(
@@ -192,6 +210,7 @@ class DailyStat(Base):
     total_fees: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
     net_pnl: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
     daily_loss_pct: Mapped[Decimal | None] = mapped_column(Numeric(6, 4))
+    symbol_stats: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=None)
     circuit_breaker_triggered: Mapped[bool] = mapped_column(server_default="false", default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
 

@@ -151,6 +151,7 @@ class OrderExecutor:
             trade,
             event_metadata={"source": "order_executor"},
         )
+        await circuit_breaker.increment_trade_count(session)
 
         # 9. Shadow: log and exit without REST call
         if settings.trading_mode == "shadow":
@@ -352,16 +353,6 @@ class OrderExecutor:
                 trade,
                 self._map_remote_order_status(resolved_order.get("orderStatus", "")),
                 event_metadata={"source": "pending_unknown_reconciliation"},
-            )
-        else:
-            # No exchange record — order was never placed; unblock idempotency guard
-            await store.transition_trade_status(
-                trade,
-                TradeStatus.ORDER_CANCELLED,
-                event_metadata={
-                    "source": "pending_unknown_reconciliation",
-                    "reason": "not_found_on_exchange",
-                },
             )
         await session.flush()
         return trade

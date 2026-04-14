@@ -63,6 +63,11 @@ class CircuitBreaker:
         if state.pause_reason == PauseReason.HARD_LOSS_STREAK:
             raise HardLossStreakPauseError("Hard loss-streak pause is active until manual reset.")
 
+        if stat.total_trades >= settings.max_trades_per_day:
+            raise DailyLossLimitError(
+                f"Daily trade cap of {settings.max_trades_per_day} reached."
+            )
+
         if stat.daily_loss_pct is not None and stat.daily_loss_pct >= Decimal(
             str(settings.max_daily_loss_pct)
         ):
@@ -148,7 +153,6 @@ class CircuitBreaker:
         """Call when a position closes at a loss."""
         stat = await self._get_or_create_today(session)
         stat.losing_trades = (stat.losing_trades or 0) + 1
-        stat.total_trades = (stat.total_trades or 0) + 1
         stat.consecutive_losses = (stat.consecutive_losses or 0) + 1
         stat.daily_loss_pct = (stat.daily_loss_pct or Decimal("0")) + loss_pct
         await session.commit()
@@ -162,10 +166,14 @@ class CircuitBreaker:
         """Call when a position closes at a profit. Resets consecutive loss counter."""
         stat = await self._get_or_create_today(session)
         stat.winning_trades = (stat.winning_trades or 0) + 1
-        stat.total_trades = (stat.total_trades or 0) + 1
         stat.consecutive_losses = 0
         await session.commit()
         logger.info("Win recorded. consecutive losses reset.")
+
+    async def increment_trade_count(self, session: AsyncSession) -> None:
+        stat = await self._get_or_create_today(session)
+        stat.total_trades = (stat.total_trades or 0) + 1
+        await session.flush()
 
     async def _calculate_weekly_loss_pct(self, session: AsyncSession) -> Decimal:
         week_start = date.today() - timedelta(days=6)

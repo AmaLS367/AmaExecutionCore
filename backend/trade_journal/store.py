@@ -179,7 +179,9 @@ class TradeJournalStore:
         fee_paid = trade.fee_paid or Decimal("0")
         net_pnl = realized_pnl - fee_paid
 
-        stat.total_trades = (stat.total_trades or 0) + 1
+        closed_trade_count = (stat.winning_trades or 0) + (stat.losing_trades or 0)
+        if (stat.total_trades or 0) <= closed_trade_count:
+            stat.total_trades = (stat.total_trades or 0) + 1
         stat.gross_pnl = (stat.gross_pnl or Decimal("0")) + realized_pnl
         stat.total_fees = (stat.total_fees or Decimal("0")) + fee_paid
         stat.net_pnl = (stat.net_pnl or Decimal("0")) + net_pnl
@@ -189,12 +191,28 @@ class TradeJournalStore:
             stat.consecutive_losses = (stat.consecutive_losses or 0) + 1
             if trade.pnl_pct is not None:
                 stat.daily_loss_pct = (stat.daily_loss_pct or Decimal("0")) + abs(trade.pnl_pct)
+            self._update_symbol_stats(trade.symbol, stat, is_win=False)
         else:
             stat.winning_trades = (stat.winning_trades or 0) + 1
             stat.consecutive_losses = 0
+            self._update_symbol_stats(trade.symbol, stat, is_win=True)
 
         await self._session.flush()
         return stat
+
+    async def get_or_create_today_daily_stat(self) -> DailyStat:
+        return await self.get_or_create_daily_stat(stat_date=date.today())
+
+    @staticmethod
+    def symbol_consecutive_losses(stat: DailyStat, symbol: str) -> int:
+        symbol_stats = stat.symbol_stats or {}
+        raw_symbol_stats = symbol_stats.get(symbol, {})
+        if not isinstance(raw_symbol_stats, dict):
+            return 0
+        consecutive_losses = raw_symbol_stats.get("consecutive_losses", 0)
+        if not isinstance(consecutive_losses, int):
+            return 0
+        return consecutive_losses
 
     async def list_trades_by_status(self, statuses: Collection[TradeStatus]) -> list[Trade]:
         if not statuses:
@@ -328,3 +346,24 @@ class TradeJournalStore:
         if last_triggered_at.tzinfo is None:
             last_triggered_at = last_triggered_at.replace(tzinfo=UTC)
         return last_triggered_at.date()
+
+    @staticmethod
+    def _update_symbol_stats(symbol: str, stat: DailyStat, *, is_win: bool) -> None:
+        symbol_key = symbol.strip().upper()
+        existing_stats = dict(stat.symbol_stats or {})
+        current_stats = dict(existing_stats.get(symbol_key, {}))
+        wins = int(current_stats.get("wins", 0))
+        losses = int(current_stats.get("losses", 0))
+        consecutive_losses = int(current_stats.get("consecutive_losses", 0))
+        if is_win:
+            wins += 1
+            consecutive_losses = 0
+        else:
+            losses += 1
+            consecutive_losses += 1
+        existing_stats[symbol_key] = {
+            "wins": wins,
+            "losses": losses,
+            "consecutive_losses": consecutive_losses,
+        }
+        stat.symbol_stats = existing_stats
