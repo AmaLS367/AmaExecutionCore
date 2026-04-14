@@ -5,6 +5,7 @@ from decimal import Decimal
 import uuid
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.config import settings
@@ -138,3 +139,61 @@ async def test_close_trade_in_shadow_records_negative_sl_pnl(
 
     assert closed_trade.realized_pnl is not None
     assert closed_trade.realized_pnl < 0
+
+
+@pytest.mark.asyncio
+async def test_list_open_trades_includes_close_recovery_states(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    service = PositionManagerService(
+        session_factory=sqlite_session_factory,
+        rest_client=PassiveRestClient(),
+    )
+
+    async with sqlite_session_factory() as session:
+        session.add_all(
+            [
+                build_open_trade(
+                    direction=SignalDirection.LONG,
+                    exchange_side=ExchangeSide.BUY,
+                    entry_price="100",
+                    stop_price="90",
+                    target_price="130",
+                ),
+                build_open_trade(
+                    direction=SignalDirection.LONG,
+                    exchange_side=ExchangeSide.BUY,
+                    entry_price="100",
+                    stop_price="90",
+                    target_price="130",
+                ),
+                build_open_trade(
+                    direction=SignalDirection.LONG,
+                    exchange_side=ExchangeSide.BUY,
+                    entry_price="100",
+                    stop_price="90",
+                    target_price="130",
+                ),
+                build_open_trade(
+                    direction=SignalDirection.LONG,
+                    exchange_side=ExchangeSide.BUY,
+                    entry_price="100",
+                    stop_price="90",
+                    target_price="130",
+                ),
+            ]
+        )
+        trades = (await session.execute(select(Trade))).scalars().all()
+        trades[0].status = TradeStatus.POSITION_OPEN
+        trades[1].status = TradeStatus.POSITION_CLOSE_PENDING
+        trades[2].status = TradeStatus.POSITION_CLOSE_FAILED
+        trades[3].status = TradeStatus.PNL_RECORDED
+        await session.commit()
+
+    open_trades = await service.list_open_trades()
+
+    assert {trade.status for trade in open_trades} == {
+        TradeStatus.POSITION_OPEN,
+        TradeStatus.POSITION_CLOSE_PENDING,
+        TradeStatus.POSITION_CLOSE_FAILED,
+    }
