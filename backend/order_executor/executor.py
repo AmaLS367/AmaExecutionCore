@@ -278,18 +278,45 @@ class OrderExecutor:
     ) -> None:
         logger.warning("Order submission uncertain for {}: {}", trade.order_link_id, exc)
         trade.status = TradeStatus.ORDER_PENDING_UNKNOWN
-        resolved_order = await asyncio.to_thread(
-            self._client.get_order_status,
-            category=category,
-            symbol=symbol,
-            order_link_id=trade.order_link_id,
-        )
+        await self.reconcile_pending_unknown(session=session, trade=trade, category=category, symbol=symbol)
+        await session.commit()
+
+    async def reconcile_pending_unknown(
+        self,
+        *,
+        session: AsyncSession,
+        trade: Trade,
+        category: str = "spot",
+        symbol: str | None = None,
+    ) -> Trade:
+        if trade.order_link_id is None:
+            await session.flush()
+            return trade
+
+        resolved_symbol = symbol or trade.symbol
+        try:
+            resolved_order = await asyncio.to_thread(
+                self._client.get_order_status,
+                category=category,
+                symbol=resolved_symbol,
+                order_link_id=trade.order_link_id,
+            )
+        except (BybitConnectionError, TimeoutError) as exc:
+            logger.warning(
+                "Pending unknown reconciliation still unresolved for {}: {}",
+                trade.order_link_id,
+                exc,
+            )
+            await session.flush()
+            return trade
+
         if resolved_order is not None:
             trade.exchange_order_id = resolved_order.get("orderId")
             trade.status = self._map_remote_order_status(
                 resolved_order.get("orderStatus", ""),
             )
-        await session.commit()
+        await session.flush()
+        return trade
 
     async def _ensure_total_exposure_within_limit(
         self,
