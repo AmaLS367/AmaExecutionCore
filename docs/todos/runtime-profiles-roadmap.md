@@ -1,20 +1,20 @@
 # Todo: Runtime Profiles For Multi-Strategy Operation
 
 **Goal:** Stop manually rewriting `.env` when switching between `scalping`, `day-trading`,
-and later `swing` operation modes, while keeping a **single shared source of truth**
-for account state, exposure, and safety controls.
+and later `swing` modes, while preserving one shared source of truth for account state,
+exposure, and safety controls.
 
 ---
 
-## Why this is needed
+## Motivation
 
-Right now one runtime config has to serve multiple trading styles:
+One runtime config currently has to serve multiple trading styles:
 
 - scalping
 - day-trading
 - swing trading
 
-Each style wants different recommended values for:
+Each style wants its own recommended values for:
 
 - symbols
 - timeframe / interval
@@ -24,31 +24,37 @@ Each style wants different recommended values for:
 - max trades per day
 - daily loss limits
 
-Editing `.env` by hand every time is error-prone and operationally noisy.
+Editing `.env` by hand for every switch is noisy and error-prone.
 
 ---
 
-## Preferred direction
+## Target Shape
 
-Use **multiple runtime profiles / services** instead of one mutable `.env`.
+Use multiple runtime profiles instead of one mutable `.env`.
 
-The intended deployment shape is:
+Expected deployment shape:
 
 - one shared codebase / image
-- multiple launch profiles or Docker Compose services
-- one profile for `scalping`
-- one profile for `day-trading`
-- one profile for `swing` later
+- one runtime profile for `scalping`
+- one runtime profile for `day-trading`
+- one runtime profile for `swing`
+- profile-specific env files or Compose services
 
-Each profile should provide its own recommended configuration values without requiring
-manual edits before every launch.
+Examples:
+
+- `scalping.env`
+- `daytrading.env`
+- `swing.env`
+
+Each profile should carry its own recommended runtime values so the operator can launch
+the needed mode directly without re-editing the base environment file.
 
 ---
 
-## Critical constraint
+## Shared State Requirement
 
-These profiles are expected to run against the **same trading account**, so they must
-**not** have isolated risk state.
+These profiles are intended to run on the **same trading account**, so they must share
+the same persistence and safety state.
 
 They must share:
 
@@ -60,7 +66,7 @@ They must share:
 - the same total exposure checks
 - the same kill switch / circuit breaker logic
 
-This is required so that global limits stay real across all active profiles:
+This keeps the global limits real across all active profiles:
 
 - `max_open_positions`
 - `max_total_risk_exposure_pct`
@@ -69,50 +75,33 @@ This is required so that global limits stay real across all active profiles:
 - consecutive loss handling
 - per-symbol blacklist state
 
-Without shared state, separate containers could each believe they are within limits
-while the account as a whole is already over risk.
+Without shared state, separate profiles could each think they are within limits while the
+account as a whole is already over risk.
 
 ---
 
-## Non-goals
+## Non-Goal
 
-This is **not** the idea of running three fully independent bots with isolated state.
-
-It is also **not** the idea of making the container interactive at startup with prompts
-such as `use recommended config?`.
-
-Interactive selection, if needed later, should be implemented outside the container
-as a separate CLI or launcher workflow.
+This is not the idea of running three fully isolated bots with independent risk state on
+the same account.
 
 ---
 
-## Likely implementation shape
+## Open Questions
 
-Operationally, this should become:
+Before enabling multi-profile live operation, define symbol ownership explicitly:
 
-- shared application image
-- multiple Compose services or profile-specific env files
-- e.g. `scalping.env`, `daytrading.env`, `swing.env`
-- shared DB connection
-- shared execution and safety tables
-- profile-specific strategy/timeframe/runtime config
-
-The runtime must also define whether multiple profiles are allowed to trade:
-
-- the same symbol at the same time
-- different symbols only
-- or a centrally assigned symbol set per profile
-
-That policy should be explicit before enabling multi-profile live operation.
+- may multiple profiles trade the same symbol at the same time?
+- should profiles be restricted to disjoint symbol sets?
+- do we need central symbol assignment or conflict detection at startup?
 
 ---
 
-## Future follow-up
+## Later Follow-Up
 
 Possible later enhancement:
 
-- a separate CLI mode or launcher that lets the operator choose a profile
-- optional `recommended defaults` vs `custom overrides`
+- a separate launcher or CLI mode that selects a profile
+- optional profile defaults plus operator overrides
 
-But this should be added **outside** container startup so deployments remain reproducible,
-non-interactive, and automation-friendly.
+That is a follow-up operational UX task, not part of the core profile model itself.
