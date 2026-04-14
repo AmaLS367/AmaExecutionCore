@@ -21,7 +21,7 @@ from backend.signal_execution.router import router as signal_router
 from backend.signal_execution.service import ExecutionService
 from backend.signal_loop.runner import SignalLoopRunner
 from backend.signal_loop.ws_runner import WebSocketSignalRunner
-from backend.strategy_engine.ema_crossover import EMACrossoverStrategy
+from backend.strategy_engine.factory import build_day_trading_strategy
 from backend.strategy_engine.service import StrategyExecutionService
 from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
 
@@ -44,7 +44,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if settings.signal_loop_enabled and settings.signal_loop_symbols:
         strategy_service = StrategyExecutionService(
             snapshot_provider=BybitSpotSnapshotProvider(rest_client=app.state.rest_client),
-            strategy=EMACrossoverStrategy(),
+            strategy=build_day_trading_strategy(
+                strategy_name=settings.signal_loop_strategy,
+                min_rrr=settings.min_rrr,
+            ),
         )
         signal_loop_runner = SignalLoopRunner(
             strategy_service=strategy_service,
@@ -55,6 +58,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             max_symbols_concurrent=settings.signal_loop_max_symbols_concurrent,
             session_factory=app.state.session_factory,
         )
+        app.state.signal_loop_runner = signal_loop_runner
         signal_loop_task = asyncio.create_task(signal_loop_runner.run_forever())
 
     scalping_runner: WebSocketSignalRunner | None = None

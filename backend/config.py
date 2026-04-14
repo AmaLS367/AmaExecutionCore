@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     # Signal loop
     signal_loop_enabled: bool = False
     signal_loop_symbols: list[str] = []
+    signal_loop_strategy: str = "rsi_ema"
     signal_loop_interval: str = "15"
     signal_loop_cooldown_seconds: int = 300
     signal_loop_max_symbols_concurrent: int = 5
@@ -89,6 +90,14 @@ class Settings(BaseSettings):
         if isinstance(value, Iterable):
             return [str(item).strip().upper() for item in value if str(item).strip()]
         raise TypeError(f"Unsupported symbol list value: {value!r}")
+
+    @field_validator("signal_loop_strategy")
+    @classmethod
+    def normalize_signal_loop_strategy(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not normalized:
+            raise ValueError("SIGNAL_LOOP_STRATEGY must not be empty.")
+        return normalized
 
     @model_validator(mode="after")
     def api_keys_required_outside_shadow(self) -> "Settings":

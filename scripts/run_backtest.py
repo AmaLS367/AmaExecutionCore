@@ -8,7 +8,7 @@ from decimal import Decimal
 from backend.backtest import HistoricalReplayRequest, HistoricalReplayRunner, SimulationExecutionService
 from backend.bybit_client.rest import BybitRESTClient
 from backend.market_data.contracts import MarketCandle
-from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
+from backend.strategy_engine.factory import build_day_trading_strategy
 
 
 def _fetch_candles(
@@ -62,10 +62,12 @@ def _extract_trade_pnls(steps: Iterable[object]) -> list[Decimal]:
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(description="Run a historical scalping backtest.")
+    parser = argparse.ArgumentParser(description="Run a historical day-trading backtest.")
     parser.add_argument("--symbol", default="BTCUSDT")
-    parser.add_argument("--interval", default="5")
-    parser.add_argument("--candles", type=int, default=3000)
+    parser.add_argument("--interval", default="15")
+    parser.add_argument("--candles", type=int, default=2000)
+    parser.add_argument("--strategy", default="rsi_ema", choices=("rsi_ema", "ema_crossover"))
+    parser.add_argument("--min-rrr", type=float, default=1.5)
     parser.add_argument("--risk-amount", type=float, default=100.0)
     parser.add_argument("--max-hold", type=int, default=20)
     args = parser.parse_args()
@@ -77,7 +79,7 @@ async def main() -> None:
         interval=args.interval,
         total=args.candles,
     )
-    strategy = VWAPReversionStrategy()
+    strategy = build_day_trading_strategy(strategy_name=args.strategy, min_rrr=args.min_rrr)
     simulation_service = SimulationExecutionService(
         max_hold_candles=args.max_hold,
         risk_amount_usd=args.risk_amount,
@@ -88,9 +90,10 @@ async def main() -> None:
     )
 
     pnls = _extract_trade_pnls(result.steps)
-    print("=== Scalping Backtest ===")
+    print("=== Day-Trading Backtest ===")
     print(f"Symbol: {args.symbol}")
     print(f"Interval: {args.interval}")
+    print(f"Strategy: {args.strategy}")
     print(f"Candles: {len(candles)}")
     if candles:
         print(f"Range: {candles[0].opened_at.isoformat()} -> {candles[-1].opened_at.isoformat()}")
