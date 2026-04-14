@@ -35,13 +35,26 @@ Response body:
   "trade_id": "uuid",
   "order_link_id": "string",
   "status": "order_submitted",
-  "mode": "shadow"
+  "mode": "shadow",
+  "replayed": false
 }
 ```
 
+Idempotency semantics:
+
+- The public API deduplicates by a deterministic fingerprint of the normalized request body.
+- Normalization rules:
+  - `symbol` is trimmed and uppercased.
+  - `direction` is matched by exact enum value.
+  - `entry`, `stop`, and `target` are fingerprinted as normalized decimal strings.
+  - `reason` and `strategy_version` are trimmed; blank values are treated as `null`.
+  - `indicators_snapshot` is fingerprinted as canonical JSON with sorted keys.
+- If an equivalent request is replayed while its linked trade is still non-terminal, the endpoint returns `200` with the same `signal_id` and `trade_id` plus `replayed=true`.
+- If the linked trade is `order_pending_unknown`, replay triggers another exchange status check and still does not submit a second order.
+- Once the linked trade reaches a terminal state, the same request body is allowed to create a fresh `Signal` and `Trade`.
+
 Error semantics:
 
-- `409`: duplicate non-terminal trade for the same signal
 - `422`: risk validation or exposure limit failure
 - `423`: kill switch, cooldown, or circuit-breaker pause is active
 

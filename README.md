@@ -7,11 +7,11 @@ This repository is the "Execution Core" for algorithmic trading. The main philos
 ## Features
 * **Risk Manager**: Strict risk boundaries (exact lot sizing using `apply_exchange_constraints`, minimum RRR validation).
 * **Safety Guard**: Capital protection layers including Daily/Weekly loss limits (Circuit Breaker) and an emergency Kill Switch.
-* **Trade State Machine**: Robust event-driven logging for every stage of a trade (from strategy signal to PnL realization).
-* **Idempotency**: Strict duplication protection via Bybit's `orderLinkId` constraints.
+* **Trade State Machine**: Robust status tracking across signal submission, order placement, exchange sync, and close flow.
+* **Idempotency**: Public request deduplication for `POST /signals/execute` via deterministic request fingerprinting, with safe replay of in-flight work.
 * **Asynchronous Architecture**: Built on top of WebSocket streams, `asyncpg`, `sqlalchemy` (v2.0), and `alembic` migrations.
 * **Execution API**: REST entrypoint for standardized signals at `POST /signals/execute`.
-* **Runners**: Shadow runner for local strategy replay and demo runner for opt-in Bybit testnet validation.
+* **Runners**: Shadow runner for local one-shot pipeline validation and demo runner for opt-in Bybit testnet validation.
 
 ## Quick Start
 
