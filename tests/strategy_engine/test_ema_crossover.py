@@ -1,14 +1,25 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 
-from backend.strategy_engine.ema_crossover import EMACrossoverStrategy, OHLCVSnapshot
+from backend.market_data.contracts import MarketCandle, MarketSnapshot
+from backend.strategy_engine.ema_crossover import EMACrossoverStrategy
 
 
-def build_snapshot(*, closes: list[float], last_high: float, last_low: float) -> OHLCVSnapshot:
-    highs = [close + 1 for close in closes[:-1]] + [last_high]
-    lows = [close - 1 for close in closes[:-1]] + [last_low]
-    return OHLCVSnapshot(symbol="BTCUSDT", closes=closes, highs=highs, lows=lows)
+def build_snapshot(*, closes: list[float], last_high: float, last_low: float) -> MarketSnapshot:
+    opened_at = datetime(2024, 1, 1, tzinfo=UTC)
+    candles = tuple(
+        MarketCandle(
+            opened_at=opened_at + timedelta(minutes=index),
+            high=close + 1 if index < len(closes) - 1 else last_high,
+            low=close - 1 if index < len(closes) - 1 else last_low,
+            close=close,
+        )
+        for index, close in enumerate(closes)
+    )
+    return MarketSnapshot(symbol="BTCUSDT", interval="1", candles=candles)
 
 
 @pytest.mark.asyncio

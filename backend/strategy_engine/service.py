@@ -43,16 +43,27 @@ class StrategyExecutionService(Generic[SnapshotT]):
         self._strategy = strategy
 
     async def run(self, request: StrategyExecutionRequest) -> StrategyExecutionResult[SnapshotT]:
+        normalized_request = _normalize_request(request)
         snapshot = await self._snapshot_provider.get_snapshot(
             MarketSnapshotRequest(
-                symbol=request.symbol,
-                interval=request.interval,
+                symbol=normalized_request.symbol,
+                interval=normalized_request.interval,
                 limit=self._strategy.required_candle_count,
             )
         )
         signal = await self._strategy.generate_signal(snapshot)
         return StrategyExecutionResult(
-            request=request,
+            request=normalized_request,
             snapshot=snapshot,
             signal=signal,
         )
+
+
+def _normalize_request(request: StrategyExecutionRequest) -> StrategyExecutionRequest:
+    symbol = request.symbol.strip().upper()
+    interval = request.interval.strip()
+    if not symbol:
+        raise ValueError("Strategy execution symbol must not be empty.")
+    if not interval:
+        raise ValueError("Strategy execution interval must not be empty.")
+    return StrategyExecutionRequest(symbol=symbol, interval=interval)
