@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncGenerator, Generator
 import os
 
@@ -10,8 +11,10 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from backend.config import settings
+from backend.database import get_session
 from backend.main import create_app
 
 TEST_POSTGRESQL_URL_ENV = "TEST_POSTGRESQL_URL"
@@ -55,29 +58,22 @@ def _require_postgresql_test_url() -> str:
     return database_url
 
 
-def _reset_database(database_url: str) -> None:
-    async def run() -> None:
-        engine = create_async_engine(database_url, isolation_level="AUTOCOMMIT")
-        try:
-            async with engine.connect() as connection:
-                await connection.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
-                await connection.execute(text("CREATE SCHEMA public"))
-            await engine.dispose()
-        except Exception:
-            await engine.dispose()
-            raise
-
-    import asyncio
-
-    asyncio.run(run())
+async def _reset_database(database_url: str) -> None:
+    engine = create_async_engine(database_url, isolation_level="AUTOCOMMIT")
+    try:
+        async with engine.connect() as connection:
+            await connection.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+            await connection.execute(text("CREATE SCHEMA public"))
+    finally:
+        await engine.dispose()
 
 
-def _upgrade_database(database_url: str) -> None:
+async def _upgrade_database(database_url: str) -> None:
     alembic_config = Config("alembic.ini")
     original_database_url = settings.database_url
     settings.database_url = database_url
     try:
-        command.upgrade(alembic_config, "head")
+        await asyncio.to_thread(command.upgrade, alembic_config, "head")
     finally:
         settings.database_url = original_database_url
 
@@ -97,10 +93,10 @@ def postgresql_database_url() -> Generator[str, None, None]:
 async def postgresql_session_factory(
     postgresql_database_url: str,
 ) -> AsyncGenerator[async_sessionmaker[AsyncSession], None]:
-    _reset_database(postgresql_database_url)
-    _upgrade_database(postgresql_database_url)
+    await _reset_database(postgresql_database_url)
+    await _upgrade_database(postgresql_database_url)
 
-    engine = create_async_engine(postgresql_database_url)
+    engine = create_async_engine(postgresql_database_url, poolclass=NullPool)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         yield session_factory
@@ -117,5 +113,11 @@ def postgresql_client(
         session_factory=postgresql_session_factory,
         rest_client=PostgresqlApiRestClient(),
     )
+
+    async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
+        async with postgresql_session_factory() as session:
+            yield session
+
+    app.dependency_overrides[get_session] = override_get_session
     with TestClient(app) as client:
         yield client
