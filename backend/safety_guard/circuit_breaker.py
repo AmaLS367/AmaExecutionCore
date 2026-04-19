@@ -30,16 +30,8 @@ class CircuitBreaker:
     """
 
     async def _get_or_create_today(self, session: AsyncSession) -> DailyStat:
-        today = date.today()
-        result = await session.execute(
-            select(DailyStat).where(DailyStat.stat_date == today)
-        )
-        stat = result.scalar_one_or_none()
-        if stat is None:
-            stat = DailyStat(stat_date=today)
-            session.add(stat)
-            await session.flush()
-        return stat
+        store = TradeJournalStore(session)
+        return await store.get_or_create_daily_stat(stat_date=date.today())
 
     async def check(self, session: AsyncSession) -> None:
         """
@@ -151,10 +143,8 @@ class CircuitBreaker:
 
     async def record_loss(self, session: AsyncSession, loss_pct: Decimal) -> None:
         """Call when a position closes at a loss."""
-        stat = await self._get_or_create_today(session)
-        stat.losing_trades = (stat.losing_trades or 0) + 1
-        stat.consecutive_losses = (stat.consecutive_losses or 0) + 1
-        stat.daily_loss_pct = (stat.daily_loss_pct or Decimal("0")) + loss_pct
+        store = TradeJournalStore(session)
+        stat = await store.record_daily_loss(stat_date=date.today(), loss_pct=loss_pct)
         await session.commit()
         logger.info(
             "Loss recorded. consecutive={} daily_loss_pct={}",
@@ -164,16 +154,17 @@ class CircuitBreaker:
 
     async def record_win(self, session: AsyncSession) -> None:
         """Call when a position closes at a profit. Resets consecutive loss counter."""
-        stat = await self._get_or_create_today(session)
-        stat.winning_trades = (stat.winning_trades or 0) + 1
-        stat.consecutive_losses = 0
+        store = TradeJournalStore(session)
+        stat = await store.record_daily_win(stat_date=date.today())
         await session.commit()
-        logger.info("Win recorded. consecutive losses reset.")
+        logger.info(
+            "Win recorded. winning_trades={} consecutive losses reset.",
+            stat.winning_trades,
+        )
 
     async def increment_trade_count(self, session: AsyncSession) -> None:
-        stat = await self._get_or_create_today(session)
-        stat.total_trades = (stat.total_trades or 0) + 1
-        await session.flush()
+        store = TradeJournalStore(session)
+        await store.increment_daily_trade_count(stat_date=date.today())
 
     async def _calculate_weekly_loss_pct(self, session: AsyncSession) -> Decimal:
         week_start = date.today() - timedelta(days=6)

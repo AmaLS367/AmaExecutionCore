@@ -71,8 +71,8 @@ class BBSqueezeStrategy(BaseStrategy[MarketSnapshot]):
         atr_values = _calculate_atr(highs, lows, closes, self.atr_period)
 
         band_widths = [
-            (u - l) / m if m != 0 else 0.0
-            for u, l, m in zip(bb_upper, bb_lower, bb_middle)
+            (upper_band - lower_band) / middle_band if middle_band != 0 else 0.0
+            for upper_band, lower_band, middle_band in zip(bb_upper, bb_lower, bb_middle)
         ]
 
         # Historical widths exclude the current and previous BB periods.

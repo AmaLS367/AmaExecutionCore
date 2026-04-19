@@ -55,6 +55,8 @@ def test_create_app_lifespan_builds_configured_day_trading_strategy(
     settings.signal_loop_interval = "15"
     settings.signal_loop_strategy = "rsi_ema"
     settings.min_rrr = 2.0
+    settings.scalping_enabled = False
+    settings.scalping_symbols = []
 
     monkeypatch.setattr("backend.main.build_day_trading_strategy", _fake_build_day_trading_strategy)
     monkeypatch.setattr("backend.main.SignalLoopRunner", _RecordingSignalLoopRunner)

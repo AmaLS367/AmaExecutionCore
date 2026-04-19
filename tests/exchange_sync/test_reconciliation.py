@@ -57,6 +57,12 @@ class RecordingRestClient:
         self.place_order_calls.append(dict(kwargs))
         return {"orderId": f"close-{len(self.place_order_calls)}"}
 
+    def cancel_order(self, **kwargs: object) -> dict[str, object]:
+        return {
+            "orderId": kwargs.get("order_id"),
+            "orderLinkId": kwargs.get("order_link_id"),
+        }
+
     def queue_response(self, *, order_link_id: str, response: dict[str, object] | None) -> None:
         self._responses.setdefault(order_link_id, []).append(response)
 

@@ -161,6 +161,9 @@ class BybitRESTClient:
         sl_price: str | None = None,
         tp_price: str | None = None,
         market_unit: str | None = None,
+        trigger_price: str | None = None,
+        order_filter: str | None = None,
+        reduce_only: bool | None = None,
     ) -> dict[str, Any]:
         """
         Places an order on Bybit. All numeric values must be pre-formatted strings.
@@ -190,6 +193,12 @@ class BybitRESTClient:
             params["takeProfit"] = tp_price
         if market_unit is not None:
             params["marketUnit"] = market_unit
+        if trigger_price is not None:
+            params["triggerPrice"] = trigger_price
+        if order_filter is not None:
+            params["orderFilter"] = order_filter
+        if reduce_only is not None:
+            params["reduceOnly"] = reduce_only
 
         logger.info(
             "Placing order. symbol={} side={} type={} qty={} order_link_id={}",

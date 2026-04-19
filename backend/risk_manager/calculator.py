@@ -1,4 +1,4 @@
-import math
+from decimal import Decimal, ROUND_DOWN
 
 from backend.risk_manager.exceptions import (
     BelowMinNotionalError,
@@ -37,17 +37,26 @@ def apply_exchange_constraints(qty: float, entry_price: float, qty_step: float, 
     if qty <= 0:
         raise InvalidRiskInputError(f"Quantity must be positive, got {qty}.")
 
-    round_qty = math.floor(qty / qty_step) * qty_step
-    notional_value = round_qty * entry_price
+    qty_decimal = Decimal(str(qty))
+    qty_step_decimal = Decimal(str(qty_step))
+    entry_price_decimal = Decimal(str(entry_price))
+    min_qty_decimal = Decimal(str(min_qty))
+    min_notional_decimal = Decimal(str(min_notional))
 
-    if round_qty < min_qty:
+    steps = (qty_decimal / qty_step_decimal).to_integral_value(rounding=ROUND_DOWN)
+    round_qty_decimal = steps * qty_step_decimal
+    notional_value_decimal = round_qty_decimal * entry_price_decimal
+    round_qty = float(round_qty_decimal)
+    notional_value = float(notional_value_decimal)
+
+    if round_qty_decimal < min_qty_decimal:
         raise BelowMinQtyError(
             f"Calculated quantity {round_qty} is below exchange minimum {min_qty}."
         )
 
-    if notional_value < min_notional:
+    if notional_value_decimal < min_notional_decimal:
         raise BelowMinNotionalError(
             f"Notional value {notional_value} is below exchange minimum {min_notional}."
         )
 
-    return round(round_qty, 8)
+    return float(round_qty_decimal)

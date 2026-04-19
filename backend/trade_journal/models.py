@@ -68,6 +68,7 @@ class TradeStatus(str, enum.Enum):
     POSITION_CLOSE_FAILED = "position_close_failed"
     PNL_RECORDED = "pnl_recorded"
 
+
 class SystemEventType(str, enum.Enum):
     KILL_SWITCH = "kill_switch"
     CIRCUIT_BREAKER = "circuit_breaker"
@@ -124,6 +125,10 @@ class Trade(Base):
     exchange_order_id: Mapped[str | None] = mapped_column(String(64))
     close_order_link_id: Mapped[str | None] = mapped_column(String(64), unique=True)
     close_exchange_order_id: Mapped[str | None] = mapped_column(String(64))
+    stop_order_link_id: Mapped[str | None] = mapped_column(String(64), unique=True)
+    stop_exchange_order_id: Mapped[str | None] = mapped_column(String(64))
+    take_profit_order_link_id: Mapped[str | None] = mapped_column(String(64), unique=True)
+    take_profit_exchange_order_id: Mapped[str | None] = mapped_column(String(64))
 
     symbol: Mapped[str] = mapped_column(String(20), nullable=False)
     signal_direction: Mapped[SignalDirection] = mapped_column(SAEnum(SignalDirection, native_enum=False), nullable=False)
@@ -195,6 +200,7 @@ class TradeEvent(Base):
 
     trade: Mapped[Trade] = relationship("Trade", back_populates="events")
 
+
 class DailyStat(Base):
     __tablename__ = "daily_stats"
 
@@ -213,6 +219,7 @@ class DailyStat(Base):
     symbol_stats: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=None)
     circuit_breaker_triggered: Mapped[bool] = mapped_column(server_default="false", default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
 
 class SystemEvent(Base):
     __tablename__ = "system_events"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 import pytest
 
@@ -100,13 +101,15 @@ async def test_generates_long_signal_on_bullish_divergence() -> None:
     assert signal.target > signal.entry
     assert signal.reason == "rsi_divergence_bullish"
     assert signal.strategy_version == "rsi-divergence-v1"
-    snapshot_keys = set(signal.indicators_snapshot or {})
+    assert signal.indicators_snapshot is not None
+    snapshot = signal.indicators_snapshot
+    snapshot_keys = set(snapshot)
     assert "rsi_at_swing1" in snapshot_keys
     assert "rsi_at_swing2" in snapshot_keys
     # Key divergence property: RSI at second swing low > RSI at first swing low
-    assert signal.indicators_snapshot["rsi_at_swing2"] > signal.indicators_snapshot["rsi_at_swing1"]  # type: ignore[index]
+    assert cast(float, snapshot["rsi_at_swing2"]) > cast(float, snapshot["rsi_at_swing1"])
     # And price at second swing low < price at first swing low
-    assert signal.indicators_snapshot["price_at_swing2"] < signal.indicators_snapshot["price_at_swing1"]  # type: ignore[index]
+    assert cast(float, snapshot["price_at_swing2"]) < cast(float, snapshot["price_at_swing1"])
 
 
 @pytest.mark.asyncio
@@ -121,8 +124,10 @@ async def test_generates_short_signal_on_bearish_divergence() -> None:
     assert signal.stop > signal.entry
     assert signal.target < signal.entry
     assert signal.reason == "rsi_divergence_bearish"
-    assert signal.indicators_snapshot["rsi_at_swing2"] < signal.indicators_snapshot["rsi_at_swing1"]  # type: ignore[index]
-    assert signal.indicators_snapshot["price_at_swing2"] > signal.indicators_snapshot["price_at_swing1"]  # type: ignore[index]
+    assert signal.indicators_snapshot is not None
+    snapshot = signal.indicators_snapshot
+    assert cast(float, snapshot["rsi_at_swing2"]) < cast(float, snapshot["rsi_at_swing1"])
+    assert cast(float, snapshot["price_at_swing2"]) > cast(float, snapshot["price_at_swing1"])
 
 
 @pytest.mark.asyncio
@@ -131,7 +136,6 @@ async def test_returns_none_when_no_divergence_both_rsi_and_price_lower() -> Non
     n = strategy.required_candle_count  # 53
 
     # Monotonic decline — both price AND RSI make lower lows (no divergence)
-    closes = list(reversed(range(n, n + n)))  # descending from 106 to 54
     closes = [float(x) for x in range(n + 53, n - 1, -1)]
 
     signal = await strategy.generate_signal(_build_snapshot(closes[:n]))

@@ -45,6 +45,9 @@ class OrderPlacementClient(Protocol):
         sl_price: str | None = None,
         tp_price: str | None = None,
         market_unit: str | None = None,
+        trigger_price: str | None = None,
+        order_filter: str | None = None,
+        reduce_only: bool | None = None,
     ) -> dict[str, object]: ...
 
 

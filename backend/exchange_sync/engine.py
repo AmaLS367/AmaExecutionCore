@@ -3,6 +3,7 @@ from collections.abc import Coroutine
 from contextlib import suppress
 from datetime import datetime, timezone
 from decimal import Decimal
+import uuid
 from typing import Any, Protocol
 
 from loguru import logger
@@ -10,7 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.config import settings
 from backend.exchange_sync.listener import BybitWebSocketListener
-from backend.trade_journal.models import ExitReason, Trade, TradeStatus, SystemEventType
+from backend.order_executor.idempotency import generate_order_link_id
+from backend.trade_journal.models import ExchangeSide, ExitReason, Trade, TradeStatus, SystemEventType
 from backend.trade_journal.store import TradeJournalStore
 
 _ORDER_STATUS_MAP: dict[str, TradeStatus] = {
@@ -28,6 +30,34 @@ _DEFAULT_RECONCILIATION_INTERVAL_SECONDS = 5.0
 
 
 class OrderStatusClient(Protocol):
+    def place_order(
+        self,
+        *,
+        category: str,
+        symbol: str,
+        side: str,
+        order_type: str,
+        qty: str,
+        price: str | None = None,
+        order_link_id: str | None = None,
+        is_post_only: bool = False,
+        sl_price: str | None = None,
+        tp_price: str | None = None,
+        market_unit: str | None = None,
+        trigger_price: str | None = None,
+        order_filter: str | None = None,
+        reduce_only: bool | None = None,
+    ) -> dict[str, object]: ...
+
+    def cancel_order(
+        self,
+        *,
+        category: str,
+        symbol: str,
+        order_id: str | None = None,
+        order_link_id: str | None = None,
+    ) -> dict[str, object]: ...
+
     def get_order_status(
         self,
         *,
@@ -101,13 +131,41 @@ class ExchangeSyncEngine:
 
         reconciled_entries = await self.reconcile_entry_orders()
         reconciled_closes = await self.reconcile_close_orders()
-        return reconciled_entries + reconciled_closes
+        reconciled_protections = await self.reconcile_missing_protection_orders()
+        return reconciled_entries + reconciled_closes + reconciled_protections
 
     async def reconcile_entry_orders(self) -> int:
         return await self._reconcile_status_group(_ENTRY_RECONCILIATION_STATUSES)
 
     async def reconcile_close_orders(self) -> int:
         return await self._reconcile_status_group(_CLOSE_RECONCILIATION_STATUSES)
+
+    async def reconcile_missing_protection_orders(self) -> int:
+        if self._rest_client is None:
+            return 0
+
+        reconciled = 0
+        async with self._session_factory() as session:
+            store = TradeJournalStore(session)
+            trades = await store.list_spot_market_trades_missing_protection()
+            for trade in trades:
+                locked_trade = await store.get_trade_by_order_link_id(
+                    trade.order_link_id or "",
+                    for_update=True,
+                )
+                if locked_trade is None:
+                    continue
+                try:
+                    if await self._ensure_spot_market_protection(
+                        session=session,
+                        store=store,
+                        trade=locked_trade,
+                    ):
+                        reconciled += 1
+                except Exception:
+                    logger.exception("Failed to reconcile protective orders for trade {}.", locked_trade.id)
+            await session.commit()
+        return reconciled
 
     # ------------------------------------------------------------------
     # Thread → asyncio bridge
@@ -147,7 +205,7 @@ class ExchangeSyncEngine:
 
         async with self._session_factory() as session:
             store = TradeJournalStore(session)
-            trade = await store.get_trade_by_order_link_id(order_link_id)
+            trade = await store.get_trade_by_order_link_id(order_link_id, for_update=True)
             if trade is None:
                 logger.warning(
                     "WS order event: no trade found for order_link_id={}", order_link_id
@@ -175,13 +233,23 @@ class ExchangeSyncEngine:
 
         async with self._session_factory() as session:
             store = TradeJournalStore(session)
-            trade = await store.get_trade_by_order_link_id(order_link_id)
+            if exec_fee:
+                fee_updated = await store.add_execution_fee(
+                    order_link_id=order_link_id,
+                    fee=Decimal(str(exec_fee)),
+                )
+                if not fee_updated and not exec_price:
+                    return
+
+            if not exec_price:
+                await session.commit()
+                logger.debug("Execution recorded. order_link_id={}", order_link_id)
+                return
+
+            trade = await store.get_trade_by_order_link_id(order_link_id, for_update=True)
             if trade is None:
                 return
 
-            if exec_fee:
-                current_fee = trade.fee_paid or Decimal("0")
-                trade.fee_paid = current_fee + Decimal(exec_fee)
             if trade.order_link_id == order_link_id and exec_price and trade.entry_price:
                 trade.slippage = abs(Decimal(exec_price) - trade.entry_price)
 
@@ -259,22 +327,32 @@ class ExchangeSyncEngine:
             return False
 
         is_close_order = trade.close_order_link_id == order_link_id
+        is_stop_order = trade.stop_order_link_id == order_link_id
+        is_take_profit_order = trade.take_profit_order_link_id == order_link_id
+        is_protective_close_order = is_close_order or is_stop_order or is_take_profit_order
         exchange_order_id = data.get("orderId")
         if isinstance(exchange_order_id, str):
             if is_close_order:
                 trade.close_exchange_order_id = exchange_order_id
+            elif is_stop_order:
+                trade.stop_exchange_order_id = exchange_order_id
+            elif is_take_profit_order:
+                trade.take_profit_exchange_order_id = exchange_order_id
             else:
                 trade.exchange_order_id = exchange_order_id
 
-        if (
-            not is_close_order
-            and trade.status == TradeStatus.POSITION_OPEN
-            and new_status == TradeStatus.ORDER_CONFIRMED
-            and data.get("leavesQty") == "0"
+        is_fully_filled = data.get("leavesQty") == "0"
+        if not is_protective_close_order and self._should_ignore_entry_update(
+            trade=trade,
+            new_status=new_status,
+            is_fully_filled=is_fully_filled,
         ):
             return False
 
-        if new_status == TradeStatus.ORDER_CONFIRMED and not is_close_order:
+        if is_protective_close_order and self._should_ignore_close_update(trade=trade):
+            return False
+
+        if new_status == TradeStatus.ORDER_CONFIRMED and not is_protective_close_order:
             avg_price = data.get("avgPrice")
             cum_exec_qty = data.get("cumExecQty")
             if avg_price is not None:
@@ -287,15 +365,19 @@ class ExchangeSyncEngine:
                 event_metadata={"source": "exchange_sync"},
             )
             trade.opened_at = datetime.now(timezone.utc)
-            if data.get("leavesQty") == "0":
-                await store.transition_trade_status(
-                    trade,
-                    TradeStatus.POSITION_OPEN,
-                    event_metadata={"source": "exchange_sync"},
+            if is_fully_filled:
+                protection_ready = await self._ensure_spot_market_protection(
+                    session=session,
+                    store=store,
+                    trade=trade,
                 )
-        elif is_close_order and new_status == TradeStatus.ORDER_CONFIRMED:
-            if trade.status == TradeStatus.PNL_RECORDED:
-                return False
+                if protection_ready:
+                    await store.transition_trade_status(
+                        trade,
+                        TradeStatus.POSITION_OPEN,
+                        event_metadata={"source": "exchange_sync"},
+                    )
+        elif is_protective_close_order and new_status == TradeStatus.ORDER_CONFIRMED:
             await store.transition_trade_status(
                 trade,
                 TradeStatus.ORDER_CONFIRMED,
@@ -317,7 +399,11 @@ class ExchangeSyncEngine:
                 if closed_at.tzinfo is None:
                     closed_at = closed_at.replace(tzinfo=timezone.utc)
                 trade.hold_time_seconds = int((closed_at - opened_at).total_seconds())
-            if trade.exit_reason is None:
+            if is_stop_order:
+                trade.exit_reason = ExitReason.SL_HIT
+            elif is_take_profit_order:
+                trade.exit_reason = ExitReason.TP_HIT
+            elif trade.exit_reason is None:
                 trade.exit_reason = ExitReason.MANUAL
 
             realized_pnl = store.calculate_realized_pnl(trade, exit_price)
@@ -330,7 +416,7 @@ class ExchangeSyncEngine:
                 event_metadata={"source": "exchange_sync"},
             )
             await store.apply_trade_outcome_analytics(trade)
-        elif is_close_order and new_status in {
+        elif is_protective_close_order and new_status in {
             TradeStatus.ORDER_REJECTED,
             TradeStatus.ORDER_CANCELLED,
         }:
@@ -349,7 +435,7 @@ class ExchangeSyncEngine:
                 description="Close order failed and position may remain open.",
                 event_metadata={
                     "trade_id": str(trade.id),
-                    "close_order_link_id": order_link_id,
+                    "protective_order_link_id": order_link_id,
                 },
             )
         else:
@@ -360,6 +446,172 @@ class ExchangeSyncEngine:
             )
 
         return True
+
+    async def _ensure_spot_market_protection(
+        self,
+        *,
+        session: AsyncSession,
+        store: TradeJournalStore,
+        trade: Trade,
+    ) -> bool:
+        if self._rest_client is None:
+            return False
+        if trade.market_type.value != "spot" or trade.order_type != "Market":
+            return True
+
+        qty = trade.filled_qty or trade.qty
+        if qty in (None, Decimal("0")) or trade.stop_price is None:
+            return False
+
+        close_side = self._close_side(trade)
+
+        if trade.stop_order_link_id is None:
+            stop_order_link_id = f"stop_{uuid.uuid4().hex[:12]}"
+            try:
+                result = await asyncio.to_thread(
+                    self._rest_client.place_order,
+                    category="spot",
+                    symbol=trade.symbol,
+                    side=close_side.value,
+                    order_type="Market",
+                    qty=str(qty),
+                    order_link_id=stop_order_link_id,
+                    market_unit="baseCoin" if close_side == ExchangeSide.BUY else None,
+                    trigger_price=str(trade.stop_price),
+                    order_filter="tpslOrder",
+                    reduce_only=True,
+                )
+            except Exception as exc:
+                await self._handle_stop_loss_submission_failure(
+                    session=session,
+                    store=store,
+                    trade=trade,
+                    exc=exc,
+                )
+                return False
+            trade.stop_order_link_id = stop_order_link_id
+            exchange_order_id = result.get("orderId")
+            if isinstance(exchange_order_id, str):
+                trade.stop_exchange_order_id = exchange_order_id
+
+        if trade.target_price is not None and trade.take_profit_order_link_id is None:
+            take_profit_order_link_id = f"tp_{uuid.uuid4().hex[:12]}"
+            try:
+                result = await asyncio.to_thread(
+                    self._rest_client.place_order,
+                    category="spot",
+                    symbol=trade.symbol,
+                    side=close_side.value,
+                    order_type="Market",
+                    qty=str(qty),
+                    order_link_id=take_profit_order_link_id,
+                    market_unit="baseCoin" if close_side == ExchangeSide.BUY else None,
+                    trigger_price=str(trade.target_price),
+                    order_filter="tpslOrder",
+                    reduce_only=True,
+                )
+            except Exception as exc:
+                await store.append_system_event(
+                    event_type=SystemEventType.ERROR,
+                    description="Take-profit protective order could not be armed after spot market fill.",
+                    event_metadata={"trade_id": str(trade.id), "error": str(exc)},
+                )
+                return True
+            trade.take_profit_order_link_id = take_profit_order_link_id
+            exchange_order_id = result.get("orderId")
+            if isinstance(exchange_order_id, str):
+                trade.take_profit_exchange_order_id = exchange_order_id
+
+        return True
+
+    async def _handle_stop_loss_submission_failure(
+        self,
+        *,
+        session: AsyncSession,
+        store: TradeJournalStore,
+        trade: Trade,
+        exc: Exception,
+    ) -> None:
+        await store.activate_kill_switch()
+        await store.append_system_event(
+            event_type=SystemEventType.ERROR,
+            description="Stop-loss protective order could not be armed after spot market fill.",
+            event_metadata={"trade_id": str(trade.id), "error": str(exc)},
+        )
+        if self._rest_client is None:
+            await store.transition_trade_status(
+                trade,
+                TradeStatus.POSITION_CLOSE_FAILED,
+                event_metadata={"source": "exchange_sync", "reason": "stop_loss_arm_failed"},
+            )
+            return
+
+        close_side = self._close_side(trade)
+        qty = trade.filled_qty or trade.qty or Decimal("0")
+        emergency_close_link_id = generate_order_link_id(str(trade.signal_id))
+        trade.close_order_link_id = emergency_close_link_id
+        trade.exit_reason = ExitReason.KILL_SWITCH
+
+        try:
+            result = await asyncio.to_thread(
+                self._rest_client.place_order,
+                category="spot",
+                symbol=trade.symbol,
+                side=close_side.value,
+                order_type="Market",
+                qty=str(qty),
+                order_link_id=emergency_close_link_id,
+                market_unit="baseCoin" if close_side == ExchangeSide.BUY else None,
+                reduce_only=True,
+            )
+        except Exception as close_exc:
+            await store.append_system_event(
+                event_type=SystemEventType.ERROR,
+                description="Emergency close submission failed after stop-loss arming failure.",
+                event_metadata={"trade_id": str(trade.id), "error": str(close_exc)},
+            )
+            await store.transition_trade_status(
+                trade,
+                TradeStatus.POSITION_CLOSE_FAILED,
+                event_metadata={"source": "exchange_sync", "reason": "emergency_close_failed"},
+            )
+            return
+
+        exchange_order_id = result.get("orderId")
+        if isinstance(exchange_order_id, str):
+            trade.close_exchange_order_id = exchange_order_id
+        await store.transition_trade_status(
+            trade,
+            TradeStatus.POSITION_CLOSE_PENDING,
+            event_metadata={"source": "exchange_sync", "reason": "emergency_close_after_stop_failure"},
+        )
+
+    @staticmethod
+    def _should_ignore_entry_update(
+        *,
+        trade: Trade,
+        new_status: TradeStatus,
+        is_fully_filled: bool,
+    ) -> bool:
+        if trade.status in {
+            TradeStatus.POSITION_OPEN,
+            TradeStatus.POSITION_CLOSE_PENDING,
+            TradeStatus.POSITION_CLOSED,
+            TradeStatus.POSITION_CLOSE_FAILED,
+            TradeStatus.PNL_RECORDED,
+        }:
+            return True
+        if trade.status == TradeStatus.ORDER_CONFIRMED and new_status == TradeStatus.ORDER_PARTIALLY_FILLED:
+            return True
+        return trade.status == TradeStatus.POSITION_OPEN and new_status == TradeStatus.ORDER_CONFIRMED and is_fully_filled
+
+    @staticmethod
+    def _should_ignore_close_update(*, trade: Trade) -> bool:
+        return trade.status == TradeStatus.PNL_RECORDED
+
+    @staticmethod
+    def _close_side(trade: Trade) -> ExchangeSide:
+        return ExchangeSide.SELL if trade.exchange_side == ExchangeSide.BUY else ExchangeSide.BUY
 
     @staticmethod
     def _tracked_order_link_id(trade: Trade) -> str | None:

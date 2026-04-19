@@ -88,3 +88,80 @@ def test_apply_exchange_constraints_below_notional_raises() -> None:
 def test_apply_exchange_constraints_zero_qty_raises() -> None:
     with pytest.raises(InvalidRiskInputError):
         apply_exchange_constraints(qty=0.0, qty_step=0.1, entry_price=10.0, min_qty=0.1, min_notional=1.0)
+
+
+@pytest.mark.parametrize(
+    ("qty", "qty_step", "expected"),
+    [
+        (0.29, 0.01, 0.29),
+        (0.30, 0.1, 0.30),
+        (0.57, 0.01, 0.57),
+        (0.58, 0.01, 0.58),
+        (0.70, 0.1, 0.70),
+        (1.20, 0.1, 1.20),
+        (2.40, 0.1, 2.40),
+    ],
+)
+def test_apply_exchange_constraints_preserves_exact_step_multiples(
+    qty: float,
+    qty_step: float,
+    expected: float,
+) -> None:
+    result = apply_exchange_constraints(
+        qty=qty,
+        qty_step=qty_step,
+        entry_price=100.0,
+        min_qty=qty_step,
+        min_notional=0.0,
+    )
+
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    ("qty", "qty_step", "min_qty"),
+    [
+        (0.30, 0.1, 0.30),
+        (1.20, 0.1, 1.20),
+        (0.29, 0.01, 0.29),
+    ],
+)
+def test_apply_exchange_constraints_does_not_fall_below_min_qty_at_exact_boundary(
+    qty: float,
+    qty_step: float,
+    min_qty: float,
+) -> None:
+    result = apply_exchange_constraints(
+        qty=qty,
+        qty_step=qty_step,
+        entry_price=10.0,
+        min_qty=min_qty,
+        min_notional=0.0,
+    )
+
+    assert result == qty
+
+
+@pytest.mark.parametrize(
+    ("qty", "qty_step", "entry_price", "min_notional"),
+    [
+        (0.30, 0.1, 10.0, 3.0),
+        (0.29, 0.01, 100.0, 29.0),
+        (1.20, 0.1, 10.0, 12.0),
+    ],
+)
+def test_apply_exchange_constraints_does_not_fall_below_min_notional_at_exact_boundary(
+    qty: float,
+    qty_step: float,
+    entry_price: float,
+    min_notional: float,
+) -> None:
+    result = apply_exchange_constraints(
+        qty=qty,
+        qty_step=qty_step,
+        entry_price=entry_price,
+        min_qty=qty_step,
+        min_notional=min_notional,
+    )
+
+    assert result == qty

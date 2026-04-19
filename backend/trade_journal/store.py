@@ -6,11 +6,14 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 import uuid
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select, update
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.trade_journal.models import (
     DailyStat,
+    MarketType,
     PauseReason,
     SafetyState,
     Signal,
@@ -87,15 +90,23 @@ class TradeJournalStore:
         )
         return result.scalars().first()
 
-    async def get_trade_by_order_link_id(self, order_link_id: str) -> Trade | None:
-        result = await self._session.execute(
-            select(Trade).where(
-                or_(
-                    Trade.order_link_id == order_link_id,
-                    Trade.close_order_link_id == order_link_id,
-                )
+    async def get_trade_by_order_link_id(
+        self,
+        order_link_id: str,
+        *,
+        for_update: bool = False,
+    ) -> Trade | None:
+        stmt = select(Trade).where(
+            or_(
+                Trade.order_link_id == order_link_id,
+                Trade.close_order_link_id == order_link_id,
+                Trade.stop_order_link_id == order_link_id,
+                Trade.take_profit_order_link_id == order_link_id,
             )
         )
+        if for_update and self._supports_for_update():
+            stmt = stmt.with_for_update()
+        result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def get_trade(self, trade_id: uuid.UUID) -> Trade | None:
@@ -103,13 +114,31 @@ class TradeJournalStore:
         return result.scalar_one_or_none()
 
     async def get_or_create_daily_stat(self, *, stat_date: date) -> DailyStat:
+        await self.ensure_daily_stat(stat_date=stat_date)
         result = await self._session.execute(select(DailyStat).where(DailyStat.stat_date == stat_date))
-        stat = result.scalar_one_or_none()
-        if stat is None:
-            stat = DailyStat(stat_date=stat_date)
-            self._session.add(stat)
+        return result.scalar_one()
+
+    async def ensure_daily_stat(self, *, stat_date: date) -> None:
+        dialect_name = self._dialect_name()
+        if dialect_name == "postgresql":
+            postgres_stmt = postgresql_insert(DailyStat).values(date=stat_date).on_conflict_do_nothing(
+                index_elements=["date"]
+            )
+            await self._session.execute(postgres_stmt)
             await self._session.flush()
-        return stat
+            return
+        if dialect_name == "sqlite":
+            sqlite_stmt = sqlite_insert(DailyStat).values(date=stat_date).on_conflict_do_nothing(
+                index_elements=["date"]
+            )
+            await self._session.execute(sqlite_stmt)
+            await self._session.flush()
+            return
+
+        result = await self._session.execute(select(DailyStat.id).where(DailyStat.stat_date == stat_date))
+        if result.scalar_one_or_none() is None:
+            self._session.add(DailyStat(stat_date=stat_date))
+            await self._session.flush()
 
     async def append_trade_event(
         self,
@@ -224,6 +253,32 @@ class TradeJournalStore:
         )
         return list(result.scalars().all())
 
+    async def list_spot_market_trades_missing_protection(self) -> list[Trade]:
+        result = await self._session.execute(
+            select(Trade)
+            .where(
+                Trade.market_type == MarketType.SPOT,
+                Trade.order_type == "Market",
+                Trade.status.in_((TradeStatus.ORDER_CONFIRMED, TradeStatus.POSITION_OPEN)),
+            )
+        )
+        trades = list(result.scalars().all())
+        return [
+            trade
+            for trade in trades
+            if trade.market_type.value == "spot"
+            and trade.order_type == "Market"
+            and trade.status in {TradeStatus.ORDER_CONFIRMED, TradeStatus.POSITION_OPEN}
+            and trade.filled_qty not in (None, Decimal("0"))
+            and (
+                trade.stop_order_link_id is None
+                or (
+                    trade.target_price is not None
+                    and trade.take_profit_order_link_id is None
+                )
+            )
+        ]
+
     async def get_or_create_safety_state(self) -> SafetyState:
         result = await self._session.execute(select(SafetyState).where(SafetyState.id == 1))
         state = result.scalar_one_or_none()
@@ -313,6 +368,71 @@ class TradeJournalStore:
             )
         )
 
+    async def add_execution_fee(self, *, order_link_id: str, fee: Decimal) -> bool:
+        trade_exists = await self._session.execute(
+            select(Trade.id).where(
+                or_(
+                    Trade.order_link_id == order_link_id,
+                    Trade.close_order_link_id == order_link_id,
+                    Trade.stop_order_link_id == order_link_id,
+                    Trade.take_profit_order_link_id == order_link_id,
+                )
+            )
+        )
+        if trade_exists.scalar_one_or_none() is None:
+            return False
+
+        result = await self._session.execute(
+            update(Trade)
+            .where(
+                or_(
+                    Trade.order_link_id == order_link_id,
+                    Trade.close_order_link_id == order_link_id,
+                    Trade.stop_order_link_id == order_link_id,
+                    Trade.take_profit_order_link_id == order_link_id,
+                )
+            )
+            .values(fee_paid=func.coalesce(Trade.fee_paid, Decimal("0")) + fee)
+        )
+        return result is not None
+
+    async def increment_daily_trade_count(self, *, stat_date: date) -> DailyStat:
+        await self.ensure_daily_stat(stat_date=stat_date)
+        await self._session.execute(
+            update(DailyStat)
+            .where(DailyStat.stat_date == stat_date)
+            .values(total_trades=DailyStat.total_trades + 1)
+        )
+        await self._session.flush()
+        return await self.get_or_create_daily_stat(stat_date=stat_date)
+
+    async def record_daily_loss(self, *, stat_date: date, loss_pct: Decimal) -> DailyStat:
+        await self.ensure_daily_stat(stat_date=stat_date)
+        await self._session.execute(
+            update(DailyStat)
+            .where(DailyStat.stat_date == stat_date)
+            .values(
+                losing_trades=DailyStat.losing_trades + 1,
+                consecutive_losses=DailyStat.consecutive_losses + 1,
+                daily_loss_pct=func.coalesce(DailyStat.daily_loss_pct, Decimal("0")) + loss_pct,
+            )
+        )
+        await self._session.flush()
+        return await self.get_or_create_daily_stat(stat_date=stat_date)
+
+    async def record_daily_win(self, *, stat_date: date) -> DailyStat:
+        await self.ensure_daily_stat(stat_date=stat_date)
+        await self._session.execute(
+            update(DailyStat)
+            .where(DailyStat.stat_date == stat_date)
+            .values(
+                winning_trades=DailyStat.winning_trades + 1,
+                consecutive_losses=0,
+            )
+        )
+        await self._session.flush()
+        return await self.get_or_create_daily_stat(stat_date=stat_date)
+
     @staticmethod
     def calculate_realized_pnl(trade: Trade, exit_price: Decimal) -> Decimal:
         entry_price = trade.avg_fill_price or trade.entry_price or Decimal("0")
@@ -367,3 +487,10 @@ class TradeJournalStore:
             "consecutive_losses": consecutive_losses,
         }
         stat.symbol_stats = existing_stats
+
+    def _supports_for_update(self) -> bool:
+        return self._dialect_name() != "sqlite"
+
+    def _dialect_name(self) -> str:
+        bind = self._session.get_bind()
+        return bind.dialect.name
