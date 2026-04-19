@@ -1,0 +1,51 @@
+services:
+  bot:
+    build: .
+    container_name: ama_bot
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Override DB URL to point to the postgres service
+      DATABASE_URL: postgresql+asyncpg://appuser:${POSTGRES_PASSWORD:-tradingpass}@postgres:5432/tradingbot
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  migrate:
+    build: .
+    container_name: ama_migrate
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://appuser:${POSTGRES_PASSWORD:-tradingpass}@postgres:5432/tradingbot
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uv run alembic upgrade head
+    restart: no
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: ama_postgres
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tradingpass}
+      POSTGRES_DB: tradingbot
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d tradingbot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

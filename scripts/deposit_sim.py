@@ -99,7 +99,7 @@ async def main():
         print(f"  Net profit:    +${r['net_profit']:.2f}  (+{r['roi']:.1f}% ROI)")
         print(f"  Max drawdown:  ${r['max_drawdown']:.2f} ({r['max_drawdown_pct']:.1f}% of deposit)")
         print()
-        print(f"  --- Pessimistic (-15% optimism discount) ---")
+        print("  --- Pessimistic (-15% optimism discount) ---")
         print(f"  Adj profit:    +${adj_profit:.2f}  (+{adj_profit/deposit*100:.1f}% ROI)")
         print(f"  Final account: ${deposit + adj_profit:.2f}")
         print()
