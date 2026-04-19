@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     scalping_interval: str = "5"
     scalping_ws_window_size: int = 50
     scalping_cooldown_seconds: int = 120
+    scalping_strategy: str = "vwap_reversion"
 
     # Risk Management
     risk_per_trade_pct: float = 0.01

@@ -21,9 +21,8 @@ from backend.signal_execution.router import router as signal_router
 from backend.signal_execution.service import ExecutionService
 from backend.signal_loop.runner import SignalLoopRunner
 from backend.signal_loop.ws_runner import WebSocketSignalRunner
-from backend.strategy_engine.factory import build_day_trading_strategy
+from backend.strategy_engine.factory import build_day_trading_strategy, build_scalping_strategy
 from backend.strategy_engine.service import StrategyExecutionService
-from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
 
 
 @asynccontextmanager
@@ -72,7 +71,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             rest_client=app.state.rest_client,
         )
         scalping_runner = WebSocketSignalRunner(
-            strategy=VWAPReversionStrategy(),
+            strategy=build_scalping_strategy(
+                strategy_name=settings.scalping_strategy,
+                min_rrr=settings.min_rrr,
+            ),
             execution_service=app.state.execution_service,
             feed=feed,
             cooldown_seconds=settings.scalping_cooldown_seconds,
