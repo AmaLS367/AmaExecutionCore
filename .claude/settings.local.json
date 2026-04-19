@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__code-review-graph__build_or_update_graph_tool",
+      "mcp__code-review-graph__list_graph_stats_tool",
+      "mcp__code-review-graph__semantic_search_nodes_tool",
+      "mcp__code-review-graph__query_graph_tool"
+    ]
+  }
+}

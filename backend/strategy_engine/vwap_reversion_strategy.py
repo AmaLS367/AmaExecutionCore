@@ -57,20 +57,20 @@ def _calculate_atr(highs: list[float], lows: list[float], closes: list[float], p
     return atr_values
 
 
-def _calculate_intraday_vwap(snapshot: MarketSnapshot) -> float:
+def _calculate_intraday_vwap(snapshot: MarketSnapshot) -> float | None:
     if not snapshot.candles:
         raise ValueError("VWAP requires candles.")
     current_day = snapshot.candles[-1].opened_at.date()
     cumulative_price_volume = 0.0
     cumulative_volume = 0.0
     for candle in snapshot.candles:
-        if candle.opened_at.date() != current_day:
+        if candle.opened_at.date() != current_day or candle.volume == 0:
             continue
         typical_price = (candle.high + candle.low + candle.close) / 3.0
         cumulative_price_volume += typical_price * candle.volume
         cumulative_volume += candle.volume
     if cumulative_volume == 0:
-        raise ValueError("VWAP requires non-zero candle volume.")
+        return None
     return cumulative_price_volume / cumulative_volume
 
 
@@ -92,6 +92,8 @@ class VWAPReversionStrategy(BaseStrategy[MarketSnapshot]):
         highs = list(snapshot.highs)
         lows = list(snapshot.lows)
         vwap = _calculate_intraday_vwap(snapshot)
+        if vwap is None:
+            return None
         rsi_values = _calculate_rsi(closes, self.rsi_period)
         atr_values = _calculate_atr(highs, lows, closes, self.atr_period)
 
