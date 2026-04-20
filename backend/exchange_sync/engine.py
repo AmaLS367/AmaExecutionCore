@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from backend.config import settings
 from backend.exchange_sync.listener import BybitWebSocketListener
 from backend.order_executor.idempotency import generate_order_link_id
+from backend.task_utils import create_logged_task
 from backend.trade_journal.models import ExchangeSide, ExitReason, Trade, TradeStatus, SystemEventType
 from backend.trade_journal.store import TradeJournalStore
 
@@ -106,7 +107,10 @@ class ExchangeSyncEngine:
             return
         if self._reconciliation_task is not None and not self._reconciliation_task.done():
             return
-        self._reconciliation_task = asyncio.create_task(self._reconciliation_loop())
+        self._reconciliation_task = create_logged_task(
+            self._reconciliation_loop(),
+            name="exchange-sync-reconciliation",
+        )
         logger.info("ExchangeSyncEngine reconciliation worker started.")
 
     async def stop_reconciliation_worker(self) -> None:

@@ -23,6 +23,7 @@ from backend.signal_loop.runner import SignalLoopRunner
 from backend.signal_loop.ws_runner import WebSocketSignalRunner
 from backend.strategy_engine.factory import build_day_trading_strategy, build_scalping_strategy
 from backend.strategy_engine.service import StrategyExecutionService
+from backend.task_utils import create_logged_task
 
 
 @asynccontextmanager
@@ -37,6 +38,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     ws_listener.start()
     sync_engine.wire(ws_listener)
     sync_engine.start_reconciliation_worker()
+    spot_exit_monitor_task: asyncio.Task[None] | None = None
+    if settings.trading_mode != "shadow":
+        spot_exit_monitor_task = create_logged_task(
+            app.state.position_manager.run_spot_exit_monitor(
+                poll_interval_seconds=settings.spot_exit_monitor_interval_seconds
+            ),
+            name="spot-exit-monitor",
+        )
 
     signal_loop_runner: SignalLoopRunner | None = None
     signal_loop_task: asyncio.Task[None] | None = None
@@ -58,7 +67,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             session_factory=app.state.session_factory,
         )
         app.state.signal_loop_runner = signal_loop_runner
-        signal_loop_task = asyncio.create_task(signal_loop_runner.run_forever())
+        signal_loop_task = create_logged_task(
+            signal_loop_runner.run_forever(),
+            name="signal-loop-runner",
+        )
 
     scalping_runner: WebSocketSignalRunner | None = None
     scalping_task: asyncio.Task[None] | None = None
@@ -80,7 +92,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             cooldown_seconds=settings.scalping_cooldown_seconds,
             session_factory=app.state.session_factory,
         )
-        scalping_task = asyncio.create_task(scalping_runner.run_forever())
+        scalping_task = create_logged_task(
+            scalping_runner.run_forever(),
+            name="scalping-runner",
+        )
 
     yield
 
@@ -88,10 +103,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         scalping_runner.stop()
     if signal_loop_runner is not None:
         signal_loop_runner.stop()
+    app.state.position_manager.stop_spot_exit_monitor()
     if scalping_task is not None:
         await asyncio.gather(scalping_task, return_exceptions=True)
     if signal_loop_task is not None:
         await asyncio.gather(signal_loop_task, return_exceptions=True)
+    if spot_exit_monitor_task is not None:
+        await asyncio.gather(spot_exit_monitor_task, return_exceptions=True)
     await sync_engine.stop_reconciliation_worker()
     ws_listener.stop()
 
@@ -113,6 +131,10 @@ class NullRestClient:
         raise RuntimeError("Bybit REST client is not available.")
 
     def get_klines(self, **_: object) -> list[object]:
+        raise RuntimeError("Bybit REST client is not available.")
+
+    def get_ticker_price(self, symbol: str, category: str = "spot") -> float:
+        del symbol, category
         raise RuntimeError("Bybit REST client is not available.")
 
 

@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.bybit_client.exceptions import BybitAPIError
+from backend.config import settings
 from backend.exchange_sync.engine import ExchangeSyncEngine
 from backend.exchange_sync.listener import BybitWebSocketListener
 from backend.trade_journal.models import (
@@ -106,6 +107,34 @@ async def test_exchange_sync_wire_uses_running_loop(
 
     assert engine._loop is not None  # noqa: SLF001
     assert engine._loop.is_running()  # noqa: SLF001
+
+
+@pytest.mark.asyncio
+async def test_exchange_sync_reconciliation_worker_uses_logged_task_helper(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings.trading_mode = "demo"
+    recorded_task_names: list[str] = []
+
+    def _fake_create_logged_task(coroutine: object, *, name: str) -> asyncio.Task[None]:
+        recorded_task_names.append(name)
+        typed_coroutine = coroutine
+        assert asyncio.iscoroutine(typed_coroutine)
+        typed_coroutine.close()
+        return asyncio.create_task(asyncio.sleep(0), name=name)
+
+    monkeypatch.setattr("backend.exchange_sync.engine.create_logged_task", _fake_create_logged_task)
+
+    engine = ExchangeSyncEngine(
+        session_factory=sqlite_session_factory,
+        rest_client=ProtectionRestClient(),
+    )
+
+    engine.start_reconciliation_worker()
+    await asyncio.gather(engine._reconciliation_task, return_exceptions=True)  # type: ignore[arg-type]
+
+    assert recorded_task_names == ["exchange-sync-reconciliation"]
 
 
 def _build_entry_trade(
