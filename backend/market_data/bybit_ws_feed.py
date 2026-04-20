@@ -97,7 +97,7 @@ class BybitCandleFeed:
             logger.warning("pybit is not installed — public candle feed not started.")
             return
 
-        self._ws = WebSocket(testnet=self._testnet, channel_type="spot")
+        self._ws = WebSocket(testnet=self._testnet, channel_type="public")
         for symbol in self._symbols:
             self._ws.kline_stream(
                 interval=int(self._interval) if self._interval.isdigit() else self._interval,
