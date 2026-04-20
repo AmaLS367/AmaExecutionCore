@@ -162,7 +162,7 @@ async def test_start_warms_up_and_subscribes_to_websocket(
     await feed.start()
 
     assert len(ws_instances) == 1
-    assert ws_instances[0].kwargs == {"testnet": True, "channel_type": "public"}
+    assert ws_instances[0].kwargs == {"testnet": True, "channel_type": "spot"}
     assert ws_instances[0].streams[0][0] == 1
     assert ws_instances[0].streams[0][1] == "BTCUSDT"
 
@@ -279,7 +279,7 @@ def test_stop_swallow_exceptions_from_websocket_exit() -> None:
         window_size=1,
         rest_client=RecordingRestClient(),
     )
-    ws = RecordingWebSocket(testnet=True, channel_type="public")
+    ws = RecordingWebSocket(testnet=True, channel_type="spot")
     ws.raise_on_exit = True
     feed._ws = ws  # noqa: SLF001
 
