@@ -7,6 +7,7 @@ from loguru import logger
 
 from backend.market_data.bybit_ws_feed import CandleFeedSnapshot
 from backend.market_data.contracts import MarketSnapshot
+from backend.risk_manager.exceptions import InsufficientSpotBalanceError
 from backend.safety_guard.exceptions import SafetyGuardError
 from backend.signal_execution.schemas import ExecuteSignalRequest
 from backend.signal_loop.runner import _SymbolState
@@ -74,11 +75,23 @@ class WebSocketSignalRunner:
             snapshot.symbol,
             _SymbolState(symbol=snapshot.symbol, cooldown_seconds=self._cooldown_seconds),
         )
-        if (
-            state.is_in_cooldown()
-            or feed_snapshot.gap_recovered
-            or await self._is_symbol_blacklisted(snapshot.symbol)
-        ):
+        if feed_snapshot.gap_recovered:
+            logger.info(
+                "WebSocket snapshot skipped. symbol={} reason=gap_recovered",
+                snapshot.symbol,
+            )
+            return
+        if state.is_in_cooldown():
+            logger.info(
+                "WebSocket snapshot skipped. symbol={} reason=cooldown",
+                snapshot.symbol,
+            )
+            return
+        if await self._is_symbol_blacklisted(snapshot.symbol):
+            logger.info(
+                "WebSocket snapshot skipped. symbol={} reason=blacklist",
+                snapshot.symbol,
+            )
             return
 
         try:
@@ -107,6 +120,12 @@ class WebSocketSignalRunner:
                 )
             )
             state.record_entry()
+        except InsufficientSpotBalanceError as exc:
+            logger.info(
+                "WebSocket signal rejected. symbol={} reason=insufficient_balance detail={}",
+                signal.symbol,
+                exc,
+            )
         except SafetyGuardError:
             self.stop()
         except Exception:

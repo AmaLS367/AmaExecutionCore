@@ -4,10 +4,12 @@ import asyncio
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.market_data.bybit_ws_feed import CandleFeedSnapshot
 from backend.market_data.contracts import MarketCandle, MarketSnapshot
+from backend.risk_manager.exceptions import InsufficientSpotBalanceError
 from backend.safety_guard.exceptions import SafetyGuardError
 from backend.signal_loop.ws_runner import WebSocketSignalRunner
 from backend.strategy_engine.contracts import StrategySignal
@@ -73,6 +75,12 @@ class _ExecutionService:
         if self.exc is not None:
             raise self.exc
         return {"ok": True}
+
+
+def _capture_logs() -> tuple[list[str], int]:
+    messages: list[str] = []
+    sink_id = logger.add(messages.append, format="{level}|{message}")
+    return messages, sink_id
 
 
 @pytest.mark.asyncio
@@ -148,6 +156,86 @@ async def test_process_feed_snapshot_ignores_gap_recovered_and_cooldown() -> Non
     await runner._process_feed_snapshot(CandleFeedSnapshot(snapshot=_snapshot()))
 
     assert len(execution_service.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_process_feed_snapshot_logs_cooldown_skip() -> None:
+    messages, sink_id = _capture_logs()
+    strategy = _Strategy(
+        signal=StrategySignal(
+            symbol="BTCUSDT",
+            direction="long",
+            entry=100.0,
+            stop=90.0,
+            target=130.0,
+        )
+    )
+    runner = WebSocketSignalRunner(
+        strategy=strategy,
+        execution_service=_ExecutionService(),
+        feed=_Feed(),
+        cooldown_seconds=3600,
+    )
+    await runner._process_feed_snapshot(CandleFeedSnapshot(snapshot=_snapshot()))
+    await runner._process_feed_snapshot(CandleFeedSnapshot(snapshot=_snapshot()))
+    logger.remove(sink_id)
+
+    assert any("INFO|WebSocket snapshot skipped. symbol=BTCUSDT reason=cooldown" in message for message in messages)
+
+
+@pytest.mark.asyncio
+async def test_process_feed_snapshot_logs_blacklist_skip(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    messages, sink_id = _capture_logs()
+    runner = WebSocketSignalRunner(
+        strategy=_Strategy(),
+        execution_service=_ExecutionService(),
+        feed=_Feed(),
+        cooldown_seconds=60,
+        session_factory=sqlite_session_factory,
+    )
+
+    async with sqlite_session_factory() as session:
+        session.add(
+            DailyStat(
+                stat_date=date.today(),
+                symbol_stats={"BTCUSDT": {"consecutive_losses": 5}},
+            )
+        )
+        await session.commit()
+
+    await runner._process_feed_snapshot(CandleFeedSnapshot(snapshot=_snapshot()))
+    logger.remove(sink_id)
+
+    assert any("INFO|WebSocket snapshot skipped. symbol=BTCUSDT reason=blacklist" in message for message in messages)
+
+
+@pytest.mark.asyncio
+async def test_process_feed_snapshot_logs_balance_reject_without_stopping_runner() -> None:
+    messages, sink_id = _capture_logs()
+    runner = WebSocketSignalRunner(
+        strategy=_Strategy(
+            signal=StrategySignal(
+                symbol="BTCUSDT",
+                direction="long",
+                entry=100.0,
+                stop=90.0,
+                target=130.0,
+            )
+        ),
+        execution_service=_ExecutionService(
+            exc=InsufficientSpotBalanceError("Insufficient spot quote balance for BTCUSDT")
+        ),
+        feed=_Feed(),
+        cooldown_seconds=60,
+    )
+
+    await runner._process_feed_snapshot(CandleFeedSnapshot(snapshot=_snapshot()))
+    logger.remove(sink_id)
+
+    assert runner._stop_event.is_set() is False
+    assert any("INFO|WebSocket signal rejected. symbol=BTCUSDT reason=insufficient_balance" in message for message in messages)
 
 
 @pytest.mark.asyncio
