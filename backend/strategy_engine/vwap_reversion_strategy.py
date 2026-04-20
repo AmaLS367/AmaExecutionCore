@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from loguru import logger
+
 from backend.market_data.contracts import MarketSnapshot
 from backend.strategy_engine.contracts import BaseStrategy, StrategySignal
 
@@ -74,11 +76,19 @@ def _calculate_intraday_vwap(snapshot: MarketSnapshot) -> float | None:
     return cumulative_price_volume / cumulative_volume
 
 
+def _count_current_utc_day_candles(snapshot: MarketSnapshot) -> int:
+    if not snapshot.candles:
+        return 0
+    current_day = snapshot.candles[-1].opened_at.date()
+    return sum(1 for candle in snapshot.candles if candle.opened_at.date() == current_day)
+
+
 @dataclass(slots=True)
 class VWAPReversionStrategy(BaseStrategy[MarketSnapshot]):
     atr_period: int = 14
     rsi_period: int = 7
     min_deviation: float = 0.002
+    min_current_day_candles: int = 12
 
     @property
     def required_candle_count(self) -> int:
@@ -87,6 +97,17 @@ class VWAPReversionStrategy(BaseStrategy[MarketSnapshot]):
     async def generate_signal(self, snapshot: MarketSnapshot) -> StrategySignal | None:
         if len(snapshot.candles) < self.required_candle_count:
             raise ValueError("At least 50 candles are required.")
+
+        current_day_candle_count = _count_current_utc_day_candles(snapshot)
+        if current_day_candle_count < self.min_current_day_candles:
+            logger.debug(
+                "VWAPReversionStrategy skipped. symbol={} close={} current_day_candles={} minimum_required={}",
+                snapshot.symbol,
+                snapshot.last_price,
+                current_day_candle_count,
+                self.min_current_day_candles,
+            )
+            return None
 
         closes = list(snapshot.closes)
         highs = list(snapshot.highs)
@@ -101,6 +122,17 @@ class VWAPReversionStrategy(BaseStrategy[MarketSnapshot]):
         previous_close = closes[-2]
         current_rsi = rsi_values[-1]
         current_atr = atr_values[-1]
+        deviation_pct = (current_close - vwap) / vwap
+
+        logger.debug(
+            "VWAPReversionStrategy evaluated. symbol={} close={} vwap={} deviation_pct={} rsi={} current_day_candles={}",
+            snapshot.symbol,
+            current_close,
+            vwap,
+            deviation_pct,
+            current_rsi,
+            current_day_candle_count,
+        )
 
         if (
             current_close < (vwap * (1 - self.min_deviation))
