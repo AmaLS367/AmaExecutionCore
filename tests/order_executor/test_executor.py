@@ -27,7 +27,11 @@ class TimeoutRestClient:
         return {"list": [{"coin": [{"coin": "USDT", "equity": "1000"}]}]}
 
     def get_instruments_info(self, symbol: str, category: str = "spot") -> dict[str, object]:
-        return {"lotSizeFilter": {"qtyStep": "0.1", "minOrderQty": "0.1", "minOrderAmt": "5"}}
+        return {
+            "baseCoin": "BTC",
+            "quoteCoin": "USDT",
+            "lotSizeFilter": {"qtyStep": "0.1", "minOrderQty": "0.1", "minOrderAmt": "5"},
+        }
 
     def place_order(self, **_: object) -> dict[str, object]:
         raise TimeoutError("simulated timeout")
@@ -46,10 +50,23 @@ class RecordingSpotOrderRestClient:
         self.place_order_calls: list[dict[str, object]] = []
 
     def get_wallet_balance(self) -> dict[str, object]:
-        return {"list": [{"coin": [{"coin": "USDT", "equity": "1000"}]}]}
+        return {
+            "list": [
+                {
+                    "coin": [
+                        {"coin": "USDT", "equity": "1000"},
+                        {"coin": "BTC", "equity": "10"},
+                    ]
+                }
+            ]
+        }
 
     def get_instruments_info(self, symbol: str, category: str = "spot") -> dict[str, object]:
-        return {"lotSizeFilter": {"qtyStep": "0.1", "minOrderQty": "0.1", "minOrderAmt": "5"}}
+        return {
+            "baseCoin": "BTC",
+            "quoteCoin": "USDT",
+            "lotSizeFilter": {"qtyStep": "0.1", "minOrderQty": "0.1", "minOrderAmt": "5"},
+        }
 
     def place_order(self, **kwargs: object) -> dict[str, object]:
         self.place_order_calls.append(dict(kwargs))
@@ -65,6 +82,37 @@ class PostOnlyRejectingSpotRestClient(RecordingSpotOrderRestClient):
         if kwargs.get("is_post_only"):
             raise BybitAPIError(170001, "PostOnly order would be filled immediately")
         return {"orderId": f"order-{len(self.place_order_calls)}"}
+
+
+class BalanceAwareRestClient(RecordingSpotOrderRestClient):
+    def __init__(
+        self,
+        *,
+        balances: dict[str, str],
+        instrument: dict[str, object] | None = None,
+    ) -> None:
+        super().__init__()
+        self._balances = balances
+        self._instrument = instrument or {
+            "baseCoin": "BTC",
+            "quoteCoin": "USDT",
+            "lotSizeFilter": {"qtyStep": "0.1", "minOrderQty": "0.1", "minOrderAmt": "5"},
+        }
+
+    def get_wallet_balance(self) -> dict[str, object]:
+        return {
+            "list": [
+                {
+                    "coin": [
+                        {"coin": coin, "equity": equity}
+                        for coin, equity in self._balances.items()
+                    ]
+                }
+            ]
+        }
+
+    def get_instruments_info(self, symbol: str, category: str = "spot") -> dict[str, object]:
+        return dict(self._instrument)
 
 
 @pytest.mark.asyncio
@@ -351,3 +399,75 @@ async def test_executor_falls_back_to_spot_market_without_inline_protection_afte
     assert rest_client.place_order_calls[1]["order_type"] == "Market"
     assert rest_client.place_order_calls[1]["sl_price"] is None
     assert rest_client.place_order_calls[1]["tp_price"] is None
+
+
+@pytest.mark.asyncio
+async def test_executor_rejects_long_when_quote_balance_is_insufficient(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "demo"
+    settings.order_mode = "taker_allowed"
+    executor = OrderExecutor(
+        rest_client=BalanceAwareRestClient(balances={"USDT": "39", "BTC": "1"})
+    )
+
+    async with sqlite_session_factory() as session:
+        with pytest.raises(RiskManagerError, match="Insufficient spot quote balance"):
+            await executor.execute(
+                session=session,
+                signal_id=uuid.uuid4(),
+                symbol="BTCUSDT",
+                direction=SignalDirection.LONG,
+                entry=100.0,
+                stop=99.5,
+                target=101.5,
+            )
+
+
+@pytest.mark.asyncio
+async def test_executor_rejects_short_when_base_balance_is_insufficient(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "demo"
+    settings.order_mode = "taker_allowed"
+    executor = OrderExecutor(
+        rest_client=BalanceAwareRestClient(balances={"USDT": "1000", "BTC": "0.1"})
+    )
+
+    async with sqlite_session_factory() as session:
+        with pytest.raises(RiskManagerError, match="Insufficient spot base balance"):
+            await executor.execute(
+                session=session,
+                signal_id=uuid.uuid4(),
+                symbol="BTCUSDT",
+                direction=SignalDirection.SHORT,
+                entry=100.0,
+                stop=101.0,
+                target=98.0,
+            )
+
+
+@pytest.mark.asyncio
+async def test_executor_rejects_when_spot_instrument_metadata_is_incomplete(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "demo"
+    settings.order_mode = "taker_allowed"
+    executor = OrderExecutor(
+        rest_client=BalanceAwareRestClient(
+            balances={"USDT": "1000", "BTC": "1"},
+            instrument={"lotSizeFilter": {"qtyStep": "0.1", "minOrderQty": "0.1", "minOrderAmt": "5"}},
+        )
+    )
+
+    async with sqlite_session_factory() as session:
+        with pytest.raises(RiskManagerError, match="baseCoin/quoteCoin"):
+            await executor.execute(
+                session=session,
+                signal_id=uuid.uuid4(),
+                symbol="BTCUSDT",
+                direction=SignalDirection.LONG,
+                entry=100.0,
+                stop=90.0,
+                target=130.0,
+            )

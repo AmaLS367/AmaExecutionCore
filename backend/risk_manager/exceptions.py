@@ -16,3 +16,7 @@ class BelowMinQtyError(RiskManagerError):
 
 class BelowMinNotionalError(RiskManagerError):
     """Raised when calculated notional value falls below the exchange minimum notional."""
+
+
+class InsufficientSpotBalanceError(RiskManagerError):
+    """Raised when the spot wallet lacks balance for the intended order size."""

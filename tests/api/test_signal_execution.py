@@ -30,7 +30,11 @@ class PendingUnknownReplayRestClient:
         return {"list": [{"coin": [{"coin": "USDT", "equity": "1000"}]}]}
 
     def get_instruments_info(self, symbol: str, category: str = "spot") -> dict[str, object]:
-        return {"lotSizeFilter": {"qtyStep": "0.1", "minOrderQty": "0.1", "minOrderAmt": "5"}}
+        return {
+            "baseCoin": "BTC",
+            "quoteCoin": "USDT",
+            "lotSizeFilter": {"qtyStep": "0.1", "minOrderQty": "0.1", "minOrderAmt": "5"},
+        }
 
     def place_order(self, **_: object) -> dict[str, object]:
         self.place_order_calls += 1

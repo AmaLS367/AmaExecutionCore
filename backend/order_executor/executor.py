@@ -15,7 +15,7 @@ from backend.risk_manager.calculator import (
     calculate_position_raw,
     check_rrr,
 )
-from backend.risk_manager.exceptions import RiskManagerError
+from backend.risk_manager.exceptions import InsufficientSpotBalanceError, RiskManagerError
 from backend.safety_guard.circuit_breaker import circuit_breaker
 from backend.safety_guard.kill_switch import kill_switch
 from backend.trade_journal.models import (
@@ -68,13 +68,13 @@ class OrderExecutor:
 
         # 3. Fetch equity (simulated in shadow mode)
         equity: float
+        wallet_balances: dict[str, Decimal] = {}
         if settings.trading_mode == "shadow":
             equity = settings.shadow_equity
         else:
             balance = await asyncio.to_thread(self._client.get_wallet_balance)
-            coin_list = balance.get("list", [{}])[0].get("coin", [])
-            usdt = next((c for c in coin_list if c.get("coin") == "USDT"), None)
-            equity = float(usdt["equity"]) if usdt else 0.0
+            wallet_balances = self._extract_wallet_balances(balance)
+            equity = float(wallet_balances.get("USDT", Decimal("0")))
 
         # 4. Position sizing
         qty_raw = calculate_position_raw(
@@ -92,6 +92,7 @@ class OrderExecutor:
 
         # 6. Apply exchange constraints (skipped in shadow — no live instrument data needed)
         qty: float
+        instrument: dict[str, object] | None = None
         if settings.trading_mode != "shadow":
             instrument = await asyncio.to_thread(
                 self._client.get_instruments_info, symbol, category
@@ -106,6 +107,15 @@ class OrderExecutor:
                 min_qty=float(lot["minOrderQty"]),
                 min_notional=float(lot.get("minOrderAmt", 0)),
             )
+            if category == "spot":
+                self._validate_spot_balances(
+                    symbol=symbol,
+                    direction=direction,
+                    entry=Decimal(str(entry)),
+                    qty=Decimal(str(qty)),
+                    instrument=instrument,
+                    wallet_balances=wallet_balances,
+                )
         else:
             qty = round(qty_raw, 8)
 
@@ -401,3 +411,62 @@ class OrderExecutor:
         if order_status == "Rejected":
             return TradeStatus.ORDER_REJECTED
         return TradeStatus.ORDER_PENDING_UNKNOWN
+
+    @staticmethod
+    def _extract_wallet_balances(balance: dict[str, object]) -> dict[str, Decimal]:
+        raw_list = balance.get("list", [])
+        if not isinstance(raw_list, list) or not raw_list:
+            return {}
+        first_account = raw_list[0]
+        if not isinstance(first_account, dict):
+            return {}
+        raw_coins = first_account.get("coin", [])
+        if not isinstance(raw_coins, list):
+            return {}
+
+        balances: dict[str, Decimal] = {}
+        for item in raw_coins:
+            if not isinstance(item, dict):
+                continue
+            coin = item.get("coin")
+            if not isinstance(coin, str) or not coin:
+                continue
+            raw_amount = item.get("equity")
+            if raw_amount is None:
+                raw_amount = item.get("walletBalance")
+            if raw_amount is None:
+                continue
+            balances[coin] = Decimal(str(raw_amount))
+        return balances
+
+    def _validate_spot_balances(
+        self,
+        *,
+        symbol: str,
+        direction: SignalDirection,
+        entry: Decimal,
+        qty: Decimal,
+        instrument: dict[str, object],
+        wallet_balances: dict[str, Decimal],
+    ) -> None:
+        base_coin = instrument.get("baseCoin")
+        quote_coin = instrument.get("quoteCoin")
+        if not isinstance(base_coin, str) or not base_coin or not isinstance(quote_coin, str) or not quote_coin:
+            raise RiskManagerError(
+                f"Spot instrument metadata missing baseCoin/quoteCoin for {symbol}."
+            )
+
+        if direction == SignalDirection.LONG:
+            required_quote = qty * entry
+            available_quote = wallet_balances.get(quote_coin, Decimal("0"))
+            if available_quote < required_quote:
+                raise InsufficientSpotBalanceError(
+                    f"Insufficient spot quote balance for {symbol}: require {required_quote} {quote_coin}, have {available_quote}."
+                )
+            return
+
+        available_base = wallet_balances.get(base_coin, Decimal("0"))
+        if available_base < qty:
+            raise InsufficientSpotBalanceError(
+                f"Insufficient spot base balance for {symbol}: require {qty} {base_coin}, have {available_base}."
+            )
