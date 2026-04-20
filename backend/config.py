@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     demo_testnet_entry: float = 0.0
     demo_testnet_stop: float = 0.0
     demo_testnet_target: float = 0.0
+    spot_exit_monitor_interval_seconds: float = 5.0
 
     # Signal loop
     signal_loop_enabled: bool = False

@@ -6,11 +6,12 @@ from decimal import Decimal
 import uuid
 from typing import Protocol
 
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.config import settings
-from backend.trade_journal.models import ExchangeSide, ExitReason, Trade, TradeStatus
+from backend.trade_journal.models import ExchangeSide, ExitReason, SignalDirection, Trade, TradeStatus
 from backend.trade_journal.store import TradeJournalStore
 
 OPEN_POSITION_STATUSES: frozenset[TradeStatus] = frozenset(
@@ -50,6 +51,12 @@ class OrderPlacementClient(Protocol):
         reduce_only: bool | None = None,
     ) -> dict[str, object]: ...
 
+    def get_ticker_price(
+        self,
+        symbol: str,
+        category: str = "spot",
+    ) -> float: ...
+
 
 class PositionManagerService:
     def __init__(
@@ -60,6 +67,7 @@ class PositionManagerService:
     ) -> None:
         self._session_factory = session_factory
         self._rest_client = rest_client
+        self._spot_exit_monitor_stop_event = asyncio.Event()
 
     async def list_open_trades(self) -> list[Trade]:
         async with self._session_factory() as session:
@@ -142,6 +150,73 @@ class PositionManagerService:
             await session.commit()
             return trade
 
+    async def monitor_spot_exit_candidates_once(self) -> int:
+        decisions: list[tuple[uuid.UUID, ExitReason]] = []
+        price_cache: dict[str, Decimal] = {}
+
+        async with self._session_factory() as session:
+            store = TradeJournalStore(session)
+            trades = [
+                trade
+                for trade in await store.list_spot_market_trades_missing_protection()
+                if trade.stop_order_link_id is None and trade.take_profit_order_link_id is None
+            ]
+
+        for trade in trades:
+            last_price = price_cache.get(trade.symbol)
+            if last_price is None:
+                current_price = await asyncio.to_thread(
+                    self._rest_client.get_ticker_price,
+                    trade.symbol,
+                    "spot",
+                )
+                last_price = Decimal(str(current_price))
+                price_cache[trade.symbol] = last_price
+
+            exit_reason = self._resolve_spot_exit_reason(trade=trade, last_price=last_price)
+            if exit_reason is not None:
+                decisions.append((trade.id, exit_reason))
+
+        closed = 0
+        for trade_id, exit_reason in decisions:
+            try:
+                await self.close_trade(trade_id=trade_id, exit_reason=exit_reason)
+            except Exception:
+                logger.exception(
+                    "Spot exit fallback failed. trade_id={} exit_reason={}",
+                    trade_id,
+                    exit_reason.value,
+                )
+                continue
+            closed += 1
+        return closed
+
+    async def run_spot_exit_monitor(
+        self,
+        *,
+        poll_interval_seconds: float,
+        stop_event: asyncio.Event | None = None,
+    ) -> None:
+        monitor_stop_event = stop_event
+        if monitor_stop_event is None:
+            if self._spot_exit_monitor_stop_event.is_set():
+                self._spot_exit_monitor_stop_event = asyncio.Event()
+            monitor_stop_event = self._spot_exit_monitor_stop_event
+
+        while not monitor_stop_event.is_set():
+            try:
+                await self.monitor_spot_exit_candidates_once()
+            except Exception:
+                logger.exception("Spot exit fallback monitor iteration failed.")
+
+            try:
+                await asyncio.wait_for(monitor_stop_event.wait(), timeout=poll_interval_seconds)
+            except asyncio.TimeoutError:
+                continue
+
+    def stop_spot_exit_monitor(self) -> None:
+        self._spot_exit_monitor_stop_event.set()
+
     @staticmethod
     def _prepare_close_submission(
         *,
@@ -156,3 +231,25 @@ class PositionManagerService:
         trade.close_exchange_order_id = None
         trade.exit_reason = exit_reason
         return close_order_link_id, close_side, qty
+
+    @staticmethod
+    def _resolve_spot_exit_reason(
+        *,
+        trade: Trade,
+        last_price: Decimal,
+    ) -> ExitReason | None:
+        stop_price = trade.stop_price
+        target_price = trade.target_price
+
+        if trade.signal_direction == SignalDirection.LONG:
+            if stop_price is not None and last_price <= stop_price:
+                return ExitReason.SL_HIT
+            if target_price is not None and last_price >= target_price:
+                return ExitReason.TP_HIT
+            return None
+
+        if stop_price is not None and last_price >= stop_price:
+            return ExitReason.SL_HIT
+        if target_price is not None and last_price <= target_price:
+            return ExitReason.TP_HIT
+        return None

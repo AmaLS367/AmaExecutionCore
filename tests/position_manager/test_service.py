@@ -25,6 +25,20 @@ class PassiveRestClient:
     def place_order(self, **_: object) -> dict[str, object]:
         return {"orderId": "unused"}
 
+    def get_ticker_price(self, symbol: str, category: str = "spot") -> float:
+        del symbol, category
+        return 100.0
+
+
+class RecordingTickerRestClient(PassiveRestClient):
+    def __init__(self, *, price_by_symbol: dict[str, float]) -> None:
+        self.price_by_symbol = price_by_symbol
+        self.price_calls: list[tuple[str, str]] = []
+
+    def get_ticker_price(self, symbol: str, category: str = "spot") -> float:
+        self.price_calls.append((symbol, category))
+        return self.price_by_symbol[symbol]
+
 
 def build_open_trade(
     *,
@@ -197,3 +211,203 @@ async def test_list_open_trades_includes_close_recovery_states(
         TradeStatus.POSITION_CLOSE_PENDING,
         TradeStatus.POSITION_CLOSE_FAILED,
     }
+
+
+@pytest.mark.asyncio
+async def test_monitor_spot_exit_candidates_closes_long_trade_on_stop_loss(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "shadow"
+    rest_client = RecordingTickerRestClient(price_by_symbol={"BTCUSDT": 89.0})
+    service = PositionManagerService(
+        session_factory=sqlite_session_factory,
+        rest_client=rest_client,
+    )
+
+    async with sqlite_session_factory() as session:
+        trade = build_open_trade(
+            direction=SignalDirection.LONG,
+            exchange_side=ExchangeSide.BUY,
+            entry_price="100",
+            stop_price="90",
+            target_price="130",
+        )
+        trade.order_type = "Market"
+        session.add(trade)
+        await session.commit()
+        trade_id = trade.id
+
+    closed = await service.monitor_spot_exit_candidates_once()
+
+    async with sqlite_session_factory() as session:
+        persisted_trade = (await session.execute(select(Trade).where(Trade.id == trade_id))).scalar_one()
+
+    assert closed == 1
+    assert persisted_trade.status == TradeStatus.PNL_RECORDED
+    assert persisted_trade.exit_reason == ExitReason.SL_HIT
+    assert rest_client.price_calls == [("BTCUSDT", "spot")]
+
+
+@pytest.mark.asyncio
+async def test_monitor_spot_exit_candidates_closes_long_trade_on_take_profit(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "shadow"
+    service = PositionManagerService(
+        session_factory=sqlite_session_factory,
+        rest_client=RecordingTickerRestClient(price_by_symbol={"BTCUSDT": 131.0}),
+    )
+
+    async with sqlite_session_factory() as session:
+        trade = build_open_trade(
+            direction=SignalDirection.LONG,
+            exchange_side=ExchangeSide.BUY,
+            entry_price="100",
+            stop_price="90",
+            target_price="130",
+        )
+        trade.order_type = "Market"
+        session.add(trade)
+        await session.commit()
+        trade_id = trade.id
+
+    closed = await service.monitor_spot_exit_candidates_once()
+
+    async with sqlite_session_factory() as session:
+        persisted_trade = (await session.execute(select(Trade).where(Trade.id == trade_id))).scalar_one()
+
+    assert closed == 1
+    assert persisted_trade.exit_reason == ExitReason.TP_HIT
+
+
+@pytest.mark.asyncio
+async def test_monitor_spot_exit_candidates_closes_short_trade_on_stop_loss(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "shadow"
+    service = PositionManagerService(
+        session_factory=sqlite_session_factory,
+        rest_client=RecordingTickerRestClient(price_by_symbol={"BTCUSDT": 111.0}),
+    )
+
+    async with sqlite_session_factory() as session:
+        trade = build_open_trade(
+            direction=SignalDirection.SHORT,
+            exchange_side=ExchangeSide.SELL,
+            entry_price="100",
+            stop_price="110",
+            target_price="70",
+        )
+        trade.order_type = "Market"
+        session.add(trade)
+        await session.commit()
+        trade_id = trade.id
+
+    closed = await service.monitor_spot_exit_candidates_once()
+
+    async with sqlite_session_factory() as session:
+        persisted_trade = (await session.execute(select(Trade).where(Trade.id == trade_id))).scalar_one()
+
+    assert closed == 1
+    assert persisted_trade.exit_reason == ExitReason.SL_HIT
+
+
+@pytest.mark.asyncio
+async def test_monitor_spot_exit_candidates_closes_short_trade_on_take_profit(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "shadow"
+    service = PositionManagerService(
+        session_factory=sqlite_session_factory,
+        rest_client=RecordingTickerRestClient(price_by_symbol={"BTCUSDT": 69.0}),
+    )
+
+    async with sqlite_session_factory() as session:
+        trade = build_open_trade(
+            direction=SignalDirection.SHORT,
+            exchange_side=ExchangeSide.SELL,
+            entry_price="100",
+            stop_price="110",
+            target_price="70",
+        )
+        trade.order_type = "Market"
+        session.add(trade)
+        await session.commit()
+        trade_id = trade.id
+
+    closed = await service.monitor_spot_exit_candidates_once()
+
+    async with sqlite_session_factory() as session:
+        persisted_trade = (await session.execute(select(Trade).where(Trade.id == trade_id))).scalar_one()
+
+    assert closed == 1
+    assert persisted_trade.exit_reason == ExitReason.TP_HIT
+
+
+@pytest.mark.asyncio
+async def test_monitor_spot_exit_candidates_ignores_trades_without_trigger(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "shadow"
+    rest_client = RecordingTickerRestClient(price_by_symbol={"BTCUSDT": 105.0})
+    service = PositionManagerService(
+        session_factory=sqlite_session_factory,
+        rest_client=rest_client,
+    )
+
+    async with sqlite_session_factory() as session:
+        trade = build_open_trade(
+            direction=SignalDirection.LONG,
+            exchange_side=ExchangeSide.BUY,
+            entry_price="100",
+            stop_price="90",
+            target_price="130",
+        )
+        trade.order_type = "Market"
+        session.add(trade)
+        await session.commit()
+        trade_id = trade.id
+
+    closed = await service.monitor_spot_exit_candidates_once()
+
+    async with sqlite_session_factory() as session:
+        persisted_trade = (await session.execute(select(Trade).where(Trade.id == trade_id))).scalar_one()
+
+    assert closed == 0
+    assert persisted_trade.status == TradeStatus.POSITION_OPEN
+    assert rest_client.price_calls == [("BTCUSDT", "spot")]
+
+
+@pytest.mark.asyncio
+async def test_monitor_spot_exit_candidates_ignores_trades_with_existing_protection(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "shadow"
+    rest_client = RecordingTickerRestClient(price_by_symbol={"BTCUSDT": 89.0})
+    service = PositionManagerService(
+        session_factory=sqlite_session_factory,
+        rest_client=rest_client,
+    )
+
+    async with sqlite_session_factory() as session:
+        trade = build_open_trade(
+            direction=SignalDirection.LONG,
+            exchange_side=ExchangeSide.BUY,
+            entry_price="100",
+            stop_price="90",
+            target_price="130",
+        )
+        trade.order_type = "Market"
+        trade.stop_order_link_id = "stop-protection-1"
+        session.add(trade)
+        await session.commit()
+        trade_id = trade.id
+
+    closed = await service.monitor_spot_exit_candidates_once()
+
+    async with sqlite_session_factory() as session:
+        persisted_trade = (await session.execute(select(Trade).where(Trade.id == trade_id))).scalar_one()
+
+    assert closed == 0
+    assert persisted_trade.status == TradeStatus.POSITION_OPEN
+    assert rest_client.price_calls == []

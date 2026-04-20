@@ -143,6 +143,33 @@ class BybitRESTClient:
         items: list[Any] = result.get("list", [])
         return [self._parse_kline_item(item) for item in items]
 
+    def get_ticker_price(self, symbol: str, category: str = "spot") -> float:
+        logger.debug("Fetching ticker price. symbol={} category={}", symbol, category)
+        try:
+            response: dict[str, Any] = self._session.get_tickers(
+                category=category,
+                symbol=symbol,
+            )
+        except Exception as exc:
+            raise BybitConnectionError(
+                f"Failed to fetch ticker price for {symbol}: {exc}"
+            ) from exc
+
+        result = self._unwrap(response)
+        items: list[dict[str, Any]] = result.get("list", [])
+        if not items:
+            raise BybitAPIError(
+                ret_code=0,
+                ret_msg=f"Ticker '{symbol}' not found in category '{category}'",
+            )
+        last_price = items[0].get("lastPrice")
+        if last_price is None:
+            raise BybitAPIError(
+                ret_code=0,
+                ret_msg=f"Ticker '{symbol}' payload missing lastPrice",
+            )
+        return float(last_price)
+
     # ------------------------------------------------------------------
     # Orders
     # ------------------------------------------------------------------

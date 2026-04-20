@@ -28,6 +28,10 @@ class FakeHTTPSession:
             "retCode": 0,
             "result": {"list": [["1710000000000", "1", "2", "0.5", "1.5", "10", "20"]]},
         }
+        self.tickers_response: dict[str, Any] = {
+            "retCode": 0,
+            "result": {"list": [{"lastPrice": "123.45"}]},
+        }
         self.place_order_response: dict[str, Any] = {"retCode": 0, "result": {"orderId": "abc"}}
         self.cancel_order_response: dict[str, Any] = {"retCode": 0, "result": {"orderId": "cancelled"}}
         self.open_orders_response: dict[str, Any] = {"retCode": 0, "result": {"list": []}}
@@ -38,6 +42,7 @@ class FakeHTTPSession:
         self.raise_on_wallet_balance: Exception | None = None
         self.raise_on_instruments_info: Exception | None = None
         self.raise_on_kline: Exception | None = None
+        self.raise_on_tickers: Exception | None = None
         self.raise_on_place_order: Exception | None = None
         self.raise_on_cancel_order: Exception | None = None
         self.raise_on_open_orders: Exception | None = None
@@ -56,6 +61,11 @@ class FakeHTTPSession:
         if self.raise_on_kline is not None:
             raise self.raise_on_kline
         return self.kline_response
+
+    def get_tickers(self, **_: object) -> dict[str, Any]:
+        if self.raise_on_tickers is not None:
+            raise self.raise_on_tickers
+        return self.tickers_response
 
     def place_order(self, **params: object) -> dict[str, Any]:
         if self.raise_on_place_order is not None:
@@ -183,6 +193,23 @@ def test_get_klines_parses_items_into_dataclass(monkeypatch: pytest.MonkeyPatch)
             turnover=20.0,
         )
     ]
+
+
+def test_get_ticker_price_returns_last_price(monkeypatch: pytest.MonkeyPatch) -> None:
+    client, _ = _build_client(monkeypatch)
+
+    price = client.get_ticker_price("BTCUSDT")
+
+    assert price == 123.45
+
+
+def test_get_ticker_price_wraps_connection_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_session = FakeHTTPSession()
+    fake_session.raise_on_tickers = RuntimeError("boom")
+    client, _ = _build_client(monkeypatch, fake_session)
+
+    with pytest.raises(BybitConnectionError, match="Failed to fetch ticker price"):
+        client.get_ticker_price("BTCUSDT")
 
 
 def test_parse_kline_item_raises_on_malformed_payload() -> None:

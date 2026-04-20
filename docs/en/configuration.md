@@ -46,6 +46,7 @@ This document explains all environment variables found in the `.env.example` / `
 | `DEMO_TESTNET_ENTRY` | `float` | `0.0` | Limit entry price used by the testnet e2e flow. |
 | `DEMO_TESTNET_STOP` | `float` | `0.0` | Stop-loss price used by the testnet e2e flow. |
 | `DEMO_TESTNET_TARGET` | `float` | `0.0` | Target price used by the testnet e2e flow. |
+| `SPOT_EXIT_MONITOR_INTERVAL_SECONDS` | `float` | `5.0` | Poll interval for the fallback monitor that closes unprotected `spot market` trades when protection orders are missing in the database. |
 
 ---
 

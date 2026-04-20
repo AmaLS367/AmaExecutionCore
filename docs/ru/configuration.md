@@ -46,6 +46,7 @@
 | `DEMO_TESTNET_ENTRY` | `float` | `0.0` | Лимитная цена входа, используемая потоком testnet e2e. |
 | `DEMO_TESTNET_STOP` | `float` | `0.0` | Цена стоп-лосса, используемая потоком testnet e2e. |
 | `DEMO_TESTNET_TARGET` | `float` | `0.0` | Целевая цена (take profit), используемая потоком testnet e2e. |
+| `SPOT_EXIT_MONITOR_INTERVAL_SECONDS` | `float` | `5.0` | Интервал fallback-монитора для `spot market` сделок без защитных ордеров, сохранённых в БД. |
 
 ---
 
