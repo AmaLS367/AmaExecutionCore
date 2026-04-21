@@ -26,7 +26,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: uv run alembic upgrade head
+    command: alembic upgrade head
     restart: no
 
   postgres:
