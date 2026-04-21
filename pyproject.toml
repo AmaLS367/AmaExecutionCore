@@ -7,7 +7,26 @@ name = "amaexecutioncore"
 version = "0.1.0"
 description = "Trading Bot — Мастер-план проекта для Bybit Spot"
 readme = "README.md"
+license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
+authors = [
+    {name = "ama", email = "amalsdev367@gmail.com"},
+]
+maintainers = [
+    {name = "ama", email = "amalsdev367@gmail.com"},
+]
+keywords = ["trading", "bot", "bybit", "fastapi", "asyncio"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
     # Web Framework
     "fastapi>=0.115.0",
@@ -27,6 +46,15 @@ dependencies = [
     # Utilities
     "loguru>=0.7.2"
 ]
+[project.urls]
+Homepage = "https://github.com/AmaLS367/AmaExecutionCore"
+Documentation = "https://github.com/AmaLS367/AmaExecutionCore"
+Repository = "https://github.com/AmaLS367/AmaExecutionCore.git"
+Issues = "https://github.com/AmaLS367/AmaExecutionCore/issues"
+
+[project.scripts]
+start = "uvicorn backend.main:app --reload"
+backtest = "python scripts/run_backtest.py"
 
 [project.optional-dependencies]
 dev = [
@@ -50,8 +78,16 @@ markers = [
 line-length = 100
 target-version = "py310"
 
-[tool.hatch.build.targets.wheel]
-packages = ["backend"]
+[tool.ruff.lint]
+select = ["E", "F", "W", "C90", "I", "N", "UP", "YTT", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
+ignore = ["E501", "S101", "PLR0913", "PLR2004"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
 
 [tool.mypy]
 strict = true
+exclude = ["tests/.*", "alembic/.*"]
