@@ -20,6 +20,10 @@ from backend.database import Base
 @pytest.fixture(autouse=True)
 def reset_settings() -> Generator[None, None, None]:
     original_values = {
+        "bybit_testnet_api_key": settings.bybit_testnet_api_key,
+        "bybit_testnet_api_secret": settings.bybit_testnet_api_secret,
+        "bybit_api_key": settings.bybit_api_key,
+        "bybit_api_secret": settings.bybit_api_secret,
         "database_url": settings.database_url,
         "trading_mode": settings.trading_mode,
         "order_mode": settings.order_mode,
@@ -47,6 +51,11 @@ def reset_settings() -> Generator[None, None, None]:
         "scalping_cooldown_seconds": settings.scalping_cooldown_seconds,
         "max_trades_per_day": settings.max_trades_per_day,
     }
+    if os.environ.get("AMA_RUN_TESTNET_E2E") != "1":
+        settings.bybit_testnet_api_key = ""
+        settings.bybit_testnet_api_secret = ""
+        settings.bybit_api_key = ""
+        settings.bybit_api_secret = ""
     yield
     for field_name, field_value in original_values.items():
         setattr(settings, field_name, field_value)
