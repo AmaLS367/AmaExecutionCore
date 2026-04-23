@@ -38,7 +38,7 @@ class BybitRESTClient:
 
     def __init__(self) -> None:
         try:
-            from pybit.unified_trading import HTTP  # type: ignore[import-not-found]
+            from pybit.unified_trading import HTTP  # type: ignore[import-untyped]
         except ModuleNotFoundError as exc:
             raise BybitConnectionError("pybit is not installed in the current environment.") from exc
 

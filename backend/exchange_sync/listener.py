@@ -69,7 +69,7 @@ class BybitWebSocketListener:
             "Starting Bybit WebSocket listener. testnet={}", settings.bybit_testnet
         )
         try:
-            from pybit.unified_trading import WebSocket  # type: ignore[import-not-found]
+            from pybit.unified_trading import WebSocket  # type: ignore[import-untyped]
         except ModuleNotFoundError:
             logger.warning("pybit is not installed — WebSocket listener not started.")
             return

@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 from loguru import logger
 from sqlalchemy import func, select
@@ -92,12 +92,13 @@ class OrderExecutor:
 
         # 6. Apply exchange constraints (skipped in shadow — no live instrument data needed)
         qty: float
-        instrument: dict[str, object] | None = None
+        instrument: dict[str, Any] | None = None
         if settings.trading_mode != "shadow":
-            instrument = await asyncio.to_thread(
-                self._client.get_instruments_info, symbol, category
+            instrument = cast(
+                dict[str, Any],
+                await asyncio.to_thread(self._client.get_instruments_info, symbol, category),
             )
-            lot = instrument["lotSizeFilter"]
+            lot = cast(dict[str, Any], instrument["lotSizeFilter"])
             # Spot uses basePrecision; futures/linear use qtyStep
             qty_step = float(lot.get("qtyStep") or lot.get("basePrecision", "0.000001"))
             qty = apply_exchange_constraints(
@@ -446,7 +447,7 @@ class OrderExecutor:
         direction: SignalDirection,
         entry: Decimal,
         qty: Decimal,
-        instrument: dict[str, object],
+        instrument: dict[str, Any],
         wallet_balances: dict[str, Decimal],
     ) -> None:
         base_coin = instrument.get("baseCoin")

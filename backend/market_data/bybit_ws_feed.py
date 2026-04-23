@@ -92,7 +92,7 @@ class BybitCandleFeed:
 
     def _start_ws(self) -> None:
         try:
-            from pybit.unified_trading import WebSocket  # type: ignore[import-not-found]
+            from pybit.unified_trading import WebSocket  # type: ignore[import-untyped]
         except ModuleNotFoundError:
             logger.warning("pybit is not installed — public candle feed not started.")
             return

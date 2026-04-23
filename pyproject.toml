@@ -52,10 +52,6 @@ Documentation = "https://github.com/AmaLS367/AmaExecutionCore"
 Repository = "https://github.com/AmaLS367/AmaExecutionCore.git"
 Issues = "https://github.com/AmaLS367/AmaExecutionCore/issues"
 
-[project.scripts]
-start = "uvicorn backend.main:app --reload"
-backtest = "python scripts/run_backtest.py"
-
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3.3",
@@ -91,3 +87,6 @@ line-ending = "auto"
 [tool.mypy]
 strict = true
 exclude = ["tests/.*", "alembic/.*"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]
