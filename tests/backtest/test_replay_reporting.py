@@ -61,11 +61,11 @@ async def test_historical_replay_runner_returns_machine_readable_metrics_report(
         strategy=AlwaysSignalStrategy(),
         execution_service=OutcomeExecutionService(
             [
-                {"realized_pnl": Decimal("10"), "slippage": Decimal("0.1")},
-                {"realized_pnl": Decimal("-5"), "slippage": Decimal("0.2")},
-                {"realized_pnl": Decimal("-15"), "slippage": Decimal("0.3")},
-                {"realized_pnl": Decimal("20"), "slippage": Decimal("0.4")},
-            ]
+                {"realized_pnl": Decimal(10), "slippage": Decimal("0.1")},
+                {"realized_pnl": Decimal(-5), "slippage": Decimal("0.2")},
+                {"realized_pnl": Decimal(-15), "slippage": Decimal("0.3")},
+                {"realized_pnl": Decimal(20), "slippage": Decimal("0.4")},
+            ],
         ),
     )
 
@@ -74,7 +74,7 @@ async def test_historical_replay_runner_returns_machine_readable_metrics_report(
             symbol="BTCUSDT",
             interval="1",
             snapshots=build_snapshots(4),
-        )
+        ),
     )
 
     assert result.report.metrics.closed_trades == 4
@@ -83,7 +83,7 @@ async def test_historical_replay_runner_returns_machine_readable_metrics_report(
     assert result.report.metrics.expectancy == Decimal("2.5")
     assert result.report.metrics.win_rate == Decimal("0.5")
     assert result.report.metrics.profit_factor == Decimal("1.5")
-    assert result.report.metrics.max_drawdown == Decimal("20")
+    assert result.report.metrics.max_drawdown == Decimal(20)
     assert result.report.slippage is not None
     assert result.report.slippage.count == 4
     assert result.report.slippage.average == Decimal("0.25")
@@ -103,7 +103,7 @@ async def test_historical_replay_runner_does_not_invent_metrics_without_trade_ou
             symbol="BTCUSDT",
             interval="1",
             snapshots=build_snapshots(2),
-        )
+        ),
     )
 
     assert result.report.metrics.closed_trades == 0

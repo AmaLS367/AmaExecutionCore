@@ -5,11 +5,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Generic, Protocol, TypeGuard, TypeVar, cast
 
+from backend.backtest.shadow_runner import SupportsExecutionService, _to_execute_signal_request
 from backend.market_data.contracts import MarketCandle, MarketSnapshot
 from backend.signal_execution.schemas import ExecuteSignalRequest
 from backend.strategy_engine.contracts import StrategySignal
-
-from backend.backtest.shadow_runner import SupportsExecutionService, _to_execute_signal_request
 
 ExecutionResultT = TypeVar("ExecutionResultT")
 ExecutionResultT_co = TypeVar("ExecutionResultT_co", covariant=True)
@@ -57,7 +56,7 @@ class HistoricalReplayStep(Generic[ExecutionResultT]):
 class HistoricalReplayResult(Generic[ExecutionResultT]):
     request: HistoricalReplayRequest
     steps: tuple[HistoricalReplayStep[ExecutionResultT], ...]
-    report: "HistoricalReplayReport"
+    report: HistoricalReplayReport
 
 
 @dataclass(slots=True, frozen=True)
@@ -125,10 +124,10 @@ class HistoricalReplayRunner(Generic[ExecutionResultT]):
                 else:
                     execution_service = self._execution_service
                     execution = await cast(
-                        SupportsExecutionService[ExecutionResultT],
+                        "SupportsExecutionService[ExecutionResultT]",
                         execution_service,
                     ).execute_signal(
-                        signal=execute_signal_request
+                        signal=execute_signal_request,
                     )
             results.append(
                 HistoricalReplayStep(
@@ -136,7 +135,7 @@ class HistoricalReplayRunner(Generic[ExecutionResultT]):
                     snapshot=snapshot,
                     signal=signal,
                     execution=execution,
-                )
+                ),
             )
 
         return HistoricalReplayResult(
@@ -245,18 +244,18 @@ def _build_report(
     winning_trades = [pnl for pnl in realized_pnls if pnl > 0]
     losing_trades = [pnl for pnl in realized_pnls if pnl < 0]
     trade_count = len(realized_pnls)
-    expectancy = sum(realized_pnls, Decimal("0")) / Decimal(trade_count) if trade_count else None
+    expectancy = sum(realized_pnls, Decimal(0)) / Decimal(trade_count) if trade_count else None
     win_rate = Decimal(len(winning_trades)) / Decimal(trade_count) if trade_count else None
     profit_factor: Decimal | None = None
     if losing_trades:
-        profit_factor = sum(winning_trades, Decimal("0")) / abs(sum(losing_trades, Decimal("0")))
+        profit_factor = sum(winning_trades, Decimal(0)) / abs(sum(losing_trades, Decimal(0)))
     max_drawdown = _calculate_max_drawdown(realized_pnls) if trade_count else None
 
     slippage_summary: HistoricalReplaySlippageSummary | None = None
     if slippages:
         slippage_summary = HistoricalReplaySlippageSummary(
             count=len(slippages),
-            average=sum(slippages, Decimal("0")) / Decimal(len(slippages)),
+            average=sum(slippages, Decimal(0)) / Decimal(len(slippages)),
             minimum=min(slippages),
             maximum=max(slippages),
         )
@@ -296,16 +295,14 @@ def _coerce_decimal(value: object | None) -> Decimal | None:
 
 
 def _calculate_max_drawdown(realized_pnls: list[Decimal]) -> Decimal:
-    equity_curve = Decimal("0")
-    peak_equity = Decimal("0")
-    max_drawdown = Decimal("0")
+    equity_curve = Decimal(0)
+    peak_equity = Decimal(0)
+    max_drawdown = Decimal(0)
     for realized_pnl in realized_pnls:
         equity_curve += realized_pnl
-        if equity_curve > peak_equity:
-            peak_equity = equity_curve
+        peak_equity = max(peak_equity, equity_curve)
         drawdown = peak_equity - equity_curve
-        if drawdown > max_drawdown:
-            max_drawdown = drawdown
+        max_drawdown = max(max_drawdown, drawdown)
     return max_drawdown
 
 

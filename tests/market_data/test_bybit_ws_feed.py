@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime, timedelta
 import sys
 import types
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from backend.bybit_client.rest import BybitKline
-from backend.market_data.contracts import MarketCandle, MarketSnapshot
 from backend.market_data.bybit_ws_feed import (
     BybitCandleFeed,
     CandleFeedSnapshot,
     _interval_to_seconds,
 )
+from backend.market_data.contracts import MarketCandle, MarketSnapshot
 
 
 class RecordingRestClient:
@@ -92,10 +92,10 @@ async def test_warm_up_populates_window_before_emitting_confirmed_candle() -> No
         rest_client=rest_client,
         queue=queue,
     )
-    feed._loop = asyncio.get_running_loop()  # noqa: SLF001
+    feed._loop = asyncio.get_running_loop()
 
-    await feed._warm_up_all()  # noqa: SLF001
-    feed._on_kline_message(  # noqa: SLF001
+    await feed._warm_up_all()
+    feed._on_kline_message(
         {
             "topic": "kline.1.BTCUSDT",
             "data": [
@@ -106,9 +106,9 @@ async def test_warm_up_populates_window_before_emitting_confirmed_candle() -> No
                     "close": "102.0",
                     "volume": "15.0",
                     "confirm": True,
-                }
+                },
             ],
-        }
+        },
     )
     await asyncio.sleep(0)
 
@@ -131,11 +131,11 @@ async def test_feed_ignores_unconfirmed_and_malformed_messages() -> None:
         rest_client=rest_client,
         queue=queue,
     )
-    feed._loop = asyncio.get_running_loop()  # noqa: SLF001
-    await feed._warm_up_all()  # noqa: SLF001
+    feed._loop = asyncio.get_running_loop()
+    await feed._warm_up_all()
 
-    feed._on_kline_message({"topic": "kline.1.BTCUSDT", "data": [{"confirm": False}]})  # noqa: SLF001
-    feed._on_kline_message({"topic": "kline.1.BTCUSDT", "data": [{"confirm": True}]})  # noqa: SLF001
+    feed._on_kline_message({"topic": "kline.1.BTCUSDT", "data": [{"confirm": False}]})
+    feed._on_kline_message({"topic": "kline.1.BTCUSDT", "data": [{"confirm": True}]})
     await asyncio.sleep(0)
 
     assert queue.empty() is True
@@ -189,9 +189,9 @@ async def test_recover_gap_emits_gap_recovered_snapshot() -> None:
         rest_client=rest_client,
         queue=queue,
     )
-    feed._loop = asyncio.get_running_loop()  # noqa: SLF001
+    feed._loop = asyncio.get_running_loop()
 
-    await feed._recover_gap("BTCUSDT")  # noqa: SLF001
+    await feed._recover_gap("BTCUSDT")
     await asyncio.sleep(0)
 
     snapshot = await asyncio.wait_for(queue.get(), timeout=1)
@@ -211,9 +211,9 @@ async def test_handle_confirmed_candle_schedules_gap_recovery(monkeypatch: pytes
         rest_client=rest_client,
         queue=queue,
     )
-    feed._loop = asyncio.get_running_loop()  # noqa: SLF001
-    await feed._warm_up_all()  # noqa: SLF001
-    last_candle = feed._windows["BTCUSDT"][-1]  # noqa: SLF001
+    feed._loop = asyncio.get_running_loop()
+    await feed._warm_up_all()
+    last_candle = feed._windows["BTCUSDT"][-1]
     gap_candle_start = last_candle.opened_at + timedelta(minutes=3)
     scheduled: list[str] = []
 
@@ -226,7 +226,7 @@ async def test_handle_confirmed_candle_schedules_gap_recovery(monkeypatch: pytes
 
     monkeypatch.setattr("backend.market_data.bybit_ws_feed.asyncio.run_coroutine_threadsafe", _run_coroutine_threadsafe)
 
-    feed._handle_confirmed_candle(  # noqa: SLF001
+    feed._handle_confirmed_candle(
         "BTCUSDT",
         {
             "start": str(int(gap_candle_start.timestamp() * 1000)),
@@ -263,11 +263,11 @@ def test_queue_snapshot_nowait_drops_when_queue_is_full() -> None:
                     volume=1.0,
                 ),
             ),
-        )
+        ),
     )
     queue.put_nowait(market_snapshot)
 
-    feed._queue_snapshot_nowait(market_snapshot)  # noqa: SLF001
+    feed._queue_snapshot_nowait(market_snapshot)
 
     assert queue.qsize() == 1
 
@@ -281,8 +281,8 @@ def test_stop_swallow_exceptions_from_websocket_exit() -> None:
     )
     ws = RecordingWebSocket(testnet=True, channel_type="spot")
     ws.raise_on_exit = True
-    feed._ws = ws  # noqa: SLF001
+    feed._ws = ws
 
     feed.stop()
 
-    assert feed._ws is None  # noqa: SLF001
+    assert feed._ws is None

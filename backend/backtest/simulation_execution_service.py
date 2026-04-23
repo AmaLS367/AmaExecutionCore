@@ -42,15 +42,15 @@ class SimulationExecutionService:
                 if low <= stop:
                     return SimulationExecutionResult(
                         realized_pnl=-self._risk_amount,
-                        slippage=Decimal("0"),
+                        slippage=Decimal(0),
                         exit_reason="sl_hit",
                         hold_candles=index + 1,
                     )
                 if high >= target:
-                    rrr = reward / risk if risk else Decimal("0")
+                    rrr = reward / risk if risk else Decimal(0)
                     return SimulationExecutionResult(
                         realized_pnl=self._risk_amount * rrr,
-                        slippage=Decimal("0"),
+                        slippage=Decimal(0),
                         exit_reason="tp_hit",
                         hold_candles=index + 1,
                     )
@@ -58,35 +58,35 @@ class SimulationExecutionService:
                 if high >= stop:
                     return SimulationExecutionResult(
                         realized_pnl=-self._risk_amount,
-                        slippage=Decimal("0"),
+                        slippage=Decimal(0),
                         exit_reason="sl_hit",
                         hold_candles=index + 1,
                     )
                 if low <= target:
-                    rrr = reward / risk if risk else Decimal("0")
+                    rrr = reward / risk if risk else Decimal(0)
                     return SimulationExecutionResult(
                         realized_pnl=self._risk_amount * rrr,
-                        slippage=Decimal("0"),
+                        slippage=Decimal(0),
                         exit_reason="tp_hit",
                         hold_candles=index + 1,
                     )
 
         if not future_candles:
             return SimulationExecutionResult(
-                realized_pnl=Decimal("0"),
-                slippage=Decimal("0"),
+                realized_pnl=Decimal(0),
+                slippage=Decimal(0),
                 exit_reason="timeout",
                 hold_candles=0,
             )
 
         last_close = Decimal(str(future_candles[min(self._max_hold_candles, len(future_candles)) - 1].close))
         if is_long:
-            pnl = ((last_close - entry) / risk) * self._risk_amount if risk else Decimal("0")
+            pnl = ((last_close - entry) / risk) * self._risk_amount if risk else Decimal(0)
         else:
-            pnl = ((entry - last_close) / risk) * self._risk_amount if risk else Decimal("0")
+            pnl = ((entry - last_close) / risk) * self._risk_amount if risk else Decimal(0)
         return SimulationExecutionResult(
             realized_pnl=pnl,
-            slippage=Decimal("0"),
+            slippage=Decimal(0),
             exit_reason="timeout",
             hold_candles=min(self._max_hold_candles, len(future_candles)),
         )

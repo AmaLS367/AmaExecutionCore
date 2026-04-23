@@ -7,8 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import settings
 from backend.safety_guard.exceptions import KillSwitchActiveError
-from backend.trade_journal.models import SystemEventType, Trade, TradeStatus
-from backend.trade_journal.models import PauseReason
+from backend.trade_journal.models import PauseReason, SystemEventType, Trade, TradeStatus
 from backend.trade_journal.store import PersistedSafetyState, TradeJournalStore
 
 _CANCELLABLE_STATUSES = {
@@ -110,10 +109,10 @@ class KillSwitch:
         return await store.read_safety_state()
 
     async def _cancel_pending_orders(
-        self, session: AsyncSession, rest_client: CancelOrderClient
+        self, session: AsyncSession, rest_client: CancelOrderClient,
     ) -> None:
         result = await session.execute(
-            select(Trade).where(Trade.status.in_(list(_CANCELLABLE_STATUSES)))
+            select(Trade).where(Trade.status.in_(list(_CANCELLABLE_STATUSES))),
         )
         pending = result.scalars().all()
         for trade in pending:

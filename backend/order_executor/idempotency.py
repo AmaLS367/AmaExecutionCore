@@ -27,7 +27,7 @@ def is_trade_terminal(status: TradeStatus) -> bool:
 
 
 async def is_order_already_submitted(
-    session: AsyncSession, signal_id: uuid.UUID
+    session: AsyncSession, signal_id: uuid.UUID,
 ) -> bool:
     """
     Returns True if a non-terminal trade already exists for this signal.
@@ -37,7 +37,7 @@ async def is_order_already_submitted(
         exists().where(
             Trade.signal_id == signal_id,
             Trade.status.not_in(list(_TERMINAL_STATUSES)),
-        )
+        ),
     )
     result = await session.execute(stmt)
     return bool(result.scalar())

@@ -68,7 +68,7 @@ def _build_snapshot_with_current_day_count(
                 low=close - 1.0,
                 close=close,
                 volume=candle_volumes[index],
-            )
+            ),
         )
 
     for index in range(current_day_count):
@@ -81,7 +81,7 @@ def _build_snapshot_with_current_day_count(
                 low=close - 1.0,
                 close=close,
                 volume=candle_volumes[close_index],
-            )
+            ),
         )
 
     return MarketSnapshot(symbol="BTCUSDT", interval="5", candles=tuple(candles))
@@ -129,7 +129,7 @@ async def test_vwap_reversion_skips_signal_when_current_utc_day_has_under_one_ho
             closes,
             current_day_count=11,
             volumes=volumes,
-        )
+        ),
     )
 
     assert signal is None

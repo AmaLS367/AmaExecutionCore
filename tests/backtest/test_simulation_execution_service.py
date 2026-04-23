@@ -40,7 +40,7 @@ async def test_simulation_execution_service_returns_take_profit_result() -> None
         step_index=3,
     )
 
-    assert result.realized_pnl == Decimal("200")
+    assert result.realized_pnl == Decimal(200)
     assert result.exit_reason == "tp_hit"
     assert result.hold_candles == 2
 
@@ -82,7 +82,7 @@ async def test_simulation_execution_service_returns_short_take_profit() -> None:
         step_index=2,
     )
 
-    assert result.realized_pnl == Decimal("200")
+    assert result.realized_pnl == Decimal(200)
     assert result.exit_reason == "tp_hit"
     assert result.hold_candles == 2
 
@@ -146,7 +146,7 @@ async def test_simulation_execution_service_handles_empty_future_candles() -> No
 
     assert result.exit_reason == "timeout"
     assert result.hold_candles == 0
-    assert result.realized_pnl == Decimal("0")
+    assert result.realized_pnl == Decimal(0)
 
 
 @pytest.mark.asyncio
@@ -166,4 +166,4 @@ async def test_simulation_execution_service_returns_zero_pnl_when_risk_is_zero()
     )
 
     assert result.exit_reason == "timeout"
-    assert result.realized_pnl == Decimal("0")
+    assert result.realized_pnl == Decimal(0)

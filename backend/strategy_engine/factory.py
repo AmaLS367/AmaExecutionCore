@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from backend.market_data.contracts import MarketSnapshot
-from backend.strategy_engine.contracts import BaseStrategy
 from backend.strategy_engine.bb_squeeze_strategy import BBSqueezeStrategy
+from backend.strategy_engine.contracts import BaseStrategy
 from backend.strategy_engine.ema_crossover import EMACrossoverStrategy
 from backend.strategy_engine.rsi_divergence_strategy import RSIDivergenceStrategy
 from backend.strategy_engine.rsi_ema_strategy import RSIEMAStrategy

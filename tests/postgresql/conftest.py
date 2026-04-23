@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator, Generator
 import os
+from collections.abc import AsyncGenerator, Generator
 
-from alembic import command
-from alembic.config import Config
-from fastapi.testclient import TestClient
 import pytest
 import pytest_asyncio
+from alembic.config import Config
+from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from alembic import command
 from backend.config import settings
 from backend.database import get_session
 from backend.main import create_app
@@ -57,7 +57,7 @@ def _require_postgresql_test_url() -> str:
     database_url = os.environ.get(TEST_POSTGRESQL_URL_ENV)
     if not database_url:
         pytest.skip(
-            f"{TEST_POSTGRESQL_URL_ENV} is not set. PostgreSQL Alembic integration tests are opt-in."
+            f"{TEST_POSTGRESQL_URL_ENV} is not set. PostgreSQL Alembic integration tests are opt-in.",
         )
     return database_url
 

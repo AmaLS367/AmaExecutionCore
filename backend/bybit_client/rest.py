@@ -71,11 +71,11 @@ class BybitRESTClient:
         logger.debug("Fetching wallet balance. account_type={}", account_type)
         try:
             response: dict[str, Any] = self._session.get_wallet_balance(
-                accountType=account_type
+                accountType=account_type,
             )
         except Exception as exc:
             raise BybitConnectionError(
-                f"Failed to fetch wallet balance: {exc}"
+                f"Failed to fetch wallet balance: {exc}",
             ) from exc
         return self._unwrap(response)
 
@@ -84,22 +84,22 @@ class BybitRESTClient:
     # ------------------------------------------------------------------
 
     def get_instruments_info(
-        self, symbol: str, category: str = "spot"
+        self, symbol: str, category: str = "spot",
     ) -> dict[str, Any]:
         """
         Returns instrument info for a single symbol (lotSizeFilter, priceFilter…).
         Required by apply_exchange_constraints before position sizing.
         """
         logger.debug(
-            "Fetching instruments info. symbol={} category={}", symbol, category
+            "Fetching instruments info. symbol={} category={}", symbol, category,
         )
         try:
             response: dict[str, Any] = self._session.get_instruments_info(
-                category=category, symbol=symbol
+                category=category, symbol=symbol,
             )
         except Exception as exc:
             raise BybitConnectionError(
-                f"Failed to fetch instruments info for {symbol}: {exc}"
+                f"Failed to fetch instruments info for {symbol}: {exc}",
             ) from exc
         result = self._unwrap(response)
         items: list[dict[str, Any]] = result.get("list", [])
@@ -136,7 +136,7 @@ class BybitRESTClient:
             )
         except Exception as exc:
             raise BybitConnectionError(
-                f"Failed to fetch klines for {symbol} at interval {interval}: {exc}"
+                f"Failed to fetch klines for {symbol} at interval {interval}: {exc}",
             ) from exc
 
         result = self._unwrap(response)
@@ -152,7 +152,7 @@ class BybitRESTClient:
             )
         except Exception as exc:
             raise BybitConnectionError(
-                f"Failed to fetch ticker price for {symbol}: {exc}"
+                f"Failed to fetch ticker price for {symbol}: {exc}",
             ) from exc
 
         result = self._unwrap(response)
@@ -258,7 +258,7 @@ class BybitRESTClient:
         """Cancels an open order. Requires either order_id or order_link_id."""
         if order_id is None and order_link_id is None:
             raise InvalidOrderParamsError(
-                "cancel_order requires either order_id or order_link_id."
+                "cancel_order requires either order_id or order_link_id.",
             )
         params: dict[str, Any] = {"category": category, "symbol": symbol}
         if order_id is not None:
@@ -292,7 +292,7 @@ class BybitRESTClient:
         """
         if order_id is None and order_link_id is None:
             raise InvalidOrderParamsError(
-                "get_order_status requires either order_id or order_link_id."
+                "get_order_status requires either order_id or order_link_id.",
             )
         params: dict[str, Any] = {"category": category, "symbol": symbol}
         if order_id is not None:
@@ -301,7 +301,7 @@ class BybitRESTClient:
             params["orderLinkId"] = order_link_id
 
         logger.debug(
-            "Fetching order status. symbol={} order_link_id={}", symbol, order_link_id
+            "Fetching order status. symbol={} order_link_id={}", symbol, order_link_id,
         )
         try:
             open_result = self._unwrap(self._session.get_open_orders(**params))
@@ -317,7 +317,7 @@ class BybitRESTClient:
             raise
         except Exception as exc:
             raise BybitConnectionError(
-                f"Failed to fetch order status: {exc}"
+                f"Failed to fetch order status: {exc}",
             ) from exc
 
     @staticmethod

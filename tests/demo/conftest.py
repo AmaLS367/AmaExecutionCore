@@ -4,13 +4,13 @@ import asyncio
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
-from alembic import command
-from alembic.config import Config
 import pytest
 import pytest_asyncio
+from alembic.config import Config
 from dotenv import dotenv_values
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from alembic import command
 from backend.config import settings
 
 # Read .env directly — bypasses the os.environ["DATABASE_URL"] = "sqlite://..."
@@ -40,7 +40,7 @@ async def testnet_session_factory() -> AsyncGenerator[async_sessionmaker[AsyncSe
     url = _testnet_db_url()
     if not url:
         pytest.skip(
-            "Real PostgreSQL DATABASE_URL not found in .env — skipping e2e test."
+            "Real PostgreSQL DATABASE_URL not found in .env — skipping e2e test.",
         )
     await _upgrade_database(url)
     engine = create_async_engine(url, pool_pre_ping=True)

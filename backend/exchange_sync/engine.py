@@ -1,9 +1,9 @@
 import asyncio
+import uuid
 from collections.abc import Coroutine
 from contextlib import suppress
 from datetime import datetime, timezone
 from decimal import Decimal
-import uuid
 from typing import Any, Protocol
 
 from loguru import logger
@@ -13,7 +13,13 @@ from backend.config import settings
 from backend.exchange_sync.listener import BybitWebSocketListener
 from backend.order_executor.idempotency import generate_order_link_id
 from backend.task_utils import create_logged_task
-from backend.trade_journal.models import ExchangeSide, ExitReason, Trade, TradeStatus, SystemEventType
+from backend.trade_journal.models import (
+    ExchangeSide,
+    ExitReason,
+    SystemEventType,
+    Trade,
+    TradeStatus,
+)
 from backend.trade_journal.store import TradeJournalStore
 
 _ORDER_STATUS_MAP: dict[str, TradeStatus] = {
@@ -212,7 +218,7 @@ class ExchangeSyncEngine:
             trade = await store.get_trade_by_order_link_id(order_link_id, for_update=True)
             if trade is None:
                 logger.warning(
-                    "WS order event: no trade found for order_link_id={}", order_link_id
+                    "WS order event: no trade found for order_link_id={}", order_link_id,
                 )
                 return
 
@@ -464,7 +470,7 @@ class ExchangeSyncEngine:
             return True
 
         qty = trade.filled_qty or trade.qty
-        if qty in (None, Decimal("0")) or trade.stop_price is None:
+        if qty in (None, Decimal(0)) or trade.stop_price is None:
             return False
 
         close_side = self._close_side(trade)
@@ -487,7 +493,7 @@ class ExchangeSyncEngine:
                 )
             except Exception as exc:
                 await self._handle_stop_loss_submission_failure(
-                    session=session,
+                    _session=session,
                     store=store,
                     trade=trade,
                     exc=exc,
@@ -531,7 +537,7 @@ class ExchangeSyncEngine:
     async def _handle_stop_loss_submission_failure(
         self,
         *,
-        session: AsyncSession,
+        _session: AsyncSession,
         store: TradeJournalStore,
         trade: Trade,
         exc: Exception,
@@ -551,7 +557,7 @@ class ExchangeSyncEngine:
             return
 
         close_side = self._close_side(trade)
-        qty = trade.filled_qty or trade.qty or Decimal("0")
+        qty = trade.filled_qty or trade.qty or Decimal(0)
         emergency_close_link_id = generate_order_link_id(str(trade.signal_id))
         trade.close_order_link_id = emergency_close_link_id
         trade.exit_reason = ExitReason.KILL_SWITCH

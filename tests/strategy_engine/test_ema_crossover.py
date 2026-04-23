@@ -59,7 +59,7 @@ async def test_ema_crossover_raises_for_too_few_candles() -> None:
     strategy = EMACrossoverStrategy()
     snapshot = build_snapshot(closes=[100.0] * 21, last_high=101.0, last_low=99.0)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="candles"):
         await strategy.generate_signal(snapshot)
 
 

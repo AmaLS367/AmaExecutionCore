@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from decimal import Decimal
 import uuid
+from decimal import Decimal
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from backend.config import settings
 from backend.bybit_client.exceptions import BybitAPIError
+from backend.config import settings
 from backend.order_executor.executor import OrderExecutor
 from backend.risk_manager.exceptions import RiskManagerError
 from backend.safety_guard.exceptions import DailyLossLimitError
@@ -56,9 +56,9 @@ class RecordingSpotOrderRestClient:
                     "coin": [
                         {"coin": "USDT", "equity": "1000"},
                         {"coin": "BTC", "equity": "10"},
-                    ]
-                }
-            ]
+                    ],
+                },
+            ],
         }
 
     def get_instruments_info(self, symbol: str, category: str = "spot") -> dict[str, object]:
@@ -106,9 +106,9 @@ class BalanceAwareRestClient(RecordingSpotOrderRestClient):
                     "coin": [
                         {"coin": coin, "equity": equity}
                         for coin, equity in self._balances.items()
-                    ]
-                }
-            ]
+                    ],
+                },
+            ],
         }
 
     def get_instruments_info(self, symbol: str, category: str = "spot") -> dict[str, object]:
@@ -157,9 +157,9 @@ async def test_executor_blocks_when_max_positions_reached(
                 exchange_side=ExchangeSide.BUY,
                 market_type=MarketType.SPOT,
                 mode=TradingMode.SHADOW,
-                risk_amount_usd=Decimal("100"),
+                risk_amount_usd=Decimal(100),
                 status=TradeStatus.POSITION_OPEN,
-            )
+            ),
         )
         await session.commit()
 
@@ -194,11 +194,11 @@ async def test_executor_blocks_when_exposure_limit_reached(
                 exchange_side=ExchangeSide.BUY,
                 market_type=MarketType.SPOT,
                 mode=TradingMode.SHADOW,
-                risk_amount_usd=Decimal("300"),
-                qty=Decimal("1"),
-                filled_qty=Decimal("1"),
+                risk_amount_usd=Decimal(300),
+                qty=Decimal(1),
+                filled_qty=Decimal(1),
                 status=TradeStatus.POSITION_OPEN,
-            )
+            ),
         )
         await session.commit()
 
@@ -236,7 +236,7 @@ async def test_executor_uses_configured_shadow_equity(
         persisted_trade = (
             await session.execute(select(Trade).where(Trade.id == trade.id))
         ).scalar_one()
-        assert persisted_trade.equity_at_entry == Decimal("5000")
+        assert persisted_trade.equity_at_entry == Decimal(5000)
 
 
 @pytest.mark.asyncio
@@ -408,7 +408,7 @@ async def test_executor_rejects_long_when_quote_balance_is_insufficient(
     settings.trading_mode = "demo"
     settings.order_mode = "taker_allowed"
     executor = OrderExecutor(
-        rest_client=BalanceAwareRestClient(balances={"USDT": "39", "BTC": "1"})
+        rest_client=BalanceAwareRestClient(balances={"USDT": "39", "BTC": "1"}),
     )
 
     async with sqlite_session_factory() as session:
@@ -431,7 +431,7 @@ async def test_executor_rejects_short_when_base_balance_is_insufficient(
     settings.trading_mode = "demo"
     settings.order_mode = "taker_allowed"
     executor = OrderExecutor(
-        rest_client=BalanceAwareRestClient(balances={"USDT": "1000", "BTC": "0.1"})
+        rest_client=BalanceAwareRestClient(balances={"USDT": "1000", "BTC": "0.1"}),
     )
 
     async with sqlite_session_factory() as session:
@@ -457,7 +457,7 @@ async def test_executor_rejects_when_spot_instrument_metadata_is_incomplete(
         rest_client=BalanceAwareRestClient(
             balances={"USDT": "1000", "BTC": "1"},
             instrument={"lotSizeFilter": {"qtyStep": "0.1", "minOrderQty": "0.1", "minOrderAmt": "5"}},
-        )
+        ),
     )
 
     async with sqlite_session_factory() as session:

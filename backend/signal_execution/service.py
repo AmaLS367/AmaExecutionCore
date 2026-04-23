@@ -5,8 +5,8 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from backend.order_executor.idempotency import is_trade_terminal
 from backend.order_executor.executor import OrderExecutor
+from backend.order_executor.idempotency import is_trade_terminal
 from backend.signal_execution.idempotency import (
     fingerprint_signal_request,
     normalize_execute_signal_request,
@@ -57,7 +57,7 @@ class ExecutionService:
                         signal_id = submission.signal_id or replayed_trade.signal_id
                         if signal_id is None:
                             raise RuntimeError(
-                                f"Signal submission {submission.id} is missing its signal reference."
+                                f"Signal submission {submission.id} is missing its signal reference.",
                             )
                         return self._build_result(signal_id, replayed_trade, replayed=True)
                     # Trade resolved to terminal during reconciliation — fall through to new trade

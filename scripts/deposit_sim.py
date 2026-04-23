@@ -1,7 +1,13 @@
 from __future__ import annotations
+
 import asyncio
 from decimal import Decimal
-from backend.backtest import HistoricalReplayRequest, HistoricalReplayRunner, SimulationExecutionService
+
+from backend.backtest import (
+    HistoricalReplayRequest,
+    HistoricalReplayRunner,
+    SimulationExecutionService,
+)
 from backend.bybit_client.rest import BybitRESTClient
 from backend.market_data.contracts import MarketCandle
 from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
@@ -34,12 +40,12 @@ async def run_sim(deposit: float, risk_pct: float, candles_data: tuple):
     sim_svc = SimulationExecutionService(max_hold_candles=20, risk_amount_usd=risk_usd)
     runner = HistoricalReplayRunner(strategy=strategy, execution_service=sim_svc)
     result = await runner.replay(
-        HistoricalReplayRequest(symbol="BTCUSDT", interval="5", candles=candles_data)
+        HistoricalReplayRequest(symbol="BTCUSDT", interval="5", candles=candles_data),
     )
 
     equity = Decimal(str(deposit))
     peak = equity
-    max_dd = Decimal("0")
+    max_dd = Decimal(0)
     trades = []
     for step in result.steps:
         ex = step.execution
@@ -49,11 +55,9 @@ async def run_sim(deposit: float, risk_pct: float, candles_data: tuple):
         fee = Decimal(str(risk_usd)) * FEE_RATE * 2
         net = pnl - fee
         equity += net
-        if equity > peak:
-            peak = equity
+        peak = max(peak, equity)
         dd = peak - equity
-        if dd > max_dd:
-            max_dd = dd
+        max_dd = max(max_dd, dd)
         trades.append(net)
 
     wins = [t for t in trades if t > 0]

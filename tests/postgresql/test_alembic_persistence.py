@@ -45,14 +45,14 @@ async def test_postgresql_schema_migrated_via_alembic_supports_core_trade_journa
             exchange_side=ExchangeSide.BUY,
             market_type=MarketType.SPOT,
             mode=TradingMode.SHADOW,
-            equity_at_entry=Decimal("1000"),
-            risk_amount_usd=Decimal("10"),
+            equity_at_entry=Decimal(1000),
+            risk_amount_usd=Decimal(10),
             risk_pct=Decimal("0.01"),
-            entry_price=Decimal("100"),
-            stop_price=Decimal("90"),
-            target_price=Decimal("130"),
-            expected_rrr=Decimal("3"),
-            qty=Decimal("1"),
+            entry_price=Decimal(100),
+            stop_price=Decimal(90),
+            target_price=Decimal(130),
+            expected_rrr=Decimal(3),
+            qty=Decimal(1),
             status=TradeStatus.RISK_CALCULATED,
             opened_at=datetime(2024, 1, 1, tzinfo=UTC),
         )
@@ -69,7 +69,7 @@ async def test_postgresql_schema_migrated_via_alembic_supports_core_trade_journa
             manual_reset_required=True,
         )
         trade.fee_paid = Decimal("1.5")
-        trade.realized_pnl = Decimal("15")
+        trade.realized_pnl = Decimal(15)
         trade.pnl_pct = Decimal("0.015")
         trade.closed_at = datetime(2024, 1, 1, 1, tzinfo=UTC)
         await store.apply_trade_outcome_analytics(trade)
@@ -84,7 +84,7 @@ async def test_postgresql_schema_migrated_via_alembic_supports_core_trade_journa
         daily_stat = (await verification_session.execute(select(DailyStat))).scalar_one()
         trade_events = (
             await verification_session.execute(
-                select(TradeEvent).where(TradeEvent.trade_id == persisted_trade.id).order_by(TradeEvent.id)
+                select(TradeEvent).where(TradeEvent.trade_id == persisted_trade.id).order_by(TradeEvent.id),
             )
         ).scalars().all()
 

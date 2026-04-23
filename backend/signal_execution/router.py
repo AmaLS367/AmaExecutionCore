@@ -14,7 +14,7 @@ router = APIRouter(prefix="/signals", tags=["signals"])
 
 
 def get_execution_service(request: Request) -> ExecutionService:
-    return cast(ExecutionService, request.app.state.execution_service)
+    return cast("ExecutionService", request.app.state.execution_service)
 
 
 @router.post("/execute", response_model=ExecuteSignalResponse)

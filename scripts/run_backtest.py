@@ -97,7 +97,7 @@ def _extract_trade_pnls(steps: Iterable[object]) -> list[Decimal]:
 def _load_fixture_payload(path: Path) -> FixturePayload:
     raw_payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(raw_payload, dict):
-        raise ValueError("Fixture payload must be a JSON object.")
+        raise TypeError("Fixture payload must be a JSON object.")
 
     symbol = str(raw_payload.get("symbol", "")).strip().upper()
     interval = str(raw_payload.get("interval", "")).strip()
@@ -112,7 +112,7 @@ def _load_fixture_payload(path: Path) -> FixturePayload:
     candles: list[FixtureCandle] = []
     for index, raw_candle in enumerate(raw_candles):
         if not isinstance(raw_candle, dict):
-            raise ValueError(f"Fixture candle #{index} must be a JSON object.")
+            raise TypeError(f"Fixture candle #{index} must be a JSON object.")
         candles.append(
             FixtureCandle(
                 opened_at=str(raw_candle["opened_at"]),
@@ -154,21 +154,24 @@ def _evaluate_thresholds(
         raise BacktestExpectationError(
             f"Expected at least {thresholds.min_closed_trades} closed trades, got {closed_trades}.",
         )
-    if thresholds.min_win_rate is not None:
-        if win_rate is None or win_rate < thresholds.min_win_rate:
-            raise BacktestExpectationError(
-                f"Expected win rate >= {thresholds.min_win_rate}, got {win_rate}.",
-            )
-    if thresholds.min_profit_factor is not None:
-        if profit_factor is None or profit_factor < thresholds.min_profit_factor:
-            raise BacktestExpectationError(
-                f"Expected profit factor >= {thresholds.min_profit_factor}, got {profit_factor}.",
-            )
-    if thresholds.max_drawdown is not None:
-        if max_drawdown is None or max_drawdown > thresholds.max_drawdown:
-            raise BacktestExpectationError(
-                f"Expected max drawdown <= {thresholds.max_drawdown}, got {max_drawdown}.",
-            )
+    if thresholds.min_win_rate is not None and (
+        win_rate is None or win_rate < thresholds.min_win_rate
+    ):
+        raise BacktestExpectationError(
+            f"Expected win rate >= {thresholds.min_win_rate}, got {win_rate}.",
+        )
+    if thresholds.min_profit_factor is not None and (
+        profit_factor is None or profit_factor < thresholds.min_profit_factor
+    ):
+        raise BacktestExpectationError(
+            f"Expected profit factor >= {thresholds.min_profit_factor}, got {profit_factor}.",
+        )
+    if thresholds.max_drawdown is not None and (
+        max_drawdown is None or max_drawdown > thresholds.max_drawdown
+    ):
+        raise BacktestExpectationError(
+            f"Expected max drawdown <= {thresholds.max_drawdown}, got {max_drawdown}.",
+        )
 
 
 def _to_float(value: Decimal | None) -> float | None:
@@ -234,7 +237,7 @@ async def main() -> None:
     runner: HistoricalReplayRunner[SimulationExecutionResult] = HistoricalReplayRunner(
         strategy=strategy,
         execution_service=cast(
-            SupportsReplayExecutionContext[SimulationExecutionResult],
+            "SupportsReplayExecutionContext[SimulationExecutionResult]",
             simulation_service,
         ),
     )
@@ -258,7 +261,7 @@ async def main() -> None:
     print(f"Profit factor: {result.report.metrics.profit_factor}")
     print(f"Max drawdown: {result.report.metrics.max_drawdown}")
     if pnls:
-        print(f"Net PnL sum: {sum(pnls, Decimal('0'))}")
+        print(f"Net PnL sum: {sum(pnls, Decimal(0))}")
     _evaluate_thresholds(
         closed_trades=result.report.metrics.closed_trades,
         win_rate=_to_float(result.report.metrics.win_rate),

@@ -71,7 +71,7 @@ async def test_demo_runner_executes_real_testnet_cycle(
                 target=settings.demo_testnet_target,
                 reason="pytest-testnet-e2e",
                 strategy_version="testnet-e2e",
-            )
+            ),
         )
         assert trade.status.value in {"pnl_recorded", "position_close_failed"}
     finally:

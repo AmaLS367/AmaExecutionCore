@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+
 class ExecuteSignalRequest(BaseModel):
     symbol: str = Field(min_length=1, max_length=20)
     direction: Literal["long", "short"]

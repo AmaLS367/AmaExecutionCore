@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
-import uuid
 
 import pytest
 from sqlalchemy import func, select
@@ -46,7 +46,7 @@ class RecordingRestClient:
                 "category": category,
                 "symbol": symbol,
                 "order_link_id": order_link_id,
-            }
+            },
         )
         queued = self._responses.get(order_link_id, [])
         if queued:
@@ -82,14 +82,14 @@ def build_trade(
         exchange_side=ExchangeSide.BUY,
         market_type=MarketType.SPOT,
         mode=TradingMode.DEMO,
-        entry_price=Decimal("100"),
-        avg_fill_price=Decimal("100"),
-        stop_price=Decimal("90"),
-        target_price=Decimal("130"),
-        qty=Decimal("1"),
-        filled_qty=Decimal("1"),
-        equity_at_entry=Decimal("1000"),
-        risk_amount_usd=Decimal("10"),
+        entry_price=Decimal(100),
+        avg_fill_price=Decimal(100),
+        stop_price=Decimal(90),
+        target_price=Decimal(130),
+        qty=Decimal(1),
+        filled_qty=Decimal(1),
+        equity_at_entry=Decimal(1000),
+        risk_amount_usd=Decimal(10),
         risk_pct=Decimal("0.01"),
         status=status,
         opened_at=datetime.now(timezone.utc),
@@ -109,9 +109,9 @@ async def test_reconcile_restores_order_submitted_when_ws_fill_is_missed(
                     "avgPrice": "101",
                     "cumExecQty": "1",
                     "leavesQty": "0",
-                }
-            ]
-        }
+                },
+            ],
+        },
     )
     engine = ExchangeSyncEngine(
         session_factory=sqlite_session_factory,
@@ -123,7 +123,7 @@ async def test_reconcile_restores_order_submitted_when_ws_fill_is_missed(
             build_trade(
                 status=TradeStatus.ORDER_SUBMITTED,
                 order_link_id="entry-1",
-            )
+            ),
         )
         await session.commit()
 
@@ -136,8 +136,8 @@ async def test_reconcile_restores_order_submitted_when_ws_fill_is_missed(
     assert trade_count == 1
     assert persisted_trade.status == TradeStatus.POSITION_OPEN
     assert persisted_trade.exchange_order_id == "exchange-entry-1"
-    assert persisted_trade.avg_fill_price == Decimal("101")
-    assert persisted_trade.filled_qty == Decimal("1")
+    assert persisted_trade.avg_fill_price == Decimal(101)
+    assert persisted_trade.filled_qty == Decimal(1)
     assert persisted_trade.opened_at is not None
     assert rest_client.place_order_calls == []
 
@@ -157,7 +157,7 @@ async def test_reconcile_pending_unknown_survives_restart_until_rest_state_is_kn
             build_trade(
                 status=TradeStatus.ORDER_PENDING_UNKNOWN,
                 order_link_id="entry-unknown",
-            )
+            ),
         )
         await session.commit()
 
@@ -177,9 +177,9 @@ async def test_reconcile_pending_unknown_survives_restart_until_rest_state_is_kn
                     "avgPrice": "100",
                     "cumExecQty": "1",
                     "leavesQty": "0",
-                }
-            ]
-        }
+                },
+            ],
+        },
     )
     restarted_engine = ExchangeSyncEngine(
         session_factory=sqlite_session_factory,
@@ -210,9 +210,9 @@ async def test_reconcile_restores_pending_close_when_ws_close_fill_is_missed(
                     "avgPrice": "110",
                     "cumExecQty": "1",
                     "leavesQty": "0",
-                }
-            ]
-        }
+                },
+            ],
+        },
     )
     engine = ExchangeSyncEngine(
         session_factory=sqlite_session_factory,
@@ -225,7 +225,7 @@ async def test_reconcile_restores_pending_close_when_ws_close_fill_is_missed(
                 status=TradeStatus.POSITION_CLOSE_PENDING,
                 order_link_id="entry-2",
                 close_order_link_id="close-1",
-            )
+            ),
         )
         await session.commit()
 
@@ -236,8 +236,8 @@ async def test_reconcile_restores_pending_close_when_ws_close_fill_is_missed(
 
     assert persisted_trade.status == TradeStatus.PNL_RECORDED
     assert persisted_trade.close_exchange_order_id == "exchange-close-1"
-    assert persisted_trade.avg_exit_price == Decimal("110")
-    assert persisted_trade.realized_pnl == Decimal("10")
+    assert persisted_trade.avg_exit_price == Decimal(110)
+    assert persisted_trade.realized_pnl == Decimal(10)
     assert rest_client.place_order_calls == []
 
 
@@ -269,11 +269,11 @@ async def test_close_failure_recovery_resubmits_once_and_reconciles_same_trade(
     first_close_order_link_id = first_close.close_order_link_id
     assert first_close_order_link_id is not None
 
-    await engine._process_order(  # noqa: SLF001
+    await engine._process_order(
         {
             "orderLinkId": first_close_order_link_id,
             "orderStatus": "Rejected",
-        }
+        },
     )
 
     retried_close = await service.close_trade(trade_id=trade_id)

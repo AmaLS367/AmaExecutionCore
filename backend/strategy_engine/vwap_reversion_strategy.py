@@ -28,7 +28,7 @@ def _calculate_rsi(closes: list[float], period: int) -> list[float]:
         rs = avg_gain / avg_loss
         values.append(100.0 - (100.0 / (1.0 + rs)))
 
-    for gain, loss in zip(gains[period:], losses[period:]):
+    for gain, loss in zip(gains[period:], losses[period:], strict=False):
         avg_gain = ((avg_gain * (period - 1)) + gain) / period
         avg_loss = ((avg_loss * (period - 1)) + loss) / period
         if avg_loss == 0:
@@ -43,15 +43,14 @@ def _calculate_atr(highs: list[float], lows: list[float], closes: list[float], p
     if len(closes) <= period:
         raise ValueError("Not enough candles to calculate ATR.")
 
-    true_ranges: list[float] = []
-    for index in range(1, len(closes)):
-        true_ranges.append(
-            max(
-                highs[index] - lows[index],
-                abs(highs[index] - closes[index - 1]),
-                abs(lows[index] - closes[index - 1]),
-            )
+    true_ranges = [
+        max(
+            highs[index] - lows[index],
+            abs(highs[index] - closes[index - 1]),
+            abs(lows[index] - closes[index - 1]),
         )
+        for index in range(1, len(closes))
+    ]
 
     atr_values = [sum(true_ranges[:period]) / period]
     for true_range in true_ranges[period:]:

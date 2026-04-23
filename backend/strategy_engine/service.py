@@ -49,7 +49,7 @@ class StrategyExecutionService(Generic[SnapshotT]):
                 symbol=normalized_request.symbol,
                 interval=normalized_request.interval,
                 limit=self._strategy.required_candle_count,
-            )
+            ),
         )
         signal = await self._strategy.generate_signal(snapshot)
         return StrategyExecutionResult(

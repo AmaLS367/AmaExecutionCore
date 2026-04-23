@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if settings.trading_mode != "shadow" and hasattr(app.state.position_manager, "run_spot_exit_monitor"):
         spot_exit_monitor_task = create_logged_task(
             app.state.position_manager.run_spot_exit_monitor(
-                poll_interval_seconds=settings.spot_exit_monitor_interval_seconds
+                poll_interval_seconds=settings.spot_exit_monitor_interval_seconds,
             ),
             name="spot-exit-monitor",
         )

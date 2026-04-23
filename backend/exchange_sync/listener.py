@@ -61,12 +61,12 @@ class BybitWebSocketListener:
         """
         if not settings.active_api_key or not settings.active_api_secret:
             logger.warning(
-                "Bybit API credentials not set — WebSocket listener not started."
+                "Bybit API credentials not set — WebSocket listener not started.",
             )
             return
 
         logger.info(
-            "Starting Bybit WebSocket listener. testnet={}", settings.bybit_testnet
+            "Starting Bybit WebSocket listener. testnet={}", settings.bybit_testnet,
         )
         try:
             from pybit.unified_trading import WebSocket  # type: ignore[import-untyped]

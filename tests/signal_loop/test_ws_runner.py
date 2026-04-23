@@ -116,7 +116,7 @@ async def test_process_feed_snapshot_executes_signal_and_records_entry() -> None
             entry=100.0,
             stop=90.0,
             target=130.0,
-        )
+        ),
     )
     execution_service = _ExecutionService()
     runner = WebSocketSignalRunner(
@@ -141,7 +141,7 @@ async def test_process_feed_snapshot_ignores_gap_recovered_and_cooldown() -> Non
             entry=100.0,
             stop=90.0,
             target=130.0,
-        )
+        ),
     )
     execution_service = _ExecutionService()
     runner = WebSocketSignalRunner(
@@ -168,7 +168,7 @@ async def test_process_feed_snapshot_logs_cooldown_skip() -> None:
             entry=100.0,
             stop=90.0,
             target=130.0,
-        )
+        ),
     )
     runner = WebSocketSignalRunner(
         strategy=strategy,
@@ -201,7 +201,7 @@ async def test_process_feed_snapshot_logs_blacklist_skip(
             DailyStat(
                 stat_date=date.today(),
                 symbol_stats={"BTCUSDT": {"consecutive_losses": 5}},
-            )
+            ),
         )
         await session.commit()
 
@@ -222,10 +222,10 @@ async def test_process_feed_snapshot_logs_balance_reject_without_stopping_runner
                 entry=100.0,
                 stop=90.0,
                 target=130.0,
-            )
+            ),
         ),
         execution_service=_ExecutionService(
-            exc=InsufficientSpotBalanceError("Insufficient spot quote balance for BTCUSDT")
+            exc=InsufficientSpotBalanceError("Insufficient spot quote balance for BTCUSDT"),
         ),
         feed=_Feed(),
         cooldown_seconds=60,
@@ -262,7 +262,7 @@ async def test_process_feed_snapshot_stops_on_safety_guard_error() -> None:
                 entry=100.0,
                 stop=90.0,
                 target=130.0,
-            )
+            ),
         ),
         execution_service=_ExecutionService(exc=SafetyGuardError("blocked")),
         feed=_Feed(),
@@ -284,7 +284,7 @@ async def test_process_feed_snapshot_ignores_invalid_direction() -> None:
                 entry=100.0,
                 stop=90.0,
                 target=130.0,
-            )
+            ),
         ),
         execution_service=_ExecutionService(),
         feed=_Feed(),
@@ -305,7 +305,7 @@ async def test_is_symbol_blacklisted_uses_daily_stat_symbol_losses(
             DailyStat(
                 stat_date=date.today(),
                 symbol_stats={"BTCUSDT": {"consecutive_losses": 5}},
-            )
+            ),
         )
         await session.commit()
 

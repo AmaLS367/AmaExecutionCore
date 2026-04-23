@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-import uuid
 
 import pytest
 from sqlalchemy import select
@@ -60,10 +60,10 @@ def build_open_trade(
         avg_fill_price=Decimal(entry_price),
         stop_price=Decimal(stop_price),
         target_price=Decimal(target_price) if target_price is not None else None,
-        qty=Decimal("1"),
-        filled_qty=Decimal("1"),
-        equity_at_entry=Decimal("1000"),
-        risk_amount_usd=Decimal("10"),
+        qty=Decimal(1),
+        filled_qty=Decimal(1),
+        equity_at_entry=Decimal(1000),
+        risk_amount_usd=Decimal(10),
         status=TradeStatus.POSITION_OPEN,
         opened_at=datetime.now(UTC) - timedelta(minutes=5),
     )
@@ -94,10 +94,13 @@ async def test_close_trade_in_shadow_records_positive_long_pnl(
     closed_trade = await service.close_trade(trade_id=trade_id, exit_reason=ExitReason.TP_HIT)
 
     assert closed_trade.status == TradeStatus.PNL_RECORDED
-    assert closed_trade.realized_pnl == Decimal("30")
-    assert closed_trade.pnl_pct is not None and closed_trade.pnl_pct > 0
-    assert closed_trade.pnl_in_r is not None and closed_trade.pnl_in_r > 0
-    assert closed_trade.hold_time_seconds is not None and closed_trade.hold_time_seconds >= 0
+    assert closed_trade.realized_pnl == Decimal(30)
+    assert closed_trade.pnl_pct is not None
+    assert closed_trade.pnl_pct > 0
+    assert closed_trade.pnl_in_r is not None
+    assert closed_trade.pnl_in_r > 0
+    assert closed_trade.hold_time_seconds is not None
+    assert closed_trade.hold_time_seconds >= 0
 
 
 @pytest.mark.asyncio
@@ -124,7 +127,7 @@ async def test_close_trade_in_shadow_records_positive_short_pnl(
 
     closed_trade = await service.close_trade(trade_id=trade_id, exit_reason=ExitReason.TP_HIT)
 
-    assert closed_trade.realized_pnl == Decimal("30")
+    assert closed_trade.realized_pnl == Decimal(30)
 
 
 @pytest.mark.asyncio
@@ -195,7 +198,7 @@ async def test_list_open_trades_includes_close_recovery_states(
                     stop_price="90",
                     target_price="130",
                 ),
-            ]
+            ],
         )
         trades = (await session.execute(select(Trade))).scalars().all()
         trades[0].status = TradeStatus.POSITION_OPEN

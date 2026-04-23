@@ -53,7 +53,7 @@ async def test_bybit_spot_snapshot_provider_normalizes_klines() -> None:
     provider = BybitSpotSnapshotProvider(rest_client=client)
 
     snapshot = await provider.get_snapshot(
-        MarketSnapshotRequest(symbol="BTCUSDT", interval="1", limit=2)
+        MarketSnapshotRequest(symbol="BTCUSDT", interval="1", limit=2),
     )
 
     assert client.calls == [("BTCUSDT", "1", 2, "spot")]

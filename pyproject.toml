@@ -76,7 +76,36 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "C90", "I", "N", "UP", "YTT", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
-ignore = ["E501", "S101", "PLR0913", "PLR2004"]
+ignore = [
+    "E501",
+    "EM101",
+    "EM102",
+    "PLR0913",
+    "PLR2004",
+    "S101",
+    "TC001",
+    "TC002",
+    "TC003",
+    "TRY003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"alembic/**/*.py" = ["INP001"]
+"backend/bybit_client/rest.py" = ["C901", "PLC0415"]
+"backend/exchange_sync/engine.py" = ["BLE001", "C901", "PERF203", "PLR0912", "PLR0915"]
+"backend/exchange_sync/listener.py" = ["PLC0415"]
+"backend/main.py" = ["ARG002"]
+"backend/market_data/bybit_ws_feed.py" = ["BLE001", "PLC0415"]
+"backend/order_executor/executor.py" = ["PLR0915"]
+"backend/position_manager/router.py" = ["B008"]
+"backend/position_manager/service.py" = ["BLE001"]
+"backend/safety_guard/kill_switch.py" = ["BLE001", "PERF203"]
+"backend/safety_guard/router.py" = ["B008"]
+"backend/signal_loop/runner.py" = ["BLE001"]
+"backend/signal_loop/ws_runner.py" = ["BLE001"]
+"scripts/*.py" = ["T201"]
+"scripts/run_backtest.py" = ["PLC0415", "T201"]
+"tests/**/*.py" = ["ARG001", "ARG002", "BLE001", "DTZ011", "INP001", "PLC0415", "S105", "S106", "SLF001"]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from backend.backtest.shadow_runner import ShadowRunRequest, ShadowRunner
+from backend.backtest.shadow_runner import ShadowRunner, ShadowRunRequest
 from backend.market_data.contracts import MarketCandle, MarketSnapshot
 from backend.signal_execution.schemas import ExecuteSignalRequest
 from backend.strategy_engine.contracts import StrategySignal

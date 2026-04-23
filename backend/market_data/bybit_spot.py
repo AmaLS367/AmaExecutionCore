@@ -40,7 +40,7 @@ class BybitSpotSnapshotProvider(MarketSnapshotProvider[MarketSnapshot]):
         )
         if len(klines) < request.limit:
             raise ValueError(
-                f"Bybit returned {len(klines)} candles for {request.symbol}; expected {request.limit}."
+                f"Bybit returned {len(klines)} candles for {request.symbol}; expected {request.limit}.",
             )
 
         ordered_klines = sorted(klines, key=lambda candle: candle.start_time)

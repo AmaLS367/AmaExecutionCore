@@ -69,11 +69,11 @@ def _build_trade(*, mode: TradingMode, status: TradeStatus) -> Trade:
         exchange_side=ExchangeSide.BUY,
         market_type=MarketType.SPOT,
         mode=mode,
-        entry_price=Decimal("100"),
-        stop_price=Decimal("90"),
-        target_price=Decimal("130"),
-        qty=Decimal("1"),
-        filled_qty=Decimal("1"),
+        entry_price=Decimal(100),
+        stop_price=Decimal(90),
+        target_price=Decimal(130),
+        qty=Decimal(1),
+        filled_qty=Decimal(1),
         status=status,
         opened_at=datetime.now(UTC),
     )
@@ -138,7 +138,7 @@ def test_list_trades_filters_by_mode(
                 [
                     _build_trade(mode=TradingMode.SHADOW, status=TradeStatus.ORDER_SUBMITTED),
                     _build_trade(mode=TradingMode.DEMO, status=TradeStatus.POSITION_OPEN),
-                ]
+                ],
             )
             await session.commit()
 

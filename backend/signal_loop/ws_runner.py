@@ -11,8 +11,8 @@ from backend.risk_manager.exceptions import InsufficientSpotBalanceError
 from backend.safety_guard.exceptions import SafetyGuardError
 from backend.signal_execution.schemas import ExecuteSignalRequest
 from backend.signal_loop.runner import _SymbolState
-from backend.trade_journal.store import TradeJournalStore
 from backend.strategy_engine.contracts import StrategySignal
+from backend.trade_journal.store import TradeJournalStore
 
 
 class SupportsWebSocketStrategy(Protocol):
@@ -103,21 +103,27 @@ class WebSocketSignalRunner:
         if signal is None:
             return
 
+        direction = signal.direction
+        if direction not in ("long", "short"):
+            logger.warning(
+                "WebSocket signal rejected. symbol={} reason=unsupported_direction direction={}",
+                signal.symbol,
+                direction,
+            )
+            return
+
         try:
-            direction = signal.direction
-            if direction not in ("long", "short"):
-                raise ValueError(f"Unsupported strategy signal direction: {direction}")
             await self._execution_service.execute_signal(
                 signal=ExecuteSignalRequest(
                     symbol=signal.symbol,
-                    direction=cast(Literal["long", "short"], direction),
+                    direction=cast("Literal['long', 'short']", direction),
                     entry=signal.entry,
                     stop=signal.stop,
                     target=signal.target,
                     reason=signal.reason,
                     strategy_version=signal.strategy_version,
                     indicators_snapshot=signal.indicators_snapshot,
-                )
+                ),
             )
             state.record_entry()
         except InsufficientSpotBalanceError as exc:

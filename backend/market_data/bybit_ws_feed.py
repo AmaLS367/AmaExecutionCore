@@ -44,7 +44,7 @@ class BybitCandleFeed:
         self._windows: dict[str, deque[MarketCandle]] = {
             symbol: deque(maxlen=window_size) for symbol in symbols
         }
-        self._warmed_up = {symbol: False for symbol in symbols}
+        self._warmed_up = dict.fromkeys(symbols, False)
 
     @property
     def queue(self) -> asyncio.Queue[CandleFeedSnapshot]:
@@ -86,7 +86,7 @@ class BybitCandleFeed:
                     low=kline.low_price,
                     close=kline.close_price,
                     volume=kline.volume,
-                )
+                ),
             )
         self._warmed_up[symbol] = len(window) >= self._window_size
 

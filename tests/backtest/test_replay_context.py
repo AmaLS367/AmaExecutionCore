@@ -73,7 +73,7 @@ async def test_historical_replay_runner_passes_future_candles_to_context_aware_e
             symbol="BTCUSDT",
             interval="5",
             candles=_build_candles([100.0, 101.0, 102.0, 103.0]),
-        )
+        ),
     )
 
     assert [step.execution for step in result.steps] == [

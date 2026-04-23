@@ -58,7 +58,7 @@ def test_normalize_request_rejects_invalid_inputs() -> None:
         _normalize_request(HistoricalReplayRequest(symbol="BTCUSDT", interval=" ", candles=_candles(3)))
     with pytest.raises(ValueError, match="exactly one of candles or snapshots"):
         _normalize_request(
-            HistoricalReplayRequest(symbol="BTCUSDT", interval="5", candles=_candles(3), snapshots=_snapshots(1))
+            HistoricalReplayRequest(symbol="BTCUSDT", interval="5", candles=_candles(3), snapshots=_snapshots(1)),
         )
     with pytest.raises(ValueError, match="start_step must be greater than or equal to zero"):
         _normalize_request(HistoricalReplayRequest(symbol="BTCUSDT", interval="5", candles=_candles(3), start_step=-1))
@@ -105,19 +105,19 @@ def test_build_report_computes_profit_factor_and_drawdown() -> None:
             type("Step", (), {"execution": {"realized_pnl": "10", "slippage": "1"}})(),
             type("Step", (), {"execution": {"realized_pnl": "-4", "slippage": "2"}})(),
             type("Step", (), {"execution": {"realized_pnl": "-3", "slippage": "3"}})(),
-        ]
+        ],
     )
 
     assert report.metrics.closed_trades == 3
     assert report.metrics.winning_trades == 1
     assert report.metrics.losing_trades == 2
-    assert report.metrics.expectancy == Decimal("1")
+    assert report.metrics.expectancy == Decimal(1)
     assert report.metrics.win_rate == Decimal("0.3333333333333333333333333333")
     assert report.metrics.profit_factor == Decimal("1.428571428571428571428571429")
-    assert report.metrics.max_drawdown == Decimal("7")
+    assert report.metrics.max_drawdown == Decimal(7)
     assert report.slippage is not None
-    assert report.slippage.minimum == Decimal("1")
-    assert report.slippage.maximum == Decimal("3")
+    assert report.slippage.minimum == Decimal(1)
+    assert report.slippage.maximum == Decimal(3)
 
 
 def test_future_candles_for_step_returns_remaining_tail() -> None:

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Generator
 import os
+from collections.abc import AsyncGenerator, Generator
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from pathlib import Path
 
 os.environ["ENVIRONMENT"] = "test"
 os.environ["DEBUG"] = "false"

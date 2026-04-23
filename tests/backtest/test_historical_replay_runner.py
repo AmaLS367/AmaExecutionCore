@@ -64,7 +64,7 @@ async def test_historical_replay_runner_replays_candle_range_into_step_results()
             candles=build_candles([100.0, 101.0, 102.0, 106.0, 108.0, 103.0]),
             start_step=3,
             end_step=6,
-        )
+        ),
     )
 
     assert [step.step_index for step in result.steps] == [3, 4, 5]
@@ -97,7 +97,7 @@ async def test_historical_replay_runner_accepts_explicit_snapshot_sequence() -> 
             symbol="ETHUSDT",
             interval="5",
             snapshots=snapshots,
-        )
+        ),
     )
 
     assert len(result.steps) == 2

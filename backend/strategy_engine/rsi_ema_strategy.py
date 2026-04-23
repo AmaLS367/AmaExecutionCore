@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from dataclasses import dataclass
 
 from backend.market_data.contracts import MarketSnapshot
@@ -20,7 +21,7 @@ def _calculate_rsi(values: list[float], period: int) -> list[float]:
 
     gains: list[float] = []
     losses: list[float] = []
-    for previous_close, current_close in zip(values, values[1:]):
+    for previous_close, current_close in itertools.pairwise(values):
         delta = current_close - previous_close
         gains.append(max(delta, 0.0))
         losses.append(max(-delta, 0.0))
@@ -29,7 +30,7 @@ def _calculate_rsi(values: list[float], period: int) -> list[float]:
     average_loss = sum(losses[:period]) / period
     rsi_values = [_to_rsi(average_gain=average_gain, average_loss=average_loss)]
 
-    for gain, loss in zip(gains[period:], losses[period:]):
+    for gain, loss in zip(gains[period:], losses[period:], strict=False):
         average_gain = ((average_gain * (period - 1)) + gain) / period
         average_loss = ((average_loss * (period - 1)) + loss) / period
         rsi_values.append(_to_rsi(average_gain=average_gain, average_loss=average_loss))

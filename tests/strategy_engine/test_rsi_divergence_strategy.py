@@ -107,9 +107,9 @@ async def test_generates_long_signal_on_bullish_divergence() -> None:
     assert "rsi_at_swing1" in snapshot_keys
     assert "rsi_at_swing2" in snapshot_keys
     # Key divergence property: RSI at second swing low > RSI at first swing low
-    assert cast(float, snapshot["rsi_at_swing2"]) > cast(float, snapshot["rsi_at_swing1"])
+    assert cast("float", snapshot["rsi_at_swing2"]) > cast("float", snapshot["rsi_at_swing1"])
     # And price at second swing low < price at first swing low
-    assert cast(float, snapshot["price_at_swing2"]) < cast(float, snapshot["price_at_swing1"])
+    assert cast("float", snapshot["price_at_swing2"]) < cast("float", snapshot["price_at_swing1"])
 
 
 @pytest.mark.asyncio
@@ -126,8 +126,8 @@ async def test_generates_short_signal_on_bearish_divergence() -> None:
     assert signal.reason == "rsi_divergence_bearish"
     assert signal.indicators_snapshot is not None
     snapshot = signal.indicators_snapshot
-    assert cast(float, snapshot["rsi_at_swing2"]) < cast(float, snapshot["rsi_at_swing1"])
-    assert cast(float, snapshot["price_at_swing2"]) > cast(float, snapshot["price_at_swing1"])
+    assert cast("float", snapshot["rsi_at_swing2"]) < cast("float", snapshot["rsi_at_swing1"])
+    assert cast("float", snapshot["price_at_swing2"]) > cast("float", snapshot["price_at_swing1"])
 
 
 @pytest.mark.asyncio

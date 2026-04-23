@@ -89,7 +89,7 @@ class SignalLoopRunner:
 
             try:
                 result = await self._strategy_service.run(
-                    StrategyExecutionRequest(symbol=state.symbol, interval=self._interval)
+                    StrategyExecutionRequest(symbol=state.symbol, interval=self._interval),
                 )
             except SafetyGuardError:
                 self.stop()
@@ -109,14 +109,14 @@ class SignalLoopRunner:
                 await self._execution_service.execute_signal(
                     signal=ExecuteSignalRequest(
                         symbol=signal.symbol,
-                        direction=cast(Literal["long", "short"], direction),
+                        direction=cast("Literal['long', 'short']", direction),
                         entry=signal.entry,
                         stop=signal.stop,
                         target=signal.target,
                         reason=signal.reason,
                         strategy_version=signal.strategy_version,
                         indicators_snapshot=signal.indicators_snapshot,
-                    )
+                    ),
                 )
                 state.record_entry()
             except SafetyGuardError:

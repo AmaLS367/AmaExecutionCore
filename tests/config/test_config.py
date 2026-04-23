@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
 
 from backend.config import Settings, _split_symbols
 

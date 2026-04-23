@@ -72,7 +72,7 @@ async def test_strategy_orchestrator_short_circuits_to_first_signal_in_order() -
     second = FixedSignalStrategy(required_candle_count=8, reason="breakout")
     third = FixedSignalStrategy(required_candle_count=13, reason="mean-reversion")
     orchestrator: StrategyOrchestrator[MarketSnapshot] = StrategyOrchestrator(
-        strategies=(first, second, third)
+        strategies=(first, second, third),
     )
 
     signal = await orchestrator.generate_signal(snapshot)
@@ -104,7 +104,7 @@ async def test_strategy_execution_service_uses_orchestrator_highest_candle_requi
         strategies=(
             PassiveStrategy(required_candle_count=9),
             FixedSignalStrategy(required_candle_count=21, reason="ema"),
-        )
+        ),
     )
     service = StrategyExecutionService(snapshot_provider=provider, strategy=orchestrator)
 

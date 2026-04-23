@@ -21,7 +21,7 @@ router = APIRouter(tags=["positions", "trades"])
 
 
 def get_position_manager(request: Request) -> PositionManagerService:
-    return cast(PositionManagerService, request.app.state.position_manager)
+    return cast("PositionManagerService", request.app.state.position_manager)
 
 
 @router.post("/positions/{trade_id}/close", response_model=ClosePositionResponse)
@@ -70,7 +70,7 @@ async def list_trades(
     offset: int = Query(default=0, ge=0),
     mode: TradingMode | None = Query(default=None),
 ) -> list[TradeListItemResponse]:
-    session_factory = cast(async_sessionmaker[AsyncSession], request.app.state.session_factory)
+    session_factory = cast("async_sessionmaker[AsyncSession]", request.app.state.session_factory)
     async with session_factory() as session:
         statement = select(Trade).order_by(Trade.created_at.desc()).limit(limit).offset(offset)
         if mode is not None:
@@ -99,7 +99,7 @@ async def list_trades(
 
 @router.get("/trades/{trade_id}", response_model=TradeDetailResponse)
 async def get_trade_detail(trade_id: UUID, request: Request) -> TradeDetailResponse:
-    session_factory = cast(async_sessionmaker[AsyncSession], request.app.state.session_factory)
+    session_factory = cast("async_sessionmaker[AsyncSession]", request.app.state.session_factory)
     async with session_factory() as session:
         trade = (await session.execute(select(Trade).where(Trade.id == trade_id))).scalar_one_or_none()
     if trade is None:
