@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import asyncio
 from decimal import Decimal
+from typing import Any, cast
 
 from backend.backtest import (
     HistoricalReplayRequest,
     HistoricalReplayRunner,
+    SimulationExecutionResult,
     SimulationExecutionService,
 )
+from backend.backtest.replay_runner import SupportsReplayExecutionContext
 from backend.bybit_client.rest import BybitRESTClient
 from backend.market_data.contracts import MarketCandle
 from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
@@ -15,18 +18,36 @@ from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrateg
 FEE_RATE = Decimal("0.001")
 
 
-def fetch_candles(client, *, symbol, interval, total):
-    candles, end_cursor = [], None
+def fetch_candles(
+    client: BybitRESTClient,
+    *,
+    symbol: str,
+    interval: str,
+    total: int,
+) -> tuple[MarketCandle, ...]:
+    candles: list[MarketCandle] = []
+    end_cursor: int | None = None
     while len(candles) < total:
-        batch = client.get_klines(symbol=symbol, interval=interval,
-                                   limit=min(1000, total - len(candles)),
-                                   category="spot", end=end_cursor)
+        batch = client.get_klines(
+            symbol=symbol,
+            interval=interval,
+            limit=min(1000, total - len(candles)),
+            category="spot",
+            end=end_cursor,
+        )
         if not batch:
             break
         ordered = sorted(batch, key=lambda c: c.start_time)
-        candles.extend(MarketCandle(opened_at=c.start_time, high=c.high_price,
-                                    low=c.low_price, close=c.close_price,
-                                    volume=c.volume) for c in ordered)
+        candles.extend(
+            MarketCandle(
+                opened_at=c.start_time,
+                high=c.high_price,
+                low=c.low_price,
+                close=c.close_price,
+                volume=c.volume,
+            )
+            for c in ordered
+        )
         end_cursor = int(ordered[0].start_time.timestamp() * 1000) - 1
         if len(batch) < min(1000, total - len(candles)):
             break
@@ -34,11 +55,21 @@ def fetch_candles(client, *, symbol, interval, total):
     return tuple(sorted(deduped.values(), key=lambda c: c.opened_at))[-total:]
 
 
-async def run_sim(deposit: float, risk_pct: float, candles_data: tuple):
+async def run_sim(
+    deposit: float,
+    risk_pct: float,
+    candles_data: tuple[MarketCandle, ...],
+) -> dict[str, Any]:
     risk_usd = deposit * risk_pct / 100
     strategy = VWAPReversionStrategy()
     sim_svc = SimulationExecutionService(max_hold_candles=20, risk_amount_usd=risk_usd)
-    runner = HistoricalReplayRunner(strategy=strategy, execution_service=sim_svc)
+    runner: HistoricalReplayRunner[SimulationExecutionResult] = HistoricalReplayRunner(
+        strategy=strategy,
+        execution_service=cast(
+            "SupportsReplayExecutionContext[SimulationExecutionResult]",
+            sim_svc,
+        ),
+    )
     result = await runner.replay(
         HistoricalReplayRequest(symbol="BTCUSDT", interval="5", candles=candles_data),
     )
@@ -82,7 +113,7 @@ async def run_sim(deposit: float, risk_pct: float, candles_data: tuple):
     }
 
 
-async def main():
+async def main() -> None:
     client = BybitRESTClient()
     print("Fetching 3 months of candles...")
     candles = fetch_candles(client, symbol="BTCUSDT", interval="5", total=25000)
@@ -109,4 +140,5 @@ async def main():
         print()
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

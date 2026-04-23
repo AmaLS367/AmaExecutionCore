@@ -5,12 +5,15 @@ import asyncio
 import json
 from decimal import Decimal
 from pathlib import Path
+from typing import cast
 
 from backend.backtest import (
     HistoricalReplayRequest,
     HistoricalReplayRunner,
+    SimulationExecutionResult,
     SimulationExecutionService,
 )
+from backend.backtest.replay_runner import SupportsReplayExecutionContext
 from backend.bybit_client.rest import BybitRESTClient
 from backend.market_data.contracts import MarketCandle
 from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
@@ -84,7 +87,13 @@ async def main() -> None:
         max_hold_candles=args.max_hold,
         risk_amount_usd=args.risk_amount,
     )
-    runner = HistoricalReplayRunner(strategy=strategy, execution_service=simulation_service)
+    runner: HistoricalReplayRunner[SimulationExecutionResult] = HistoricalReplayRunner(
+        strategy=strategy,
+        execution_service=cast(
+            "SupportsReplayExecutionContext[SimulationExecutionResult]",
+            simulation_service,
+        ),
+    )
     result = await runner.replay(
         HistoricalReplayRequest(symbol=args.symbol, interval=args.interval, candles=candles),
     )

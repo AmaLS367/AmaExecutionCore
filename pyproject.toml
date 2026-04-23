@@ -117,5 +117,9 @@ line-ending = "auto"
 strict = true
 exclude = ["tests/.*", "alembic/.*"]
 
+[[tool.mypy.overrides]]
+module = "pybit.*"
+ignore_missing_imports = true
+
 [tool.hatch.build.targets.wheel]
 packages = ["backend"]
