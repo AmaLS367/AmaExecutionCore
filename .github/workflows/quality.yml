@@ -1,0 +1,40 @@
+name: Quality
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --frozen --dev
+
+      - name: Ruff
+        run: >-
+          uv run ruff check
+          --select E,F,I,UP,COM,RUF
+          scripts/import_rules.py
+          scripts/run_backtest.py
+          tests/scripts
+
+      - name: Mypy
+        run: uv run mypy backend scripts/import_rules.py scripts/run_backtest.py
+
+      - name: Import Rules
+        run: uv run python scripts/import_rules.py
