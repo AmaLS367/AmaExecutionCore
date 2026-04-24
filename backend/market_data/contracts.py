@@ -14,7 +14,12 @@ class MarketCandle:
     high: float
     low: float
     close: float
+    open: float | None = None
     volume: float = 0.0
+
+    def __post_init__(self) -> None:
+        if self.open is None:
+            object.__setattr__(self, "open", self.close)
 
 
 @dataclass(slots=True, frozen=True)

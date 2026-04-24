@@ -47,6 +47,7 @@ class BybitSpotSnapshotProvider(MarketSnapshotProvider[MarketSnapshot]):
         candles = tuple(
             MarketCandle(
                 opened_at=kline.start_time,
+                open=kline.open_price,
                 high=kline.high_price,
                 low=kline.low_price,
                 close=kline.close_price,

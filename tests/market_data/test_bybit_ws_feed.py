@@ -101,6 +101,7 @@ async def test_warm_up_populates_window_before_emitting_confirmed_candle() -> No
             "data": [
                 {
                     "start": str(int(datetime(2024, 1, 1, 0, 2, tzinfo=UTC).timestamp() * 1000)),
+                    "open": "101.5",
                     "high": "103.0",
                     "low": "100.0",
                     "close": "102.0",
@@ -230,6 +231,7 @@ async def test_handle_confirmed_candle_schedules_gap_recovery(monkeypatch: pytes
         "BTCUSDT",
         {
             "start": str(int(gap_candle_start.timestamp() * 1000)),
+            "open": "101.5",
             "high": "103.0",
             "low": "100.0",
             "close": "102.0",

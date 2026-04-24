@@ -82,6 +82,7 @@ class BybitCandleFeed:
             window.append(
                 MarketCandle(
                     opened_at=kline.start_time,
+                    open=kline.open_price,
                     high=kline.high_price,
                     low=kline.low_price,
                     close=kline.close_price,
@@ -121,6 +122,7 @@ class BybitCandleFeed:
         try:
             candle = MarketCandle(
                 opened_at=datetime.fromtimestamp(int(item["start"]) / 1000, tz=UTC),
+                open=float(item["open"]),
                 high=float(item["high"]),
                 low=float(item["low"]),
                 close=float(item["close"]),
