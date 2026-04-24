@@ -117,6 +117,7 @@ def fetch_candles(
         candles.extend(
             MarketCandle(
                 opened_at=item.start_time,
+                open=item.open_price,
                 high=item.high_price,
                 low=item.low_price,
                 close=item.close_price,
@@ -149,6 +150,7 @@ def save_dataset(
         "candles": [
             {
                 "opened_at": candle.opened_at.isoformat(),
+                "open": candle.open,
                 "high": candle.high,
                 "low": candle.low,
                 "close": candle.close,
@@ -183,6 +185,7 @@ def load_dataset(path: Path) -> CandleDataset:
     candles = tuple(
         MarketCandle(
             opened_at=datetime.fromisoformat(str(candle["opened_at"]).replace("Z", "+00:00")),
+            open=float(candle["open"]) if "open" in candle else float(candle["close"]),
             high=float(candle["high"]),
             low=float(candle["low"]),
             close=float(candle["close"]),

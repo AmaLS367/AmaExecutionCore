@@ -67,6 +67,7 @@ async def test_historical_replay_runner_returns_machine_readable_metrics_report(
                 {"realized_pnl": Decimal(20), "slippage": Decimal("0.4")},
             ],
         ),
+        cooldown_candles=0,
     )
 
     result = await runner.replay(
@@ -96,6 +97,7 @@ async def test_historical_replay_runner_does_not_invent_metrics_without_trade_ou
     runner = HistoricalReplayRunner(
         strategy=AlwaysSignalStrategy(),
         execution_service=OutcomeExecutionService([{}, {}]),
+        cooldown_candles=0,
     )
 
     result = await runner.replay(

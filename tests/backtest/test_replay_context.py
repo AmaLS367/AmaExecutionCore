@@ -66,6 +66,7 @@ async def test_historical_replay_runner_passes_future_candles_to_context_aware_e
     runner: HistoricalReplayRunner[ContextResult] = HistoricalReplayRunner(
         strategy=AlwaysSignalStrategy(),
         execution_service=execution_service,  # type: ignore[arg-type]
+        cooldown_candles=0,
     )
 
     result = await runner.replay(
