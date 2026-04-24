@@ -1,0 +1,84 @@
+{
+  "profiles": {
+    "regression_vwap_reversion_v1": {
+      "min_closed_trades": 80,
+      "min_win_rate": 0.6,
+      "min_profit_factor": 1.2,
+      "require_positive_expectancy": true,
+      "max_drawdown_pct": 0.2
+    },
+    "live_vwap_reversion_v1": {
+      "min_closed_trades": 40,
+      "min_win_rate": 0.6,
+      "min_profit_factor": 1.15,
+      "require_positive_expectancy": true,
+      "max_drawdown_pct": 0.2
+    }
+  },
+  "scenarios": [
+    {
+      "name": "vwap_reversion_btcusdt_5m",
+      "family": "scalping",
+      "strategy": "vwap_reversion",
+      "symbol": "BTCUSDT",
+      "interval": "5",
+      "lookback_days": 365,
+      "live_lookback_days": 180,
+      "dataset_path": "scripts/fixtures/regression/btcusdt_5m_365d.json.gz",
+      "risk_amount_usd": 100.0,
+      "starting_equity_usd": 10000.0,
+      "max_hold_candles": 20,
+      "min_rrr": 1.5,
+      "regression_profile": "regression_vwap_reversion_v1",
+      "live_profile": "live_vwap_reversion_v1"
+    },
+    {
+      "name": "vwap_reversion_ethusdt_5m",
+      "family": "scalping",
+      "strategy": "vwap_reversion",
+      "symbol": "ETHUSDT",
+      "interval": "5",
+      "lookback_days": 365,
+      "live_lookback_days": 180,
+      "dataset_path": "scripts/fixtures/regression/ethusdt_5m_365d.json.gz",
+      "risk_amount_usd": 100.0,
+      "starting_equity_usd": 10000.0,
+      "max_hold_candles": 20,
+      "min_rrr": 1.5,
+      "regression_profile": "regression_vwap_reversion_v1",
+      "live_profile": "live_vwap_reversion_v1"
+    },
+    {
+      "name": "vwap_reversion_solusdt_5m",
+      "family": "scalping",
+      "strategy": "vwap_reversion",
+      "symbol": "SOLUSDT",
+      "interval": "5",
+      "lookback_days": 365,
+      "live_lookback_days": 180,
+      "dataset_path": "scripts/fixtures/regression/solusdt_5m_365d.json.gz",
+      "risk_amount_usd": 100.0,
+      "starting_equity_usd": 10000.0,
+      "max_hold_candles": 20,
+      "min_rrr": 1.5,
+      "regression_profile": "regression_vwap_reversion_v1",
+      "live_profile": "live_vwap_reversion_v1"
+    },
+    {
+      "name": "vwap_reversion_xrpusdt_5m",
+      "family": "scalping",
+      "strategy": "vwap_reversion",
+      "symbol": "XRPUSDT",
+      "interval": "5",
+      "lookback_days": 365,
+      "live_lookback_days": 180,
+      "dataset_path": "scripts/fixtures/regression/xrpusdt_5m_365d.json.gz",
+      "risk_amount_usd": 100.0,
+      "starting_equity_usd": 10000.0,
+      "max_hold_candles": 20,
+      "min_rrr": 1.5,
+      "regression_profile": "regression_vwap_reversion_v1",
+      "live_profile": "live_vwap_reversion_v1"
+    }
+  ]
+}

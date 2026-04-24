@@ -76,5 +76,6 @@ venv.bak/
 # Project specific
 trading_bot_plan.md
 roadmap.md
+artifacts/
 # Added by code-review-graph
 .code-review-graph/
