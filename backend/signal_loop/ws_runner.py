@@ -5,8 +5,14 @@ from typing import Any, Literal, Protocol, cast
 
 from loguru import logger
 
+from backend.config import settings
 from backend.market_data.bybit_ws_feed import CandleFeedSnapshot
 from backend.market_data.contracts import MarketSnapshot
+from backend.market_data.staleness import (
+    allowed_snapshot_staleness_seconds,
+    is_snapshot_stale,
+    snapshot_age_seconds,
+)
 from backend.risk_manager.exceptions import InsufficientSpotBalanceError
 from backend.safety_guard.exceptions import SafetyGuardError
 from backend.signal_execution.schemas import ExecuteSignalRequest
@@ -75,23 +81,9 @@ class WebSocketSignalRunner:
             snapshot.symbol,
             _SymbolState(symbol=snapshot.symbol, cooldown_seconds=self._cooldown_seconds),
         )
-        if feed_snapshot.gap_recovered:
-            logger.info(
-                "WebSocket snapshot skipped. symbol={} reason=gap_recovered",
-                snapshot.symbol,
-            )
-            return
-        if state.is_in_cooldown():
-            logger.info(
-                "WebSocket snapshot skipped. symbol={} reason=cooldown",
-                snapshot.symbol,
-            )
-            return
-        if await self._is_symbol_blacklisted(snapshot.symbol):
-            logger.info(
-                "WebSocket snapshot skipped. symbol={} reason=blacklist",
-                snapshot.symbol,
-            )
+        skip_reason = await self._skip_reason(feed_snapshot=feed_snapshot, state=state)
+        if skip_reason is not None:
+            logger.info(skip_reason, snapshot.symbol)
             return
 
         try:
@@ -136,6 +128,31 @@ class WebSocketSignalRunner:
             self.stop()
         except Exception:
             logger.exception("WebSocket execution failed for {}.", signal.symbol)
+
+    async def _skip_reason(
+        self,
+        *,
+        feed_snapshot: CandleFeedSnapshot,
+        state: _SymbolState,
+    ) -> str | None:
+        snapshot = feed_snapshot.snapshot
+        if feed_snapshot.gap_recovered:
+            return "WebSocket snapshot skipped. symbol={} reason=gap_recovered"
+        if is_snapshot_stale(
+            snapshot,
+            max_staleness_intervals=settings.market_data_max_staleness_intervals,
+            grace_seconds=settings.market_data_staleness_grace_seconds,
+        ):
+            return (
+                "WebSocket snapshot skipped. symbol={} reason=stale_snapshot "
+                f"age_seconds={snapshot_age_seconds(snapshot):.1f} "
+                f"allowed_seconds={allowed_snapshot_staleness_seconds(snapshot, max_staleness_intervals=settings.market_data_max_staleness_intervals, grace_seconds=settings.market_data_staleness_grace_seconds)}"
+            )
+        if state.is_in_cooldown():
+            return "WebSocket snapshot skipped. symbol={} reason=cooldown"
+        if await self._is_symbol_blacklisted(snapshot.symbol):
+            return "WebSocket snapshot skipped. symbol={} reason=blacklist"
+        return None
 
     async def _is_symbol_blacklisted(self, symbol: str) -> bool:
         if self._session_factory is None:

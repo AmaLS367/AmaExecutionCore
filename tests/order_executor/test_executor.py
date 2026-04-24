@@ -471,3 +471,33 @@ async def test_executor_rejects_when_spot_instrument_metadata_is_incomplete(
                 stop=90.0,
                 target=130.0,
             )
+
+
+@pytest.mark.asyncio
+async def test_executor_applies_canary_risk_multiplier_outside_shadow(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "demo"
+    settings.order_mode = "taker_allowed"
+    settings.risk_per_trade_pct = 0.01
+    settings.canary_mode = True
+    settings.canary_risk_multiplier = 0.25
+    executor = OrderExecutor(rest_client=RecordingSpotOrderRestClient())
+
+    async with sqlite_session_factory() as session:
+        trade = await executor.execute(
+            session=session,
+            signal_id=uuid.uuid4(),
+            symbol="BTCUSDT",
+            direction=SignalDirection.LONG,
+            entry=100.0,
+            stop=90.0,
+            target=130.0,
+        )
+
+        persisted_trade = (
+            await session.execute(select(Trade).where(Trade.id == trade.id))
+        ).scalar_one()
+
+    assert persisted_trade.risk_pct == Decimal("0.0025")
+    assert persisted_trade.risk_amount_usd == Decimal("2.5")

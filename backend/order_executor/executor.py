@@ -76,12 +76,14 @@ class OrderExecutor:
             wallet_balances = self._extract_wallet_balances(balance)
             equity = float(wallet_balances.get("USDT", Decimal(0)))
 
+        effective_risk_pct = self._effective_risk_per_trade_pct()
+
         # 4. Position sizing
         qty_raw = calculate_position_raw(
             equity=equity,
             entry=entry,
             stop=stop,
-            risk_pct=settings.risk_per_trade_pct,
+            risk_pct=effective_risk_pct,
         )
 
         # 5. RRR validation
@@ -147,8 +149,8 @@ class OrderExecutor:
             market_type=MarketType.SPOT,
             mode=TradingMode(settings.trading_mode),
             equity_at_entry=Decimal(str(equity)),
-            risk_amount_usd=Decimal(str(equity * settings.risk_per_trade_pct)),
-            risk_pct=Decimal(str(settings.risk_per_trade_pct)),
+            risk_amount_usd=Decimal(str(equity * effective_risk_pct)),
+            risk_pct=Decimal(str(effective_risk_pct)),
             entry_price=Decimal(str(entry)),
             stop_price=Decimal(str(stop)),
             target_price=Decimal(str(target)),
@@ -393,8 +395,15 @@ class OrderExecutor:
             open_risk += risk_amount
 
         max_exposure = equity * Decimal(str(settings.max_total_risk_exposure_pct))
-        if open_risk + (equity * Decimal(str(settings.risk_per_trade_pct))) > max_exposure:
+        if open_risk + (equity * Decimal(str(self._effective_risk_per_trade_pct()))) > max_exposure:
             raise RiskManagerError("Total risk exposure limit would be exceeded.")
+
+    @staticmethod
+    def _effective_risk_per_trade_pct() -> float:
+        base_risk_pct = settings.risk_per_trade_pct
+        if settings.canary_mode and settings.trading_mode != "shadow":
+            return base_risk_pct * settings.canary_risk_multiplier
+        return base_risk_pct
 
     @staticmethod
     def _looks_like_post_only_rejection(exc: BybitAPIError) -> bool:

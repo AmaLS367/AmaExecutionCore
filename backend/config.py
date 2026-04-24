@@ -53,6 +53,8 @@ class Settings(BaseSettings):
 
     # Risk Management
     risk_per_trade_pct: float = 0.01
+    canary_mode: bool = False
+    canary_risk_multiplier: float = 0.25
     min_rrr: float = 2.0
     max_open_positions: int = 1
     max_total_risk_exposure_pct: float = 0.03
@@ -64,6 +66,8 @@ class Settings(BaseSettings):
     max_consecutive_losses: int = 3
     hard_pause_consecutive_losses: int = 5
     cooldown_hours: int = 4
+    market_data_max_staleness_intervals: int = 2
+    market_data_staleness_grace_seconds: int = 15
 
     @property
     def active_api_key(self) -> str:
@@ -100,6 +104,27 @@ class Settings(BaseSettings):
         if not normalized:
             raise ValueError("SIGNAL_LOOP_STRATEGY must not be empty.")
         return normalized
+
+    @field_validator("canary_risk_multiplier")
+    @classmethod
+    def validate_canary_risk_multiplier(cls, value: float) -> float:
+        if value <= 0:
+            raise ValueError("CANARY_RISK_MULTIPLIER must be greater than zero.")
+        return value
+
+    @field_validator("market_data_max_staleness_intervals")
+    @classmethod
+    def validate_market_data_max_staleness_intervals(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("MARKET_DATA_MAX_STALENESS_INTERVALS must be at least 1.")
+        return value
+
+    @field_validator("market_data_staleness_grace_seconds")
+    @classmethod
+    def validate_market_data_staleness_grace_seconds(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("MARKET_DATA_STALENESS_GRACE_SECONDS must be >= 0.")
+        return value
 
     @model_validator(mode="after")
     def api_keys_required_outside_shadow(self) -> "Settings":

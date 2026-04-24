@@ -7,6 +7,14 @@ from typing import Any, Literal, Protocol, cast
 
 from loguru import logger
 
+from backend.config import settings
+from backend.market_data.contracts import MarketSnapshot
+from backend.market_data.intervals import interval_to_minutes
+from backend.market_data.staleness import (
+    allowed_snapshot_staleness_seconds,
+    is_snapshot_stale,
+    snapshot_age_seconds,
+)
 from backend.safety_guard.exceptions import SafetyGuardError
 from backend.signal_execution.schemas import ExecuteSignalRequest
 from backend.strategy_engine.service import StrategyExecutionRequest
@@ -98,6 +106,24 @@ class SignalLoopRunner:
                 logger.exception("Signal loop strategy evaluation failed for {}.", state.symbol)
                 return
 
+            snapshot = getattr(result, "snapshot", None)
+            if isinstance(snapshot, MarketSnapshot) and is_snapshot_stale(
+                snapshot,
+                max_staleness_intervals=settings.market_data_max_staleness_intervals,
+                grace_seconds=settings.market_data_staleness_grace_seconds,
+            ):
+                logger.info(
+                    "Signal loop snapshot skipped. symbol={} reason=stale_snapshot age_seconds={:.1f} allowed_seconds={}",
+                    state.symbol,
+                    snapshot_age_seconds(snapshot),
+                    allowed_snapshot_staleness_seconds(
+                        snapshot,
+                        max_staleness_intervals=settings.market_data_max_staleness_intervals,
+                        grace_seconds=settings.market_data_staleness_grace_seconds,
+                    ),
+                )
+                return
+
             if result.signal is None:
                 return
 
@@ -149,17 +175,4 @@ class SignalLoopRunner:
 
 
 def _interval_to_minutes(interval: str) -> int:
-    mapping = {
-        "1": 1,
-        "3": 3,
-        "5": 5,
-        "15": 15,
-        "30": 30,
-        "60": 60,
-        "120": 120,
-        "240": 240,
-        "D": 1440,
-    }
-    if interval not in mapping:
-        raise ValueError(f"Unknown interval: {interval!r}")
-    return mapping[interval]
+    return interval_to_minutes(interval)

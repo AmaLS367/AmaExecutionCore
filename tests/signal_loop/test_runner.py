@@ -7,6 +7,8 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from backend.config import settings
+from backend.market_data.contracts import MarketCandle, MarketSnapshot
 from backend.safety_guard.exceptions import CooldownActiveError
 from backend.signal_execution.schemas import ExecuteSignalRequest
 from backend.signal_loop.runner import SignalLoopRunner, _interval_to_minutes, _SymbolState
@@ -63,6 +65,20 @@ def _build_signal(symbol: str) -> StrategySignal:
         target=110.0,
         reason=f"signal-{symbol}",
     )
+
+
+def _build_market_snapshot(*, symbol: str = "BTCUSDT", opened_at: datetime | None = None) -> MarketSnapshot:
+    candle_opened_at = opened_at or datetime.now(UTC)
+    candles = (
+        MarketCandle(
+            opened_at=candle_opened_at,
+            high=101.0,
+            low=99.0,
+            close=100.0,
+            volume=1000.0,
+        ),
+    )
+    return MarketSnapshot(symbol=symbol, interval="5", candles=candles)
 
 
 @pytest.mark.asyncio
@@ -182,6 +198,45 @@ async def test_tick_skips_symbol_blacklisted_for_today(
     await runner._tick()
 
     assert strategy_service.calls == []
+    assert execution_service.calls == []
+
+
+@pytest.mark.asyncio
+async def test_tick_skips_stale_market_snapshot() -> None:
+    class _MarketSnapshotStrategyService:
+        def __init__(self) -> None:
+            self.calls: list[StrategyExecutionRequest] = []
+
+        async def run(
+            self,
+            request: StrategyExecutionRequest,
+        ) -> StrategyExecutionResult[MarketSnapshot]:
+            self.calls.append(request)
+            return StrategyExecutionResult(
+                request=request,
+                snapshot=_build_market_snapshot(
+                    symbol=request.symbol,
+                    opened_at=datetime(2024, 1, 1, tzinfo=UTC),
+                ),
+                signal=_build_signal(request.symbol),
+            )
+
+    settings.market_data_max_staleness_intervals = 1
+    settings.market_data_staleness_grace_seconds = 0
+    strategy_service = _MarketSnapshotStrategyService()
+    execution_service = RecordingExecutionService()
+    runner = SignalLoopRunner(
+        strategy_service=strategy_service,
+        execution_service=execution_service,
+        symbols=("BTCUSDT",),
+        interval="5",
+        cooldown_seconds=120,
+        max_symbols_concurrent=1,
+    )
+
+    await runner._tick()
+
+    assert [request.symbol for request in strategy_service.calls] == ["BTCUSDT"]
     assert execution_service.calls == []
 
 

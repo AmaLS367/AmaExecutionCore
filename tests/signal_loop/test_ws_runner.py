@@ -7,6 +7,7 @@ import pytest
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from backend.config import settings
 from backend.market_data.bybit_ws_feed import CandleFeedSnapshot
 from backend.market_data.contracts import MarketCandle, MarketSnapshot
 from backend.risk_manager.exceptions import InsufficientSpotBalanceError
@@ -209,6 +210,37 @@ async def test_process_feed_snapshot_logs_blacklist_skip(
     logger.remove(sink_id)
 
     assert any("INFO|WebSocket snapshot skipped. symbol=BTCUSDT reason=blacklist" in message for message in messages)
+
+
+@pytest.mark.asyncio
+async def test_process_feed_snapshot_logs_stale_skip() -> None:
+    messages, sink_id = _capture_logs()
+    settings.market_data_max_staleness_intervals = 1
+    settings.market_data_staleness_grace_seconds = 0
+    stale_snapshot = MarketSnapshot(
+        symbol="BTCUSDT",
+        interval="5",
+        candles=(
+            MarketCandle(
+                opened_at=datetime(2024, 1, 1, tzinfo=UTC),
+                high=101.0,
+                low=99.0,
+                close=100.0,
+                volume=1000.0,
+            ),
+        ),
+    )
+    runner = WebSocketSignalRunner(
+        strategy=_Strategy(),
+        execution_service=_ExecutionService(),
+        feed=_Feed(),
+        cooldown_seconds=60,
+    )
+
+    await runner._process_feed_snapshot(CandleFeedSnapshot(snapshot=stale_snapshot))
+    logger.remove(sink_id)
+
+    assert any("INFO|WebSocket snapshot skipped. symbol=BTCUSDT reason=stale_snapshot" in message for message in messages)
 
 
 @pytest.mark.asyncio
