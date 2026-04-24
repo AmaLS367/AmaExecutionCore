@@ -71,3 +71,23 @@ async def test_ema_crossover_returns_none_below_min_rrr() -> None:
     signal = await strategy.generate_signal(snapshot)
 
     assert signal is None
+
+
+@pytest.mark.asyncio
+async def test_ema_crossover_returns_none_when_long_stop_is_not_below_entry() -> None:
+    strategy = EMACrossoverStrategy()
+    snapshot = build_snapshot(closes=[100.0] * 21 + [130.0], last_high=132.0, last_low=130.0)
+
+    signal = await strategy.generate_signal(snapshot)
+
+    assert signal is None
+
+
+@pytest.mark.asyncio
+async def test_ema_crossover_returns_none_when_short_stop_is_not_above_entry() -> None:
+    strategy = EMACrossoverStrategy()
+    snapshot = build_snapshot(closes=[100.0] * 21 + [70.0], last_high=70.0, last_low=68.0)
+
+    signal = await strategy.generate_signal(snapshot)
+
+    assert signal is None

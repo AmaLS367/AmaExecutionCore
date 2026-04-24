@@ -42,7 +42,7 @@ class EMACrossoverStrategy(BaseStrategy[MarketSnapshot]):
         if previous_fast <= previous_slow and current_fast > current_slow and entry > current_fast:
             stop = lows[-1]
             if stop >= entry:
-                raise ValueError("Long setup requires the last low to be below the entry price.")
+                return None
             target = entry + 2 * (entry - stop)
             return self._build_signal(
                 snapshot=snapshot,
@@ -57,7 +57,7 @@ class EMACrossoverStrategy(BaseStrategy[MarketSnapshot]):
         if previous_fast >= previous_slow and current_fast < current_slow and entry < current_fast:
             stop = highs[-1]
             if stop <= entry:
-                raise ValueError("Short setup requires the last high to be above the entry price.")
+                return None
             target = entry - 2 * (stop - entry)
             return self._build_signal(
                 snapshot=snapshot,
@@ -84,7 +84,7 @@ class EMACrossoverStrategy(BaseStrategy[MarketSnapshot]):
     ) -> StrategySignal | None:
         risk = abs(entry - stop)
         if risk == 0:
-            raise ValueError("Entry and stop must not be equal.")
+            return None
         reward = abs(target - entry)
         rrr = reward / risk
         if rrr < self._min_rrr:
