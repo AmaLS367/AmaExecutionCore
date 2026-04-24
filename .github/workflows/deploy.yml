@@ -11,7 +11,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  predeploy_live_backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      LOG_LEVEL: INFO
+      DATABASE_URL: sqlite+aiosqlite:///tmp/amaexecutioncore-predeploy.db
+      TRADING_MODE: shadow
+      BYBIT_TESTNET: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Run predeploy live backtest gate
+        run: >-
+          uv run python scripts/backtest_gate.py
+          --manifest scripts/fixtures/backtest_manifest.json
+          --mode live
+          --output artifacts/backtest-live-predeploy.json
+
+      - name: Upload predeploy live backtest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backtest-live-predeploy
+          path: artifacts/backtest-live-predeploy.json
+
   deploy:
+    needs: predeploy_live_backtest
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 20
