@@ -1,4 +1,14 @@
 from backend.backtest.demo_runner import DemoRunner
+from backend.backtest.gate import (
+    BacktestManifest,
+    BacktestScenario,
+    BacktestThresholdProfile,
+    ScenarioEvaluation,
+    ScenarioMetrics,
+    evaluate_scenario,
+    load_manifest,
+    serialize_evaluation,
+)
 from backend.backtest.replay_runner import (
     HistoricalReplayMetrics,
     HistoricalReplayReport,
@@ -15,6 +25,9 @@ from backend.backtest.simulation_execution_service import (
 )
 
 __all__ = [
+    "BacktestManifest",
+    "BacktestScenario",
+    "BacktestThresholdProfile",
     "DemoRunner",
     "HistoricalReplayMetrics",
     "HistoricalReplayReport",
@@ -23,9 +36,14 @@ __all__ = [
     "HistoricalReplayRunner",
     "HistoricalReplaySlippageSummary",
     "HistoricalReplayStep",
+    "ScenarioEvaluation",
+    "ScenarioMetrics",
     "ShadowRunRequest",
     "ShadowRunResult",
     "ShadowRunner",
     "SimulationExecutionResult",
     "SimulationExecutionService",
+    "evaluate_scenario",
+    "load_manifest",
+    "serialize_evaluation",
 ]

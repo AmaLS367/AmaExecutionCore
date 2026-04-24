@@ -167,3 +167,26 @@ async def test_simulation_execution_service_returns_zero_pnl_when_risk_is_zero()
 
     assert result.exit_reason == "timeout"
     assert result.realized_pnl == Decimal(0)
+
+
+@pytest.mark.asyncio
+async def test_simulation_execution_service_calculates_fees() -> None:
+    service = SimulationExecutionService(
+        max_hold_candles=5,
+        risk_amount_usd=100.0,
+        fee_rate_per_side=0.001,
+    )
+
+    result = await service.execute_replay_signal(
+        signal=ExecuteSignalRequest(
+            symbol="BTCUSDT",
+            direction="long",
+            entry=100.0,
+            stop=95.0,
+            target=110.0,
+        ),
+        future_candles=_build_candles([102.0, 111.0], [99.0, 100.0], [101.0, 109.0]),
+        step_index=0,
+    )
+
+    assert result.fees_paid == Decimal("4.2")
