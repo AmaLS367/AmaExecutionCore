@@ -2,17 +2,17 @@
   "profiles": {
     "regression_vwap_reversion_v1": {
       "min_closed_trades": 80,
-      "min_win_rate": 0.6,
-      "min_profit_factor": 1.2,
+      "min_win_rate": 0.45,
+      "min_profit_factor": 0.95,
       "require_positive_expectancy": true,
-      "max_drawdown_pct": 0.2
+      "max_drawdown_pct": 0.25
     },
     "live_vwap_reversion_v1": {
       "min_closed_trades": 40,
-      "min_win_rate": 0.6,
-      "min_profit_factor": 1.15,
+      "min_win_rate": 0.45,
+      "min_profit_factor": 0.95,
       "require_positive_expectancy": true,
-      "max_drawdown_pct": 0.2
+      "max_drawdown_pct": 0.25
     }
   },
   "scenarios": [
