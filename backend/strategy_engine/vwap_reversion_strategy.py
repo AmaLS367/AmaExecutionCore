@@ -86,7 +86,7 @@ def _count_current_utc_day_candles(snapshot: MarketSnapshot) -> int:
 class VWAPReversionStrategy(BaseStrategy[MarketSnapshot]):
     atr_period: int = 14
     rsi_period: int = 7
-    min_deviation: float = 0.002
+    min_deviation: float = 0.005
     min_current_day_candles: int = 12
 
     @property
