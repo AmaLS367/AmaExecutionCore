@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-24T06:40:36.670308+00:00",
+  "generated_at": "2026-04-24T11:55:44.683977+00:00",
   "manifest": "scripts/fixtures/backtest_manifest.json",
   "datasets": [
     {
@@ -9,7 +9,7 @@
       "lookback_days": 365,
       "dataset_path": "scripts/fixtures/regression/btcusdt_5m_365d.json.gz",
       "candles": 105120,
-      "generated_at": "2026-04-24T06:40:36.670308+00:00"
+      "generated_at": "2026-04-24T11:55:44.683977+00:00"
     },
     {
       "name": "vwap_reversion_ethusdt_5m",
@@ -18,7 +18,7 @@
       "lookback_days": 365,
       "dataset_path": "scripts/fixtures/regression/ethusdt_5m_365d.json.gz",
       "candles": 105120,
-      "generated_at": "2026-04-24T06:40:36.670308+00:00"
+      "generated_at": "2026-04-24T11:55:44.683977+00:00"
     },
     {
       "name": "vwap_reversion_solusdt_5m",
@@ -27,7 +27,7 @@
       "lookback_days": 365,
       "dataset_path": "scripts/fixtures/regression/solusdt_5m_365d.json.gz",
       "candles": 105120,
-      "generated_at": "2026-04-24T06:40:36.670308+00:00"
+      "generated_at": "2026-04-24T11:55:44.683977+00:00"
     },
     {
       "name": "vwap_reversion_xrpusdt_5m",
@@ -36,7 +36,7 @@
       "lookback_days": 365,
       "dataset_path": "scripts/fixtures/regression/xrpusdt_5m_365d.json.gz",
       "candles": 105120,
-      "generated_at": "2026-04-24T06:40:36.670308+00:00"
+      "generated_at": "2026-04-24T11:55:44.683977+00:00"
     }
   ]
 }
