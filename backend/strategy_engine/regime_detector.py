@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from itertools import pairwise
 from typing import Literal, TypedDict
 
 from backend.market_data.contracts import MarketCandle
@@ -44,7 +45,7 @@ def _calculate_adx(candles: Sequence[MarketCandle], *, period: int) -> float:
     positive_directional_moves: list[float] = []
     negative_directional_moves: list[float] = []
 
-    for previous_candle, current_candle in zip(candles, candles[1:], strict=False):
+    for previous_candle, current_candle in pairwise(candles):
         upward_move = current_candle.high - previous_candle.high
         downward_move = previous_candle.low - current_candle.low
         positive_directional_moves.append(
