@@ -133,20 +133,20 @@ class Settings(BaseSettings):
         if self.bybit_testnet:
             if not self.bybit_testnet_api_key:
                 raise ValueError(
-                    "BYBIT_TESTNET_API_KEY must be set when trading_mode is not 'shadow' and bybit_testnet=True",
+                    "BYBIT_TESTNET_API_KEY must be set",
                 )
             if not self.bybit_testnet_api_secret:
                 raise ValueError(
-                    "BYBIT_TESTNET_API_SECRET must be set when trading_mode is not 'shadow' and bybit_testnet=True",
+                    "BYBIT_TESTNET_API_SECRET must be set",
                 )
         else:
             if not self.bybit_api_key:
                 raise ValueError(
-                    "BYBIT_API_KEY must be set when trading_mode is not 'shadow' and bybit_testnet=False",
+                    "BYBIT_API_KEY must be set",
                 )
             if not self.bybit_api_secret:
                 raise ValueError(
-                    "BYBIT_API_SECRET must be set when trading_mode is not 'shadow' and bybit_testnet=False",
+                    "BYBIT_API_SECRET must be set",
                 )
         return self
 

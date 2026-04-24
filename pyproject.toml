@@ -115,7 +115,13 @@ line-ending = "auto"
 
 [tool.mypy]
 strict = true
-exclude = ["tests/.*", "alembic/.*"]
+exclude = [
+    "tests/.*",
+    "alembic/.*",
+    "\\.tmp_pytest/.*",
+    "pytest_tmp_full/.*",
+    "pytest_tmp_full2/.*",
+]
 
 [[tool.mypy.overrides]]
 module = "pybit.*"
