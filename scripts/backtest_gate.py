@@ -255,7 +255,7 @@ def _selected_names_for_suite(
 
     suites = raw_manifest.get("suites")
     if not isinstance(suites, Mapping):
-        raise ValueError("Manifest suite requested, but manifest does not define suites.")
+        raise TypeError("Manifest suite requested, but manifest does not define suites.")
     raw_names = suites.get(resolved_suite)
     if not isinstance(raw_names, list) or not raw_names:
         raise ValueError(f"Manifest suite {resolved_suite!r} must define at least one scenario.")
@@ -473,8 +473,7 @@ def _serialize_grid_evaluation(evaluation: GridScenarioEvaluation) -> dict[str, 
         "failure_reasons": list(evaluation.failure_reasons),
         "profitable_window_rate": evaluation.profitable_window_rate,
     }
-    for key, value in asdict(evaluation.metrics).items():
-        payload[key] = value
+    payload |= asdict(evaluation.metrics)
     return payload
 
 
