@@ -1,0 +1,2194 @@
+[
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.08,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.021739130434782622,
+      "completed_cycles": 46,
+      "gross_profit_usdt": 2.367643942237934,
+      "total_fees_usdt": 0.2523676439422381,
+      "net_pnl_usdt": 2.115276298295696,
+      "fee_coverage_ratio": 9.381725427447586,
+      "annualized_yield_pct": 10.576381491478479,
+      "max_unrealized_drawdown_pct": 34.23344003795854,
+      "capital_utilization_pct": 75.51655251141553,
+      "avg_cycle_profit_pct": 1.8393706941701706,
+      "days_to_breakeven": 1181.425388628654,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 10.6% < 15%",
+        "Completed cycles 46 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.12,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.0340909090909091,
+      "completed_cycles": 32,
+      "gross_profit_usdt": 2.443560666435416,
+      "total_fees_usdt": 0.18244356066643552,
+      "net_pnl_usdt": 2.2611171057689803,
+      "fee_coverage_ratio": 13.393515548093347,
+      "annualized_yield_pct": 11.305585528844901,
+      "max_unrealized_drawdown_pct": 33.71745837700374,
+      "capital_utilization_pct": 77.05479452054794,
+      "avg_cycle_profit_pct": 2.8263963822112252,
+      "days_to_breakeven": 1088.5656719156027,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 11.3% < 15%",
+        "Completed cycles 32 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.16,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.04761904761904763,
+      "completed_cycles": 24,
+      "gross_profit_usdt": 2.380186460077768,
+      "total_fees_usdt": 0.14238018646007783,
+      "net_pnl_usdt": 2.2378062736176902,
+      "fee_coverage_ratio": 16.717118577065158,
+      "annualized_yield_pct": 11.18903136808845,
+      "max_unrealized_drawdown_pct": 33.11599838886531,
+      "capital_utilization_pct": 77.3230593607306,
+      "avg_cycle_profit_pct": 3.7296771226961503,
+      "days_to_breakeven": 1080.2847015345221,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 11.2% < 15%",
+        "Completed cycles 24 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.2,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.0625,
+      "completed_cycles": 18,
+      "gross_profit_usdt": 2.1885260128252115,
+      "total_fees_usdt": 0.10968852601282522,
+      "net_pnl_usdt": 2.0788374868123864,
+      "fee_coverage_ratio": 19.95218727407569,
+      "annualized_yield_pct": 10.394187434061934,
+      "max_unrealized_drawdown_pct": 32.42191812869814,
+      "capital_utilization_pct": 78.68150684931507,
+      "avg_cycle_profit_pct": 4.619638859583081,
+      "days_to_breakeven": 1138.5209466393298,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 10.4% < 15%",
+        "Completed cycles 18 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.25,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.08333333333333333,
+      "completed_cycles": 19,
+      "gross_profit_usdt": 2.8979449235834682,
+      "total_fees_usdt": 0.11539794492358349,
+      "net_pnl_usdt": 2.7825469786598847,
+      "fee_coverage_ratio": 25.112621593932953,
+      "annualized_yield_pct": 13.912734893299422,
+      "max_unrealized_drawdown_pct": 31.41045679621254,
+      "capital_utilization_pct": 81.98344748858447,
+      "avg_cycle_profit_pct": 5.857993639283968,
+      "days_to_breakeven": 824.0519796103639,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 13.9% < 15%",
+        "Completed cycles 19 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.08,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.014492753623188413,
+      "completed_cycles": 120,
+      "gross_profit_usdt": 2.7368169878277104,
+      "total_fees_usdt": 0.42273681698782695,
+      "net_pnl_usdt": 2.3140801708398833,
+      "fee_coverage_ratio": 6.474044554076584,
+      "annualized_yield_pct": 11.570400854199416,
+      "max_unrealized_drawdown_pct": 34.45383592126476,
+      "capital_utilization_pct": 75.92180365296804,
+      "avg_cycle_profit_pct": 1.1570400854199416,
+      "days_to_breakeven": 1086.8811089373253,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 11.6% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.12,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.02272727272727273,
+      "completed_cycles": 67,
+      "gross_profit_usdt": 2.268103817833146,
+      "total_fees_usdt": 0.2456014371511669,
+      "net_pnl_usdt": 2.022502380681979,
+      "fee_coverage_ratio": 9.234896359491314,
+      "annualized_yield_pct": 10.112511903409896,
+      "max_unrealized_drawdown_pct": 34.05262225080026,
+      "capital_utilization_pct": 77.12328767123287,
+      "avg_cycle_profit_pct": 1.8111961618047574,
+      "days_to_breakeven": 1229.091964514872,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 10.1% < 15%",
+        "Completed cycles 67 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.16,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.03174603174603175,
+      "completed_cycles": 50,
+      "gross_profit_usdt": 2.1985466845143122,
+      "total_fees_usdt": 0.1888652133511811,
+      "net_pnl_usdt": 2.0096814711631312,
+      "fee_coverage_ratio": 11.640823873829401,
+      "annualized_yield_pct": 10.048407355815655,
+      "max_unrealized_drawdown_pct": 33.57063791253013,
+      "capital_utilization_pct": 77.3230593607306,
+      "avg_cycle_profit_pct": 2.4116177653957576,
+      "days_to_breakeven": 1219.4253680392187,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 10.0% < 15%",
+        "Completed cycles 50 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.2,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.04166666666666667,
+      "completed_cycles": 43,
+      "gross_profit_usdt": 2.3108054106726335,
+      "total_fees_usdt": 0.16397747207733931,
+      "net_pnl_usdt": 2.146827938595294,
+      "fee_coverage_ratio": 14.092212676523951,
+      "annualized_yield_pct": 10.73413969297647,
+      "max_unrealized_drawdown_pct": 33.0021918035292,
+      "capital_utilization_pct": 79.45205479452055,
+      "avg_cycle_profit_pct": 2.9955738678073867,
+      "days_to_breakeven": 1122.1951970841158,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 10.7% < 15%",
+        "Completed cycles 43 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.25,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.05555555555555555,
+      "completed_cycles": 40,
+      "gross_profit_usdt": 2.690334177397227,
+      "total_fees_usdt": 0.15269033417739725,
+      "net_pnl_usdt": 2.53764384321983,
+      "fee_coverage_ratio": 17.61954475960193,
+      "annualized_yield_pct": 12.68821921609915,
+      "max_unrealized_drawdown_pct": 32.15903631965834,
+      "capital_utilization_pct": 84.46632420091325,
+      "avg_cycle_profit_pct": 3.806465764829745,
+      "days_to_breakeven": 925.1139231407468,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 12.7% < 15%",
+        "Completed cycles 40 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.08,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.010869565217391311,
+      "completed_cycles": 212,
+      "gross_profit_usdt": 2.7085844820470273,
+      "total_fees_usdt": 0.5527085844820442,
+      "net_pnl_usdt": 2.155875897564983,
+      "fee_coverage_ratio": 4.900565249199636,
+      "annualized_yield_pct": 10.779379487824917,
+      "max_unrealized_drawdown_pct": 34.56366835357612,
+      "capital_utilization_pct": 76.03881278538813,
+      "avg_cycle_profit_pct": 0.8135380745528238,
+      "days_to_breakeven": 1170.3585501655728,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 10.8% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.12,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.01704545454545455,
+      "completed_cycles": 125,
+      "gross_profit_usdt": 2.35545301792996,
+      "total_fees_usdt": 0.3348554530179289,
+      "net_pnl_usdt": 2.020597564912031,
+      "fee_coverage_ratio": 7.034238196514733,
+      "annualized_yield_pct": 10.102987824560154,
+      "max_unrealized_drawdown_pct": 34.2193686707008,
+      "capital_utilization_pct": 77.24600456621005,
+      "avg_cycle_profit_pct": 1.2931824415436999,
+      "days_to_breakeven": 1236.274830940872,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 10.1% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.16,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.023809523809523815,
+      "completed_cycles": 89,
+      "gross_profit_usdt": 2.188624855856063,
+      "total_fees_usdt": 0.24468862485585624,
+      "net_pnl_usdt": 1.9439362310002066,
+      "fee_coverage_ratio": 8.944530450262496,
+      "annualized_yield_pct": 9.719681155001034,
+      "max_unrealized_drawdown_pct": 33.79643873211896,
+      "capital_utilization_pct": 77.3230593607306,
+      "avg_cycle_profit_pct": 1.747358409887826,
+      "days_to_breakeven": 1269.1465841836157,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 9.7% < 15%",
+        "Completed cycles 89 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.2,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.03125,
+      "completed_cycles": 82,
+      "gross_profit_usdt": 2.4926359455280247,
+      "total_fees_usdt": 0.22499263594552787,
+      "net_pnl_usdt": 2.267643309582497,
+      "fee_coverage_ratio": 11.078744577807015,
+      "annualized_yield_pct": 11.338216547912486,
+      "max_unrealized_drawdown_pct": 33.28988525991858,
+      "capital_utilization_pct": 80.01712328767124,
+      "avg_cycle_profit_pct": 2.212334936178046,
+      "days_to_breakeven": 1071.6683764614995,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 11.3% < 15%",
+        "Completed cycles 82 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.25,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.041666666666666664,
+      "completed_cycles": 73,
+      "gross_profit_usdt": 2.761332079038899,
+      "total_fees_usdt": 0.20151133207903896,
+      "net_pnl_usdt": 2.55982074695986,
+      "fee_coverage_ratio": 13.703110641717258,
+      "annualized_yield_pct": 12.7991037347993,
+      "max_unrealized_drawdown_pct": 32.529327676080726,
+      "capital_utilization_pct": 85.31107305936074,
+      "avg_cycle_profit_pct": 2.8052830103669697,
+      "days_to_breakeven": 927.6590648677671,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 12.8% < 15%",
+        "Completed cycles 73 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.08,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.008695652173913049,
+      "completed_cycles": 322,
+      "gross_profit_usdt": 2.6297061163892135,
+      "total_fees_usdt": 0.6666297061163907,
+      "net_pnl_usdt": 1.9630764102728229,
+      "fee_coverage_ratio": 3.9447778763253583,
+      "annualized_yield_pct": 9.815382051364114,
+      "max_unrealized_drawdown_pct": 34.62945083528982,
+      "capital_utilization_pct": 76.07305936073058,
+      "avg_cycle_profit_pct": 0.6096510590909388,
+      "days_to_breakeven": 1287.749115494098,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 9.8% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.12,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.013636363636363641,
+      "completed_cycles": 194,
+      "gross_profit_usdt": 2.3389546446883163,
+      "total_fees_usdt": 0.4103389546446888,
+      "net_pnl_usdt": 1.9286156900436275,
+      "fee_coverage_ratio": 5.700055084250068,
+      "annualized_yield_pct": 9.643078450218137,
+      "max_unrealized_drawdown_pct": 34.3191490798788,
+      "capital_utilization_pct": 77.24885844748859,
+      "avg_cycle_profit_pct": 0.9941317989915606,
+      "days_to_breakeven": 1299.0135337820877,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 9.6% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.16,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.019047619047619053,
+      "completed_cycles": 138,
+      "gross_profit_usdt": 2.1747077980643317,
+      "total_fees_usdt": 0.29817470779806465,
+      "net_pnl_usdt": 1.8765330902662671,
+      "fee_coverage_ratio": 7.293401288539628,
+      "annualized_yield_pct": 9.382665451331336,
+      "max_unrealized_drawdown_pct": 33.931432904057466,
+      "capital_utilization_pct": 77.57990867579909,
+      "avg_cycle_profit_pct": 1.3598065871494691,
+      "days_to_breakeven": 1319.9845048534298,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 9.4% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.2,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.024999999999999998,
+      "completed_cycles": 132,
+      "gross_profit_usdt": 2.5546745992291933,
+      "total_fees_usdt": 0.2845546745992297,
+      "net_pnl_usdt": 2.2701199246299635,
+      "fee_coverage_ratio": 8.977798740531073,
+      "annualized_yield_pct": 11.350599623149819,
+      "max_unrealized_drawdown_pct": 33.461718774378575,
+      "capital_utilization_pct": 80.1312785388128,
+      "avg_cycle_profit_pct": 1.7197878216893663,
+      "days_to_breakeven": 1076.0248584346505,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 11.4% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "BTCUSDT",
+    "range_pct": 0.25,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "BTCUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.03333333333333333,
+      "completed_cycles": 110,
+      "gross_profit_usdt": 2.658965021509097,
+      "total_fees_usdt": 0.23865896502150927,
+      "net_pnl_usdt": 2.4203060564875876,
+      "fee_coverage_ratio": 11.141274417533221,
+      "annualized_yield_pct": 12.101530282437938,
+      "max_unrealized_drawdown_pct": 32.75022114853267,
+      "capital_utilization_pct": 85.84189497716895,
+      "avg_cycle_profit_pct": 2.2002782331705344,
+      "days_to_breakeven": 987.7949680927659,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 12.1% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.08,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.021739130434782608,
+      "completed_cycles": 33,
+      "gross_profit_usdt": 1.6022055266228392,
+      "total_fees_usdt": 0.16660220552662283,
+      "net_pnl_usdt": 1.4356033210962165,
+      "fee_coverage_ratio": 9.616952678137316,
+      "annualized_yield_pct": 7.178016605481083,
+      "max_unrealized_drawdown_pct": 1.7972692401047485,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 1.740125237692384,
+      "days_to_breakeven": 91.39060393609479,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 7.2% < 15%",
+        "Completed cycles 33 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.12,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.03409090909090912,
+      "completed_cycles": 27,
+      "gross_profit_usdt": 1.9246185492856658,
+      "total_fees_usdt": 0.1369246185492857,
+      "net_pnl_usdt": 1.7876939307363802,
+      "fee_coverage_ratio": 14.056044630081653,
+      "annualized_yield_pct": 8.938469653681901,
+      "max_unrealized_drawdown_pct": 2.4625677742651852,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 2.6484354529427856,
+      "days_to_breakeven": 100.55829156801433,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 8.9% < 15%",
+        "Completed cycles 27 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.16,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.0476190476190476,
+      "completed_cycles": 25,
+      "gross_profit_usdt": 2.3404354904354894,
+      "total_fees_usdt": 0.1273404354904355,
+      "net_pnl_usdt": 2.213095054945054,
+      "fee_coverage_ratio": 18.37935830375952,
+      "annualized_yield_pct": 11.06547527472527,
+      "max_unrealized_drawdown_pct": 3.1000020873303313,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 3.540952087912086,
+      "days_to_breakeven": 102.2550531073925,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 11.1% < 15%",
+        "Completed cycles 25 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.2,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.06249999999999997,
+      "completed_cycles": 29,
+      "gross_profit_usdt": 3.324510634293243,
+      "total_fees_usdt": 0.1483245106342933,
+      "net_pnl_usdt": 3.1761861236589497,
+      "fee_coverage_ratio": 22.413764387803084,
+      "annualized_yield_pct": 15.880930618294748,
+      "max_unrealized_drawdown_pct": 3.711442318534086,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 4.380946377460621,
+      "days_to_breakeven": 85.30208202687828,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Completed cycles 29 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.25,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.0833333333333333,
+      "completed_cycles": 22,
+      "gross_profit_usdt": 3.089149036807706,
+      "total_fees_usdt": 0.1130891490368077,
+      "net_pnl_usdt": 2.9760598877708984,
+      "fee_coverage_ratio": 27.316051655868993,
+      "annualized_yield_pct": 14.880299438854491,
+      "max_unrealized_drawdown_pct": 4.441760269555459,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 5.41101797776527,
+      "days_to_breakeven": 108.95227646793566,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 14.9% < 15%",
+        "Completed cycles 22 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.08,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.014492753623188406,
+      "completed_cycles": 70,
+      "gross_profit_usdt": 1.5005150283131667,
+      "total_fees_usdt": 0.23483384836164667,
+      "net_pnl_usdt": 1.2656811799515202,
+      "fee_coverage_ratio": 6.389688023177806,
+      "annualized_yield_pct": 6.328405899757601,
+      "max_unrealized_drawdown_pct": 1.9520726990535486,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 1.0848695828155888,
+      "days_to_breakeven": 112.58862760080491,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 6.3% < 15%",
+        "Completed cycles 70 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.12,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.02272727272727275,
+      "completed_cycles": 62,
+      "gross_profit_usdt": 1.9519754015869424,
+      "total_fees_usdt": 0.2086186420682538,
+      "net_pnl_usdt": 1.7433567595186885,
+      "fee_coverage_ratio": 9.356668139697286,
+      "annualized_yield_pct": 8.716783797593443,
+      "max_unrealized_drawdown_pct": 2.687603511667671,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 1.687119444695505,
+      "days_to_breakeven": 112.53867304011035,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 8.7% < 15%",
+        "Completed cycles 62 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.16,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.03174603174603173,
+      "completed_cycles": 58,
+      "gross_profit_usdt": 2.383632506517089,
+      "total_fees_usdt": 0.19571696583985043,
+      "net_pnl_usdt": 2.187915540677239,
+      "fee_coverage_ratio": 12.17897741408656,
+      "annualized_yield_pct": 10.939577703386194,
+      "max_unrealized_drawdown_pct": 3.3911039586937792,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 2.263360904148868,
+      "days_to_breakeven": 113.14449044409643,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 10.9% < 15%",
+        "Completed cycles 58 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.2,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.041666666666666644,
+      "completed_cycles": 54,
+      "gross_profit_usdt": 2.7262211091670294,
+      "total_fees_usdt": 0.18272622110916711,
+      "net_pnl_usdt": 2.5434948880578623,
+      "fee_coverage_ratio": 14.919703875112091,
+      "annualized_yield_pct": 12.717474440289312,
+      "max_unrealized_drawdown_pct": 4.0648329037937,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 2.826105431175402,
+      "days_to_breakeven": 116.66341590468717,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 12.7% < 15%",
+        "Completed cycles 54 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.25,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.05555555555555554,
+      "completed_cycles": 49,
+      "gross_profit_usdt": 3.0388451480405485,
+      "total_fees_usdt": 0.16637217848137392,
+      "net_pnl_usdt": 2.8724729695591744,
+      "fee_coverage_ratio": 18.265344457100802,
+      "annualized_yield_pct": 14.362364847795872,
+      "max_unrealized_drawdown_pct": 4.86821667733409,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 3.5173138402765396,
+      "days_to_breakeven": 123.71911631945736,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 14.4% < 15%",
+        "Completed cycles 49 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.08,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.010869565217391304,
+      "completed_cycles": 125,
+      "gross_profit_usdt": 1.509614497683994,
+      "total_fees_usdt": 0.3140096144976837,
+      "net_pnl_usdt": 1.1956048831863102,
+      "fee_coverage_ratio": 4.807542278916844,
+      "annualized_yield_pct": 5.978024415931551,
+      "max_unrealized_drawdown_pct": 2.029228666741192,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 0.7651871252392385,
+      "days_to_breakeven": 123.8985343363,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 6.0% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.12,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.01704545454545456,
+      "completed_cycles": 108,
+      "gross_profit_usdt": 1.896494450378437,
+      "total_fees_usdt": 0.27189649445037856,
+      "net_pnl_usdt": 1.6245979559280583,
+      "fee_coverage_ratio": 6.97506032290736,
+      "annualized_yield_pct": 8.12298977964029,
+      "max_unrealized_drawdown_pct": 2.7995974668072066,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 1.203405893280043,
+      "days_to_breakeven": 125.79765617160248,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 8.1% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.16,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.0238095238095238,
+      "completed_cycles": 107,
+      "gross_profit_usdt": 2.4613969647240426,
+      "total_fees_usdt": 0.26996139696472404,
+      "net_pnl_usdt": 2.1914355677593185,
+      "fee_coverage_ratio": 9.117588634517528,
+      "annualized_yield_pct": 10.957177838796591,
+      "max_unrealized_drawdown_pct": 3.5357705675684152,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 1.6384564992593034,
+      "days_to_breakeven": 117.78181171733276,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 11.0% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.2,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.031249999999999986,
+      "completed_cycles": 91,
+      "gross_profit_usdt": 2.5699931636097113,
+      "total_fees_usdt": 0.23006999316360965,
+      "net_pnl_usdt": 2.3399231704461014,
+      "fee_coverage_ratio": 11.170483939564045,
+      "annualized_yield_pct": 11.699615852230508,
+      "max_unrealized_drawdown_pct": 4.240213713382106,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 2.057075314677891,
+      "days_to_breakeven": 132.28451471672955,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 11.7% < 15%",
+        "Completed cycles 91 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.25,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.04166666666666665,
+      "completed_cycles": 81,
+      "gross_profit_usdt": 2.8005973901387984,
+      "total_fees_usdt": 0.20530059739013864,
+      "net_pnl_usdt": 2.59529679274866,
+      "fee_coverage_ratio": 13.641447836689643,
+      "annualized_yield_pct": 12.976483963743298,
+      "max_unrealized_drawdown_pct": 5.079510342572657,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 2.5632560916036145,
+      "days_to_breakeven": 142.8754722942835,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 13.0% < 15%",
+        "Completed cycles 81 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.08,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.008695652173913044,
+      "completed_cycles": 187,
+      "gross_profit_usdt": 1.4420193434356972,
+      "total_fees_usdt": 0.37544201934343585,
+      "net_pnl_usdt": 1.0665773240922614,
+      "fee_coverage_ratio": 3.840857626851322,
+      "annualized_yield_pct": 5.332886620461307,
+      "max_unrealized_drawdown_pct": 2.075443594587396,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 0.5703622053969312,
+      "days_to_breakeven": 142.05006892849917,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 5.3% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.12,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.013636363636363648,
+      "completed_cycles": 168,
+      "gross_profit_usdt": 1.8872998370045178,
+      "total_fees_usdt": 0.3378872998370047,
+      "net_pnl_usdt": 1.549412537167513,
+      "fee_coverage_ratio": 5.585589745204814,
+      "annualized_yield_pct": 7.747062685837565,
+      "max_unrealized_drawdown_pct": 2.866626145822604,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 0.9222693673616148,
+      "days_to_breakeven": 135.06003315786117,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 7.7% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.16,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.01904761904761904,
+      "completed_cycles": 153,
+      "gross_profit_usdt": 2.245570128090413,
+      "total_fees_usdt": 0.30824557012809,
+      "net_pnl_usdt": 1.9373245579623228,
+      "fee_coverage_ratio": 7.2850037298420105,
+      "annualized_yield_pct": 9.686622789811613,
+      "max_unrealized_drawdown_pct": 3.622287426930484,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 1.2662252012825639,
+      "days_to_breakeven": 136.49080174983666,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 9.7% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.2,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.02499999999999999,
+      "completed_cycles": 156,
+      "gross_profit_usdt": 2.808392849394658,
+      "total_fees_usdt": 0.3148083928493949,
+      "net_pnl_usdt": 2.493584456545263,
+      "fee_coverage_ratio": 8.920959266604434,
+      "annualized_yield_pct": 12.467922282726315,
+      "max_unrealized_drawdown_pct": 4.345021290713484,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 1.598451574708502,
+      "days_to_breakeven": 127.20104722722346,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 12.5% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "ETHUSDT",
+    "range_pct": 0.25,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "ETHUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.03333333333333332,
+      "completed_cycles": 120,
+      "gross_profit_usdt": 2.655484326806133,
+      "total_fees_usdt": 0.24265548432680664,
+      "net_pnl_usdt": 2.4128288424793265,
+      "fee_coverage_ratio": 10.943434203324028,
+      "annualized_yield_pct": 12.064144212396632,
+      "max_unrealized_drawdown_pct": 5.205666880501276,
+      "capital_utilization_pct": 100.0,
+      "avg_cycle_profit_pct": 2.010690702066105,
+      "days_to_breakeven": 157.49715669268372,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Annualized yield 12.1% < 15%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.08,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.02173913043478262,
+      "completed_cycles": 189,
+      "gross_profit_usdt": 9.4495125963448,
+      "total_fees_usdt": 0.9744495125963404,
+      "net_pnl_usdt": 8.47506308374846,
+      "fee_coverage_ratio": 9.697282900955384,
+      "annualized_yield_pct": 42.3753154187423,
+      "max_unrealized_drawdown_pct": 46.36255382957679,
+      "capital_utilization_pct": 67.12899543378995,
+      "avg_cycle_profit_pct": 1.7936641447086688,
+      "days_to_breakeven": 399.34409881255783,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 46.4% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.12,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.0340909090909091,
+      "completed_cycles": 123,
+      "gross_profit_usdt": 9.176626303229128,
+      "total_fees_usdt": 0.6441766263032273,
+      "net_pnl_usdt": 8.5324496769259,
+      "fee_coverage_ratio": 14.245512687865672,
+      "annualized_yield_pct": 42.6622483846295,
+      "max_unrealized_drawdown_pct": 45.9417329963089,
+      "capital_utilization_pct": 69.18949771689498,
+      "avg_cycle_profit_pct": 2.77478038274013,
+      "days_to_breakeven": 393.057871504359,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 45.9% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.16,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.04761904761904763,
+      "completed_cycles": 91,
+      "gross_profit_usdt": 9.021369250717067,
+      "total_fees_usdt": 0.48402136925071776,
+      "net_pnl_usdt": 8.53734788146635,
+      "fee_coverage_ratio": 18.63836975768749,
+      "annualized_yield_pct": 42.68673940733175,
+      "max_unrealized_drawdown_pct": 45.45119832707796,
+      "capital_utilization_pct": 75.88470319634703,
+      "avg_cycle_profit_pct": 3.752680387457736,
+      "days_to_breakeven": 388.6379615711304,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 45.5% > 40%",
+        "Completed cycles 91 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.2,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.062499999999999965,
+      "completed_cycles": 58,
+      "gross_profit_usdt": 7.232479819297523,
+      "total_fees_usdt": 0.31723247981929775,
+      "net_pnl_usdt": 6.915247339478225,
+      "fee_coverage_ratio": 22.798673778351116,
+      "annualized_yield_pct": 34.576236697391124,
+      "max_unrealized_drawdown_pct": 44.88512504281073,
+      "capital_utilization_pct": 76.85502283105022,
+      "avg_cycle_profit_pct": 4.76913609619188,
+      "days_to_breakeven": 473.82457449055073,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 44.9% > 40%",
+        "Completed cycles 58 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.25,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.08333333333333336,
+      "completed_cycles": 43,
+      "gross_profit_usdt": 6.740173987948748,
+      "total_fees_usdt": 0.24174017398794886,
+      "net_pnl_usdt": 6.4984338139607996,
+      "fee_coverage_ratio": 27.881894336208912,
+      "annualized_yield_pct": 32.492169069804,
+      "max_unrealized_drawdown_pct": 44.0602042501469,
+      "capital_utilization_pct": 77.27739726027397,
+      "avg_cycle_profit_pct": 6.0450547106612085,
+      "days_to_breakeven": 494.949245055145,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 44.1% > 40%",
+        "Completed cycles 43 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.08,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.014492753623188413,
+      "completed_cycles": 414,
+      "gross_profit_usdt": 9.172810146738778,
+      "total_fees_usdt": 1.4091728101467513,
+      "net_pnl_usdt": 7.763637336592026,
+      "fee_coverage_ratio": 6.509357887613174,
+      "annualized_yield_pct": 38.81818668296013,
+      "max_unrealized_drawdown_pct": 46.542302813465334,
+      "capital_utilization_pct": 67.67408675799086,
+      "avg_cycle_profit_pct": 1.1251648313901488,
+      "days_to_breakeven": 437.6283896427335,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 46.5% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.12,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.022727272727272735,
+      "completed_cycles": 274,
+      "gross_profit_usdt": 9.067071248292704,
+      "total_fees_usdt": 0.9424004045816299,
+      "net_pnl_usdt": 8.124670843711074,
+      "fee_coverage_ratio": 9.621251438572916,
+      "annualized_yield_pct": 40.62335421855538,
+      "max_unrealized_drawdown_pct": 46.2150836816634,
+      "capital_utilization_pct": 70.19691780821918,
+      "avg_cycle_profit_pct": 1.779125002272498,
+      "days_to_breakeven": 415.2415739245427,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 46.2% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.16,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.03174603174603175,
+      "completed_cycles": 194,
+      "gross_profit_usdt": 8.571784420242048,
+      "total_fees_usdt": 0.675238451086909,
+      "net_pnl_usdt": 7.896545969155139,
+      "fee_coverage_ratio": 12.694455427477996,
+      "annualized_yield_pct": 39.482729845775694,
+      "max_unrealized_drawdown_pct": 45.82199015489431,
+      "capital_utilization_pct": 76.2642694063927,
+      "avg_cycle_profit_pct": 2.4422307121098363,
+      "days_to_breakeven": 423.6035976201847,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 45.8% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.2,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.041666666666666644,
+      "completed_cycles": 131,
+      "gross_profit_usdt": 7.182639145302315,
+      "total_fees_usdt": 0.4638493058119684,
+      "net_pnl_usdt": 6.718789839490347,
+      "fee_coverage_ratio": 15.484854790779737,
+      "annualized_yield_pct": 33.593949197451735,
+      "max_unrealized_drawdown_pct": 45.3583807219253,
+      "capital_utilization_pct": 76.85502283105022,
+      "avg_cycle_profit_pct": 3.0773083234306933,
+      "days_to_breakeven": 492.8211585424013,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 45.4% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.25,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.055555555555555566,
+      "completed_cycles": 93,
+      "gross_profit_usdt": 6.383447890363513,
+      "total_fees_usdt": 0.3363834478903635,
+      "net_pnl_usdt": 6.0470644424731494,
+      "fee_coverage_ratio": 18.97670034122503,
+      "annualized_yield_pct": 30.235322212365745,
+      "max_unrealized_drawdown_pct": 44.670725674960345,
+      "capital_utilization_pct": 77.27739726027397,
+      "avg_cycle_profit_pct": 3.901331898369774,
+      "days_to_breakeven": 539.2638039984943,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 44.7% > 40%",
+        "Completed cycles 93 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.08,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.01086956521739131,
+      "completed_cycles": 723,
+      "gross_profit_usdt": 8.995030738976254,
+      "total_fees_usdt": 1.8364950307389563,
+      "net_pnl_usdt": 7.158535708237298,
+      "fee_coverage_ratio": 4.897933611808846,
+      "annualized_yield_pct": 35.79267854118649,
+      "max_unrealized_drawdown_pct": 46.63187920577272,
+      "capital_utilization_pct": 67.7654109589041,
+      "avg_cycle_profit_pct": 0.7920924711742515,
+      "days_to_breakeven": 475.5340087364925,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 46.6% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.12,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.01704545454545455,
+      "completed_cycles": 467,
+      "gross_profit_usdt": 8.664614107854993,
+      "total_fees_usdt": 1.1961646141078484,
+      "net_pnl_usdt": 7.468449493747144,
+      "fee_coverage_ratio": 7.243663627616538,
+      "annualized_yield_pct": 37.34224746873572,
+      "max_unrealized_drawdown_pct": 46.35107759903857,
+      "capital_utilization_pct": 70.6107305936073,
+      "avg_cycle_profit_pct": 1.279391776230774,
+      "days_to_breakeven": 453.056376368711,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 46.4% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.16,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.023809523809523815,
+      "completed_cycles": 328,
+      "gross_profit_usdt": 8.094682188332392,
+      "total_fees_usdt": 0.8480946821883267,
+      "net_pnl_usdt": 7.246587506144065,
+      "fee_coverage_ratio": 9.544550105473835,
+      "annualized_yield_pct": 36.23293753072033,
+      "max_unrealized_drawdown_pct": 46.006147260160624,
+      "capital_utilization_pct": 76.31278538812786,
+      "avg_cycle_profit_pct": 1.7674603673522111,
+      "days_to_breakeven": 463.45245222585714,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 46.0% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.2,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.031249999999999983,
+      "completed_cycles": 237,
+      "gross_profit_usdt": 7.277855331057758,
+      "total_fees_usdt": 0.6197778553310543,
+      "net_pnl_usdt": 6.658077475726704,
+      "fee_coverage_ratio": 11.742683718782258,
+      "annualized_yield_pct": 33.29038737863352,
+      "max_unrealized_drawdown_pct": 45.59301580531076,
+      "capital_utilization_pct": 76.86358447488585,
+      "avg_cycle_profit_pct": 2.247452312481588,
+      "days_to_breakeven": 499.8875675330611,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 45.6% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.25,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.04166666666666668,
+      "completed_cycles": 162,
+      "gross_profit_usdt": 6.22019100123507,
+      "total_fees_usdt": 0.43122019100123293,
+      "net_pnl_usdt": 5.788970810233836,
+      "fee_coverage_ratio": 14.424628370931929,
+      "annualized_yield_pct": 28.944854051169184,
+      "max_unrealized_drawdown_pct": 44.97272539501477,
+      "capital_utilization_pct": 77.27739726027397,
+      "avg_cycle_profit_pct": 2.8587510173994253,
+      "days_to_breakeven": 567.1144425244504,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 45.0% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.08,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.008695652173913047,
+      "completed_cycles": 1197,
+      "gross_profit_usdt": 9.523884857423234,
+      "total_fees_usdt": 2.4235238848573433,
+      "net_pnl_usdt": 7.10036097256589,
+      "fee_coverage_ratio": 3.92976727686917,
+      "annualized_yield_pct": 35.50180486282945,
+      "max_unrealized_drawdown_pct": 46.68552963729768,
+      "capital_utilization_pct": 67.81107305936072,
+      "avg_cycle_profit_pct": 0.5931796969562148,
+      "days_to_breakeven": 479.9817469408389,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 46.7% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.12,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.01363636363636364,
+      "completed_cycles": 726,
+      "gross_profit_usdt": 8.612820352069697,
+      "total_fees_usdt": 1.4806128203520417,
+      "net_pnl_usdt": 7.132207531717656,
+      "fee_coverage_ratio": 5.817064551704914,
+      "annualized_yield_pct": 35.66103765858828,
+      "max_unrealized_drawdown_pct": 46.43245583030438,
+      "capital_utilization_pct": 70.90753424657534,
+      "avg_cycle_profit_pct": 0.9823977316415504,
+      "days_to_breakeven": 475.24826788038047,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 46.4% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.16,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.01904761904761905,
+      "completed_cycles": 495,
+      "gross_profit_usdt": 7.808748983155971,
+      "total_fees_usdt": 1.0178087489831567,
+      "net_pnl_usdt": 6.7909402341728144,
+      "fee_coverage_ratio": 7.6721181567335845,
+      "annualized_yield_pct": 33.95470117086407,
+      "max_unrealized_drawdown_pct": 46.11624489389503,
+      "capital_utilization_pct": 76.47831050228311,
+      "avg_cycle_profit_pct": 1.37190711801471,
+      "days_to_breakeven": 495.7319253545749,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 46.1% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.2,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.024999999999999984,
+      "completed_cycles": 360,
+      "gross_profit_usdt": 7.069295379324075,
+      "total_fees_usdt": 0.7470692953793254,
+      "net_pnl_usdt": 6.3222260839447495,
+      "fee_coverage_ratio": 9.46270369167646,
+      "annualized_yield_pct": 31.61113041972375,
+      "max_unrealized_drawdown_pct": 45.733158620860834,
+      "capital_utilization_pct": 76.96632420091323,
+      "avg_cycle_profit_pct": 1.7561739122068747,
+      "days_to_breakeven": 528.0609290137521,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 45.7% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "XRPUSDT",
+    "range_pct": 0.25,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "XRPUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.03333333333333334,
+      "completed_cycles": 249,
+      "gross_profit_usdt": 6.108283825960996,
+      "total_fees_usdt": 0.5241082838259612,
+      "net_pnl_usdt": 5.584175542135035,
+      "fee_coverage_ratio": 11.654621791838254,
+      "annualized_yield_pct": 27.920877710675175,
+      "max_unrealized_drawdown_pct": 45.15288019929337,
+      "capital_utilization_pct": 77.4115296803653,
+      "avg_cycle_profit_pct": 2.2426407799739096,
+      "days_to_breakeven": 590.2680224999111,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 45.2% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.08,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.021739130434782615,
+      "completed_cycles": 147,
+      "gross_profit_usdt": 7.4507587709812935,
+      "total_fees_usdt": 0.7624507587709793,
+      "net_pnl_usdt": 6.688308012210314,
+      "fee_coverage_ratio": 9.772117983056937,
+      "annualized_yield_pct": 33.44154006105157,
+      "max_unrealized_drawdown_pct": 51.48557259280799,
+      "capital_utilization_pct": 61.09303652968037,
+      "avg_cycle_profit_pct": 1.8199477584245751,
+      "days_to_breakeven": 561.9428400147667,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 51.5% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.12,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.03409090909090909,
+      "completed_cycles": 94,
+      "gross_profit_usdt": 7.209039265264324,
+      "total_fees_usdt": 0.49720903926526416,
+      "net_pnl_usdt": 6.71183022599906,
+      "fee_coverage_ratio": 14.499010870593317,
+      "annualized_yield_pct": 33.5591511299953,
+      "max_unrealized_drawdown_pct": 51.10494519115765,
+      "capital_utilization_pct": 65.83047945205479,
+      "avg_cycle_profit_pct": 2.8560979685102383,
+      "days_to_breakeven": 555.8336360331875,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 51.1% > 40%",
+        "Completed cycles 94 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.16,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.047619047619047616,
+      "completed_cycles": 71,
+      "gross_profit_usdt": 7.237566278327141,
+      "total_fees_usdt": 0.38223756627832756,
+      "net_pnl_usdt": 6.855328712048814,
+      "fee_coverage_ratio": 18.934733047816348,
+      "annualized_yield_pct": 34.27664356024407,
+      "max_unrealized_drawdown_pct": 50.66126246015099,
+      "capital_utilization_pct": 69.81735159817352,
+      "avg_cycle_profit_pct": 3.862157020872571,
+      "days_to_breakeven": 539.4740813946673,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 50.7% > 40%",
+        "Completed cycles 71 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.2,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.06249999999999999,
+      "completed_cycles": 52,
+      "gross_profit_usdt": 6.530365004680174,
+      "total_fees_usdt": 0.2865303650046805,
+      "net_pnl_usdt": 6.243834639675494,
+      "fee_coverage_ratio": 22.791179582567107,
+      "annualized_yield_pct": 31.21917319837747,
+      "max_unrealized_drawdown_pct": 50.149255956905556,
+      "capital_utilization_pct": 76.03025114155251,
+      "avg_cycle_profit_pct": 4.802949722827303,
+      "days_to_breakeven": 586.3216910953251,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 50.1% > 40%",
+        "Completed cycles 52 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.25,
+    "n_levels": 8,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.08333333333333331,
+      "completed_cycles": 40,
+      "gross_profit_usdt": 6.046044362414334,
+      "total_fees_usdt": 0.22604604436241435,
+      "net_pnl_usdt": 5.81999831805192,
+      "fee_coverage_ratio": 26.74695936161065,
+      "annualized_yield_pct": 29.0999915902596,
+      "max_unrealized_drawdown_pct": 49.40312498368183,
+      "capital_utilization_pct": 77.27454337899543,
+      "avg_cycle_profit_pct": 5.81999831805192,
+      "days_to_breakeven": 619.6613687366018,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 49.4% > 40%",
+        "Completed cycles 40 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.08,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.014492753623188411,
+      "completed_cycles": 320,
+      "gross_profit_usdt": 7.184276371077471,
+      "total_fees_usdt": 1.0938509430377537,
+      "net_pnl_usdt": 6.090425428039717,
+      "fee_coverage_ratio": 6.567875099257933,
+      "annualized_yield_pct": 30.452127140198588,
+      "max_unrealized_drawdown_pct": 51.64815339508313,
+      "capital_utilization_pct": 61.40981735159817,
+      "avg_cycle_profit_pct": 1.1419547677574469,
+      "days_to_breakeven": 619.056130378497,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 51.6% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.12,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.022727272727272724,
+      "completed_cycles": 214,
+      "gross_profit_usdt": 7.244389124537473,
+      "total_fees_usdt": 0.7405777224578712,
+      "net_pnl_usdt": 6.503811402079601,
+      "fee_coverage_ratio": 9.782078105852799,
+      "annualized_yield_pct": 32.51905701039801,
+      "max_unrealized_drawdown_pct": 51.35218761092541,
+      "capital_utilization_pct": 66.5439497716895,
+      "avg_cycle_profit_pct": 1.8234985239475519,
+      "days_to_breakeven": 576.3865930058951,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 51.4% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.16,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.031746031746031744,
+      "completed_cycles": 154,
+      "gross_profit_usdt": 6.928386272739551,
+      "total_fees_usdt": 0.5402617196060719,
+      "net_pnl_usdt": 6.388124553133479,
+      "fee_coverage_ratio": 12.824129530760267,
+      "annualized_yield_pct": 31.940622765667392,
+      "max_unrealized_drawdown_pct": 50.996639225790055,
+      "capital_utilization_pct": 71.00171232876711,
+      "avg_cycle_profit_pct": 2.4888796960260304,
+      "days_to_breakeven": 582.7617530808166,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 51.0% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.2,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.041666666666666664,
+      "completed_cycles": 126,
+      "gross_profit_usdt": 7.000624125293699,
+      "total_fees_usdt": 0.44700062412529307,
+      "net_pnl_usdt": 6.553623501168406,
+      "fee_coverage_ratio": 15.661329643538581,
+      "annualized_yield_pct": 32.76811750584203,
+      "max_unrealized_drawdown_pct": 50.57731004837917,
+      "capital_utilization_pct": 76.3898401826484,
+      "avg_cycle_profit_pct": 3.120773095794479,
+      "days_to_breakeven": 563.3743886681053,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 50.6% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.25,
+    "n_levels": 12,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.05555555555555554,
+      "completed_cycles": 98,
+      "gross_profit_usdt": 6.641173568573024,
+      "total_fees_usdt": 0.35330784023523965,
+      "net_pnl_usdt": 6.287865728337785,
+      "fee_coverage_ratio": 18.797130468860228,
+      "annualized_yield_pct": 31.439328641688924,
+      "max_unrealized_drawdown_pct": 49.95533429749848,
+      "capital_utilization_pct": 77.27454337899543,
+      "avg_cycle_profit_pct": 3.8497137112272144,
+      "days_to_breakeven": 579.9645796001141,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 50.0% > 40%",
+        "Completed cycles 98 < 100"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.08,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.010869565217391308,
+      "completed_cycles": 600,
+      "gross_profit_usdt": 7.575069745095131,
+      "total_fees_usdt": 1.5275750697450785,
+      "net_pnl_usdt": 6.047494675350053,
+      "fee_coverage_ratio": 4.95888542247502,
+      "annualized_yield_pct": 30.237473376750263,
+      "max_unrealized_drawdown_pct": 51.7291741686708,
+      "capital_utilization_pct": 61.64954337899543,
+      "avg_cycle_profit_pct": 0.806332623380007,
+      "days_to_breakeven": 624.4287786982442,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 51.7% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.12,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.017045454545454544,
+      "completed_cycles": 377,
+      "gross_profit_usdt": 7.15884601451182,
+      "total_fees_usdt": 0.9696588460145057,
+      "net_pnl_usdt": 6.189187168497314,
+      "fee_coverage_ratio": 7.382850209572291,
+      "annualized_yield_pct": 30.94593584248657,
+      "max_unrealized_drawdown_pct": 51.47519247978796,
+      "capital_utilization_pct": 67.0804794520548,
+      "avg_cycle_profit_pct": 1.313355367320385,
+      "days_to_breakeven": 607.1377304843825,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 51.5% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.16,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.023809523809523808,
+      "completed_cycles": 283,
+      "gross_profit_usdt": 7.129064705791651,
+      "total_fees_usdt": 0.7346290647057865,
+      "net_pnl_usdt": 6.394435641085865,
+      "fee_coverage_ratio": 9.704305272276137,
+      "annualized_yield_pct": 31.972178205429323,
+      "max_unrealized_drawdown_pct": 51.16320712103575,
+      "capital_utilization_pct": 72.07191780821918,
+      "avg_cycle_profit_pct": 1.8076143155013047,
+      "days_to_breakeven": 584.0881556204652,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 51.2% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.2,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.031249999999999997,
+      "completed_cycles": 217,
+      "gross_profit_usdt": 6.746592650002157,
+      "total_fees_usdt": 0.5692465926499995,
+      "net_pnl_usdt": 6.177346057352157,
+      "fee_coverage_ratio": 11.8517927680426,
+      "annualized_yield_pct": 30.886730286760784,
+      "max_unrealized_drawdown_pct": 50.78953467003464,
+      "capital_utilization_pct": 76.56107305936072,
+      "avg_cycle_profit_pct": 2.2773626017888136,
+      "days_to_breakeven": 600.1988550568204,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 50.8% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.25,
+    "n_levels": 16,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.04166666666666666,
+      "completed_cycles": 167,
+      "gross_profit_usdt": 6.309806858983377,
+      "total_fees_usdt": 0.44380980685898147,
+      "net_pnl_usdt": 5.865997052124396,
+      "fee_coverage_ratio": 14.217366902368358,
+      "annualized_yield_pct": 29.329985260621978,
+      "max_unrealized_drawdown_pct": 50.22848942589555,
+      "capital_utilization_pct": 77.27454337899543,
+      "avg_cycle_profit_pct": 2.8100584680835428,
+      "days_to_breakeven": 625.0735715529336,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 50.2% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.08,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.08,
+    "p_max_pct_from_start": 0.08,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.008695652173913047,
+      "completed_cycles": 966,
+      "gross_profit_usdt": 7.810642295078826,
+      "total_fees_usdt": 1.959810642295025,
+      "net_pnl_usdt": 5.850831652783801,
+      "fee_coverage_ratio": 3.985406613534978,
+      "annualized_yield_pct": 29.254158263919006,
+      "max_unrealized_drawdown_pct": 51.7777003411756,
+      "capital_utilization_pct": 61.89212328767123,
+      "avg_cycle_profit_pct": 0.6056761545324845,
+      "days_to_breakeven": 646.0230526556714,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 51.8% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.12,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.12,
+    "p_max_pct_from_start": 0.12,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.013636363636363636,
+      "completed_cycles": 604,
+      "gross_profit_usdt": 7.316871585523299,
+      "total_fees_usdt": 1.2353168715855096,
+      "net_pnl_usdt": 6.0815547139377895,
+      "fee_coverage_ratio": 5.9230726575702075,
+      "annualized_yield_pct": 30.407773569688946,
+      "max_unrealized_drawdown_pct": 51.54879811493932,
+      "capital_utilization_pct": 67.1689497716895,
+      "avg_cycle_profit_pct": 1.0068799195261242,
+      "days_to_breakeven": 618.7664897211782,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 51.5% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.16,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.16,
+    "p_max_pct_from_start": 0.16,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.019047619047619046,
+      "completed_cycles": 437,
+      "gross_profit_usdt": 7.051440822129226,
+      "total_fees_usdt": 0.9010514408221311,
+      "net_pnl_usdt": 6.150389381307095,
+      "fee_coverage_ratio": 7.8257916281620945,
+      "annualized_yield_pct": 30.751946906535476,
+      "max_unrealized_drawdown_pct": 51.26278911162009,
+      "capital_utilization_pct": 72.32591324200914,
+      "avg_cycle_profit_pct": 1.4074117577361773,
+      "days_to_breakeven": 608.4466158389746,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 51.3% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.2,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.2,
+    "p_max_pct_from_start": 0.2,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.024999999999999998,
+      "completed_cycles": 337,
+      "gross_profit_usdt": 6.691955418180638,
+      "total_fees_usdt": 0.7006919554181819,
+      "net_pnl_usdt": 5.991263462762456,
+      "fee_coverage_ratio": 9.550495572889508,
+      "annualized_yield_pct": 29.95631731381228,
+      "max_unrealized_drawdown_pct": 50.916292167586676,
+      "capital_utilization_pct": 76.58390410958904,
+      "avg_cycle_profit_pct": 1.7778229859829247,
+      "days_to_breakeven": 620.3848906554414,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 50.9% > 40%"
+      ]
+    }
+  },
+  {
+    "symbol": "SOLUSDT",
+    "range_pct": 0.25,
+    "n_levels": 20,
+    "p_min_pct_from_start": -0.25,
+    "p_max_pct_from_start": 0.25,
+    "capital_usdt": 20.0,
+    "metrics": {
+      "symbol": "SOLUSDT",
+      "backtest_days": 365,
+      "config_step_pct": 0.033333333333333326,
+      "completed_cycles": 269,
+      "gross_profit_usdt": 6.481402932817173,
+      "total_fees_usdt": 0.5644814029328178,
+      "net_pnl_usdt": 5.916921529884355,
+      "fee_coverage_ratio": 11.482048654114053,
+      "annualized_yield_pct": 29.58460764942178,
+      "max_unrealized_drawdown_pct": 50.39143728785118,
+      "capital_utilization_pct": 77.27454337899543,
+      "avg_cycle_profit_pct": 2.199599081741396,
+      "days_to_breakeven": 621.7041925321989,
+      "pass_regression": false,
+      "fail_reasons": [
+        "Max unrealized drawdown 50.4% > 40%"
+      ]
+    }
+  }
+]
