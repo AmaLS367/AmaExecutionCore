@@ -5,12 +5,15 @@ from typing import Any
 
 from fastapi import FastAPI
 
+from backend.api.grid_router import router as grid_router
 from backend.bybit_client.exceptions import BybitConnectionError
 from backend.bybit_client.rest import BybitRESTClient
 from backend.config import settings
 from backend.database import AsyncSessionLocal
 from backend.exchange_sync.engine import ExchangeSyncEngine
 from backend.exchange_sync.listener import ws_listener
+from backend.grid_engine.grid_runner import GridRunner
+from backend.grid_engine.order_manager import GridOrderManager
 from backend.market_data.bybit_spot import BybitSpotSnapshotProvider
 from backend.market_data.bybit_ws_feed import BybitCandleFeed
 from backend.order_executor.executor import OrderExecutor
@@ -131,6 +134,9 @@ class NullRestClient:
     def get_order_status(self, **_: object) -> dict[str, object] | None:
         raise RuntimeError("Bybit REST client is not available.")
 
+    def get_open_orders(self, **_: object) -> list[dict[str, object]]:
+        raise RuntimeError("Bybit REST client is not available.")
+
     def get_klines(self, **_: object) -> list[object]:
         raise RuntimeError("Bybit REST client is not available.")
 
@@ -159,6 +165,11 @@ def create_app(
         session_factory=session_factory,
         rest_client=rest_client,
     )
+    grid_runner = GridRunner(
+        session_factory=session_factory,
+        order_manager=GridOrderManager(rest_client=rest_client),
+        rest_client=rest_client,
+    )
 
     app = FastAPI(
         title="AmaExecutionCore API",
@@ -170,9 +181,11 @@ def create_app(
     app.state.rest_client = rest_client
     app.state.execution_service = execution_service
     app.state.position_manager = position_manager
+    app.state.grid_runner = grid_runner
     app.include_router(safety_router)
     app.include_router(signal_router)
     app.include_router(position_router)
+    app.include_router(grid_router)
     return app
 
 

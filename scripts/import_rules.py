@@ -11,6 +11,7 @@ RULE_CODE_FASTAPI_LEAK = "ARCH003"
 RULE_CODE_ROUTER_IMPORT_LEAK = "ARCH004"
 
 FASTAPI_ALLOWED_MODULES = {
+    "backend.api.grid_router",
     "backend.main",
     "backend.position_manager.router",
     "backend.safety_guard.router",
