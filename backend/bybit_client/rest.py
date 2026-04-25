@@ -320,6 +320,21 @@ class BybitRESTClient:
                 f"Failed to fetch order status: {exc}",
             ) from exc
 
+    def get_open_orders(self, *, category: str, symbol: str) -> list[dict[str, Any]]:
+        logger.debug("Fetching open orders. symbol={} category={}", symbol, category)
+        try:
+            result = self._unwrap(
+                self._session.get_open_orders(category=category, symbol=symbol),
+            )
+        except BybitAPIError:
+            raise
+        except Exception as exc:
+            raise BybitConnectionError(
+                f"Failed to fetch open orders for {symbol}: {exc}",
+            ) from exc
+        items: list[dict[str, Any]] = result.get("list", [])
+        return items
+
     @staticmethod
     def _parse_kline_item(item: Any) -> BybitKline:
         if not isinstance(item, list) or len(item) < 7:
