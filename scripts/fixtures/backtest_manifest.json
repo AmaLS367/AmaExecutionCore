@@ -49,7 +49,7 @@
       "n_levels": 8,
       "capital_usdt": 20.0,
       "profile": "grid_smoke",
-      "max_candles": 96
+      "max_candles": 960
     },
     {
       "name": "grid_xrpusdt_regression",

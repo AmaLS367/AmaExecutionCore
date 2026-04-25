@@ -191,30 +191,30 @@ async def run_manifest_gate(
         )
 
     grid_profiles = _load_grid_profiles(raw_manifest)
-    for scenario in _load_grid_scenarios(raw_manifest):
-        if selected_names is not None and scenario.name not in selected_names:
+    for grid_scenario in _load_grid_scenarios(raw_manifest):
+        if selected_names is not None and grid_scenario.name not in selected_names:
             continue
-        if scenario.profile not in grid_profiles:
-            raise ValueError(f"Unknown grid profile: {scenario.profile}")
-        evaluation = _evaluate_grid_scenario(
+        if grid_scenario.profile not in grid_profiles:
+            raise ValueError(f"Unknown grid profile: {grid_scenario.profile}")
+        grid_evaluation = _evaluate_grid_scenario(
             manifest_path=manifest_path,
             repo_root=repo_root,
-            scenario=scenario,
-            profile=grid_profiles[scenario.profile],
+            scenario=grid_scenario,
+            profile=grid_profiles[grid_scenario.profile],
         )
-        serialized = _serialize_grid_evaluation(evaluation)
+        serialized = _serialize_grid_evaluation(grid_evaluation)
         results.append(serialized)
-        status = "PASS" if evaluation.passed else "FAIL"
+        status = "PASS" if grid_evaluation.passed else "FAIL"
         print(
-            f"[{status}] {scenario.name} engine=grid symbol={scenario.symbol} "
-            f"yield={evaluation.metrics.annualized_yield_pct:.3f} "
-            f"fee_coverage={evaluation.metrics.fee_coverage_ratio:.3f} "
-            f"max_unrealized_drawdown_pct={evaluation.metrics.max_unrealized_drawdown_pct:.3f} "
-            f"profitable_window_rate={evaluation.profitable_window_rate}",
+            f"[{status}] {grid_scenario.name} engine=grid symbol={grid_scenario.symbol} "
+            f"yield={grid_evaluation.metrics.annualized_yield_pct:.3f} "
+            f"fee_coverage={grid_evaluation.metrics.fee_coverage_ratio:.3f} "
+            f"max_unrealized_drawdown_pct={grid_evaluation.metrics.max_unrealized_drawdown_pct:.3f} "
+            f"profitable_window_rate={grid_evaluation.profitable_window_rate}",
         )
 
     _validate_selected_names(selected_names=selected_names, results=results)
-    report = {
+    report: dict[str, object] = {
         "mode": mode,
         "suite": suite,
         "manifest": str(manifest_path.as_posix()),
