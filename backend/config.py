@@ -79,6 +79,20 @@ class Settings(BaseSettings):
         """Returns the API secret for the currently active environment."""
         return self.bybit_testnet_api_secret if self.bybit_testnet else self.bybit_api_secret
 
+    @field_validator("debug", mode="before")
+    @classmethod
+    def parse_debug(cls, value: object) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            lowered = value.strip().lower()
+            if lowered in ("true", "1", "yes", "on"):
+                return True
+            if lowered in ("false", "0", "no", "off", "release", "production", "prod", "staging"):
+                return False
+            raise ValueError(f"Cannot parse DEBUG value: {value!r}; expected true/false/release/production")
+        return bool(value)
+
     @field_validator("database_url")
     @classmethod
     def database_url_must_be_set(cls, value: str) -> str:

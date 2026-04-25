@@ -32,6 +32,10 @@ def _snapshot(symbol: str = "BTCUSDT") -> MarketSnapshot:
     return MarketSnapshot(symbol=symbol, interval="5", candles=candles)
 
 
+def _utc_today() -> date:
+    return datetime.now(UTC).date()
+
+
 class _Feed:
     def __init__(self, items: list[CandleFeedSnapshot] | None = None) -> None:
         self.queue: asyncio.Queue[CandleFeedSnapshot] = asyncio.Queue()
@@ -200,7 +204,7 @@ async def test_process_feed_snapshot_logs_blacklist_skip(
     async with sqlite_session_factory() as session:
         session.add(
             DailyStat(
-                stat_date=date.today(),
+                stat_date=_utc_today(),
                 symbol_stats={"BTCUSDT": {"consecutive_losses": 5}},
             ),
         )
@@ -335,7 +339,7 @@ async def test_is_symbol_blacklisted_uses_daily_stat_symbol_losses(
     async with sqlite_session_factory() as session:
         session.add(
             DailyStat(
-                stat_date=date.today(),
+                stat_date=_utc_today(),
                 symbol_stats={"BTCUSDT": {"consecutive_losses": 5}},
             ),
         )
