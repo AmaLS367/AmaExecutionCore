@@ -1,14 +1,17 @@
 import asyncio
+from importlib import import_module
 from logging.config import fileConfig
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-import backend.trade_journal.models  # noqa: F401 - register models in Base.metadata
 from alembic import context
 from backend.config import settings
 from backend.database import Base
+
+import_module("backend.trade_journal.models")
+import_module("backend.grid_engine.models")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
