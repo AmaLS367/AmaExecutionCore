@@ -1,4 +1,93 @@
 {
+  "default_suites": {
+    "regression": "regression",
+    "live": "live"
+  },
+  "suites": {
+    "smoke": ["grid_xrpusdt_smoke"],
+    "regression": [
+      "grid_xrpusdt_regression",
+      "grid_solusdt_regression",
+      "grid_ethusdt_regression"
+    ],
+    "live": [
+      "grid_xrpusdt_regression",
+      "grid_solusdt_regression"
+    ]
+  },
+  "grid_threshold_profiles": {
+    "grid_smoke": {
+      "min_completed_cycles": 1,
+      "min_annualized_yield_pct": 0.0,
+      "min_fee_coverage_ratio": 0.0,
+      "min_net_pnl_usdt": -999999.0,
+      "max_unrealized_drawdown_pct": 100.0
+    },
+    "grid_regression": {
+      "min_completed_cycles": 20,
+      "min_profitable_window_rate": 0.5,
+      "min_annualized_yield_pct": 10.0,
+      "min_fee_coverage_ratio": 2.0,
+      "min_net_pnl_usdt": 0.0,
+      "max_unrealized_drawdown_pct": 55.0
+    },
+    "grid_live": {
+      "min_completed_cycles": 15,
+      "min_annualized_yield_pct": 8.0,
+      "min_fee_coverage_ratio": 1.5,
+      "min_net_pnl_usdt": 0.0,
+      "max_unrealized_drawdown_pct": 60.0
+    }
+  },
+  "grid_scenarios": [
+    {
+      "name": "grid_xrpusdt_smoke",
+      "symbol": "XRPUSDT",
+      "dataset_path": "scripts/fixtures/regression/xrpusdt_15m_365d.json.gz",
+      "p_min_pct_from_start": -0.16,
+      "p_max_pct_from_start": 0.16,
+      "n_levels": 8,
+      "capital_usdt": 20.0,
+      "profile": "grid_smoke",
+      "max_candles": 96
+    },
+    {
+      "name": "grid_xrpusdt_regression",
+      "symbol": "XRPUSDT",
+      "dataset_path": "scripts/fixtures/regression/xrpusdt_15m_365d.json.gz",
+      "p_min_pct_from_start": -0.16,
+      "p_max_pct_from_start": 0.16,
+      "n_levels": 8,
+      "capital_usdt": 20.0,
+      "profile": "grid_regression",
+      "walk_forward_days": 30,
+      "walk_forward_windows": 12
+    },
+    {
+      "name": "grid_solusdt_regression",
+      "symbol": "SOLUSDT",
+      "dataset_path": "scripts/fixtures/regression/solusdt_15m_365d.json.gz",
+      "p_min_pct_from_start": -0.16,
+      "p_max_pct_from_start": 0.16,
+      "n_levels": 8,
+      "capital_usdt": 20.0,
+      "profile": "grid_regression",
+      "walk_forward_days": 30,
+      "walk_forward_windows": 12
+    },
+    {
+      "name": "grid_ethusdt_regression",
+      "symbol": "ETHUSDT",
+      "dataset_path": "scripts/fixtures/regression/ethusdt_15m_365d.json.gz",
+      "p_min_pct_from_start": -0.2,
+      "p_max_pct_from_start": 0.2,
+      "n_levels": 8,
+      "capital_usdt": 20.0,
+      "profile": "grid_regression",
+      "walk_forward_days": 30,
+      "walk_forward_windows": 12
+    }
+  ],
   "profiles": {
     "regression_vwap_reversion_v1": {
       "min_closed_trades": 80,
@@ -15,38 +104,6 @@
       "max_drawdown_pct": 0.2
     }
   },
-  "grid_profiles": [
-    {
-      "symbol": "XRPUSDT",
-      "p_min_pct_from_start": -0.16,
-      "p_max_pct_from_start": 0.16,
-      "n_levels": 8,
-      "capital_usdt": 20.0,
-      "walk_forward_profitable_window_rate": 1.0,
-      "annualized_yield_pct": 42.68673940733175,
-      "max_unrealized_drawdown_pct": 45.45119832707796
-    },
-    {
-      "symbol": "SOLUSDT",
-      "p_min_pct_from_start": -0.16,
-      "p_max_pct_from_start": 0.16,
-      "n_levels": 8,
-      "capital_usdt": 20.0,
-      "walk_forward_profitable_window_rate": 1.0,
-      "annualized_yield_pct": 34.27664356024407,
-      "max_unrealized_drawdown_pct": 50.66126246015099
-    },
-    {
-      "symbol": "ETHUSDT",
-      "p_min_pct_from_start": -0.2,
-      "p_max_pct_from_start": 0.2,
-      "n_levels": 8,
-      "capital_usdt": 20.0,
-      "walk_forward_profitable_window_rate": 1.0,
-      "annualized_yield_pct": 15.880930618294748,
-      "max_unrealized_drawdown_pct": 3.711442318534086
-    }
-  ],
   "scenarios": [
     {
       "name": "vwap_reversion_btcusdt_15m",
