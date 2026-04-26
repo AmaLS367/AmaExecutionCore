@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-import gzip
-import json
-from collections.abc import Mapping
 from decimal import Decimal
 from pathlib import Path
 from typing import cast
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
-from backend.grid_engine.grid_advisor import suggest_grid
-from backend.grid_engine.grid_backtester import RawCandle
+from backend.grid_engine.grid_advisor import GridSuggestionService
 from backend.grid_engine.grid_config import GridConfig
 from backend.grid_engine.grid_runner import GridRunner
 from backend.grid_engine.models import (
@@ -52,6 +48,12 @@ class GridCreateRequest(BaseModel):
     n_levels: int = Field(ge=1)
     capital_usdt: float = Field(gt=0)
 
+    @model_validator(mode="after")
+    def check_prices(self) -> GridCreateRequest:
+        if self.p_max <= self.p_min:
+            raise ValueError("p_max must be greater than p_min")
+        return self
+
 
 class GridSlotResponse(BaseModel):
     id: int | None = None
@@ -87,13 +89,17 @@ class GridStateResponse(BaseModel):
 
 
 @router.post("/suggest", response_model=GridSuggestResponse)
-async def suggest_grid_endpoint(payload: GridSuggestRequest) -> GridSuggestResponse:
-    candles = _load_recent_fixture_candles(payload.symbol, payload.lookback_days)
-    config = suggest_grid(
-        candles,
-        capital_usdt=payload.capital_usdt,
-        symbol=payload.symbol.strip().upper(),
-    )
+async def suggest_grid_endpoint(request: Request, payload: GridSuggestRequest) -> GridSuggestResponse:
+    suggestion_service = _grid_suggestion_service(request)
+    try:
+        config = await suggestion_service.suggest_for_symbol(
+            symbol=payload.symbol.strip().upper(),
+            capital_usdt=payload.capital_usdt,
+            lookback_days=payload.lookback_days,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
     return GridSuggestResponse(
         p_min=config.p_min,
         p_max=config.p_max,
@@ -200,6 +206,10 @@ def _grid_runner(request: Request) -> GridRunner:
     return cast("GridRunner", request.app.state.grid_runner)
 
 
+def _grid_suggestion_service(request: Request) -> GridSuggestionService:
+    return cast("GridSuggestionService", request.app.state.grid_suggestion_service)
+
+
 async def _load_grid_session(request: Request, session_id: int) -> GridSession:
     session_factory = _session_factory(request)
     async with session_factory() as session:
@@ -251,35 +261,3 @@ def _slot_response(slot: GridSlotRecord) -> GridSlotResponse:
         completed_cycles=slot.completed_cycles,
         realized_pnl=float(slot.realized_pnl),
     )
-
-
-def _load_recent_fixture_candles(symbol: str, lookback_days: int) -> list[RawCandle]:
-    normalized_symbol = symbol.strip().lower()
-    path = REGRESSION_DIR / f"{normalized_symbol}_15m_365d.json.gz"
-    if not path.exists():
-        raise HTTPException(status_code=404, detail=f"No fixture data available for {symbol}.")
-    candles = _load_fixture(path)
-    lookback_count = lookback_days * INTERVALS_PER_DAY
-    return candles[-lookback_count:]
-
-
-def _load_fixture(path: Path) -> list[RawCandle]:
-    with gzip.open(path, "rt", encoding="utf-8") as file:
-        loaded: object = json.load(file)
-    candles = loaded.get("candles") if isinstance(loaded, Mapping) else loaded
-    if not isinstance(candles, list):
-        raise TypeError(f"Fixture {path} must contain a candle list.")
-    return [_normalize_candle(candle) for candle in candles]
-
-
-def _normalize_candle(candle: object) -> RawCandle:
-    if isinstance(candle, Mapping):
-        normalized: dict[str, object] = {}
-        for key, value in candle.items():
-            if not isinstance(key, str):
-                raise TypeError(f"Candle key must be a string, got {key!r}.")
-            normalized[key] = value
-        return normalized
-    if isinstance(candle, list):
-        return list(candle)
-    raise TypeError(f"Unsupported candle format: {candle!r}")

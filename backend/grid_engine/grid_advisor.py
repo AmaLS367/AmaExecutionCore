@@ -5,6 +5,11 @@ from dataclasses import dataclass
 
 from backend.grid_engine.grid_backtester import RawCandle
 from backend.grid_engine.grid_config import GridConfig
+from backend.market_data.contracts import (
+    MarketSnapshot,
+    MarketSnapshotProvider,
+    MarketSnapshotRequest,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,3 +111,49 @@ def _to_float(raw_value: object) -> float:
     if isinstance(raw_value, int | float | str):
         return float(raw_value)
     raise ValueError(f"Expected numeric candle value, got {raw_value!r}.")
+
+
+class GridSuggestionService:
+    def __init__(self, snapshot_provider: MarketSnapshotProvider[MarketSnapshot]) -> None:
+        self._snapshot_provider = snapshot_provider
+
+    async def suggest_for_symbol(
+        self,
+        symbol: str,
+        capital_usdt: float,
+        lookback_days: int = 30,
+        min_step_pct: float = 0.005,
+        target_n_levels: int = 10,
+        atr_period: int = 20,
+        atr_multiplier: float = 2.0,
+    ) -> GridConfig:
+        intervals_per_day = 24 * 4  # Assuming 15m intervals
+        limit = lookback_days * intervals_per_day
+
+        request = MarketSnapshotRequest(
+            symbol=symbol,
+            interval="15",
+            limit=limit,
+        )
+        snapshot = await self._snapshot_provider.get_snapshot(request)
+
+        # Convert MarketCandles to RawCandle format for suggest_grid
+        # MarketCandle has properties like high, low, close
+        candles: list[RawCandle] = [
+            {
+                "high": candle.high,
+                "low": candle.low,
+                "close": candle.close,
+            }
+            for candle in snapshot.candles
+        ]
+
+        return suggest_grid(
+            candles=candles,
+            capital_usdt=capital_usdt,
+            min_step_pct=min_step_pct,
+            target_n_levels=target_n_levels,
+            atr_period=atr_period,
+            atr_multiplier=atr_multiplier,
+            symbol=symbol,
+        )

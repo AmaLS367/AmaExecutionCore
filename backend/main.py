@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, cast
 
 from fastapi import FastAPI
 
@@ -12,9 +12,10 @@ from backend.config import settings
 from backend.database import AsyncSessionLocal
 from backend.exchange_sync.engine import ExchangeSyncEngine
 from backend.exchange_sync.listener import ws_listener
+from backend.grid_engine.grid_advisor import GridSuggestionService
 from backend.grid_engine.grid_runner import GridRunner
 from backend.grid_engine.order_manager import GridOrderManager
-from backend.market_data.bybit_spot import BybitSpotSnapshotProvider
+from backend.market_data.bybit_spot import BybitSpotSnapshotProvider, SupportsBybitSpotKlines
 from backend.market_data.bybit_ws_feed import BybitCandleFeed
 from backend.order_executor.executor import OrderExecutor
 from backend.position_manager.router import router as position_router
@@ -170,6 +171,9 @@ def create_app(
         order_manager=GridOrderManager(rest_client=rest_client),
         rest_client=rest_client,
     )
+    grid_suggestion_service = GridSuggestionService(
+        snapshot_provider=BybitSpotSnapshotProvider(rest_client=cast(SupportsBybitSpotKlines, rest_client)),
+    )
 
     app = FastAPI(
         title="AmaExecutionCore API",
@@ -182,6 +186,7 @@ def create_app(
     app.state.execution_service = execution_service
     app.state.position_manager = position_manager
     app.state.grid_runner = grid_runner
+    app.state.grid_suggestion_service = grid_suggestion_service
     app.include_router(safety_router)
     app.include_router(signal_router)
     app.include_router(position_router)

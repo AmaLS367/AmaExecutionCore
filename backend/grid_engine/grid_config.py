@@ -11,6 +11,10 @@ class GridConfig:
     maker_fee_pct: float = 0.001
     min_lot_size: float = 0.0
 
+    def __post_init__(self) -> None:
+        if self.p_max <= self.p_min:
+            raise ValueError("p_max must be greater than p_min")
+
     @property
     def step(self) -> float:
         return (self.p_max - self.p_min) / self.n_levels

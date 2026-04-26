@@ -7,7 +7,32 @@ from backend.main import create_app
 
 
 class PassiveRestClient:
-    pass
+    def get_klines(
+        self,
+        *,
+        symbol: str,
+        interval: str,
+        limit: int,
+        category: str = "spot",
+        end: int | None = None,
+    ) -> list[object]:
+        from backend.market_data.bybit_spot import BybitKline
+        
+        from datetime import datetime, timezone, timedelta
+        
+        now = datetime.now(timezone.utc)
+        return [
+            BybitKline(
+                start_time=now - timedelta(minutes=15 * (limit - i)),
+                open_price=1.0,
+                high_price=1.1,
+                low_price=0.9,
+                close_price=1.05,
+                volume=100.0,
+                turnover=105.0,
+            )
+            for i in range(limit)
+        ]
 
 
 class RecordingGridRunner:
