@@ -5,6 +5,7 @@ from typing import Any, cast
 
 from fastapi import FastAPI
 
+from backend.admin.router import router as admin_router
 from backend.api.grid_router import router as grid_router
 from backend.bybit_client.exceptions import BybitConnectionError
 from backend.bybit_client.rest import BybitRESTClient
@@ -187,6 +188,7 @@ def create_app(
     app.state.position_manager = position_manager
     app.state.grid_runner = grid_runner
     app.state.grid_suggestion_service = grid_suggestion_service
+    app.include_router(admin_router)
     app.include_router(safety_router)
     app.include_router(signal_router)
     app.include_router(position_router)
