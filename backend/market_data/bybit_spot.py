@@ -10,6 +10,8 @@ from backend.market_data.contracts import (
     MarketSnapshotRequest,
 )
 
+_MAX_KLINE_BATCH_SIZE = 1000
+
 
 class SupportsBybitSpotKlines(Protocol):
     def get_klines(
@@ -32,18 +34,36 @@ class BybitSpotSnapshotProvider(MarketSnapshotProvider[MarketSnapshot]):
         if request.limit <= 0:
             raise ValueError("Snapshot request limit must be positive.")
 
-        klines = self._rest_client.get_klines(
-            symbol=request.symbol,
-            interval=request.interval,
-            limit=request.limit,
-            category="spot",
-        )
-        if len(klines) < request.limit:
+        klines: list[BybitKline] = []
+        end_cursor: int | None = None
+        while len(klines) < request.limit:
+            batch_limit = min(_MAX_KLINE_BATCH_SIZE, request.limit - len(klines))
+            batch = self._rest_client.get_klines(
+                symbol=request.symbol,
+                interval=request.interval,
+                limit=batch_limit,
+                category="spot",
+                end=end_cursor,
+            )
+            if not batch:
+                break
+            ordered_batch = sorted(batch, key=lambda candle: candle.start_time)
+            klines.extend(ordered_batch)
+            oldest_candle = ordered_batch[0]
+            end_cursor = int(oldest_candle.start_time.timestamp() * 1000) - 1
+            if len(batch) < batch_limit:
+                break
+
+        deduped_klines = {kline.start_time: kline for kline in klines}
+        if len(deduped_klines) < request.limit:
             raise ValueError(
-                f"Bybit returned {len(klines)} candles for {request.symbol}; expected {request.limit}.",
+                f"Bybit returned {len(deduped_klines)} candles for {request.symbol}; "
+                f"expected {request.limit}.",
             )
 
-        ordered_klines = sorted(klines, key=lambda candle: candle.start_time)
+        ordered_klines = sorted(deduped_klines.values(), key=lambda candle: candle.start_time)[
+            -request.limit :
+        ]
         candles = tuple(
             MarketCandle(
                 opened_at=kline.start_time,

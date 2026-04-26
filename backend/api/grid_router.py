@@ -12,7 +12,11 @@ from sqlalchemy.orm import selectinload
 
 from backend.grid_engine.grid_advisor import GridSuggestionService
 from backend.grid_engine.grid_config import GridConfig
-from backend.grid_engine.grid_runner import GridRunner
+from backend.grid_engine.grid_runner import (
+    GridRunner,
+    GridSessionAlreadyActiveError,
+    GridSessionNotFoundError,
+)
 from backend.grid_engine.models import (
     GridSession,
     GridSessionStatus,
@@ -181,8 +185,10 @@ async def start_grid_session(request: Request, session_id: int) -> GridStateResp
     runner = _grid_runner(request)
     try:
         await runner.start(session_id)
-    except ValueError as e:
+    except GridSessionAlreadyActiveError as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
+    except GridSessionNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
     return GridStateResponse(session_id=session_id, status=GridSessionStatus.ACTIVE.value)
 
 

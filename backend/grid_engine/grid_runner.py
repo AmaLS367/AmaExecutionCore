@@ -25,6 +25,14 @@ class GridPriceClient(Protocol):
         ...
 
 
+class GridSessionAlreadyActiveError(ValueError):
+    """Raised when an active grid session is started again."""
+
+
+class GridSessionNotFoundError(ValueError):
+    """Raised when a grid session id does not exist."""
+
+
 @dataclass(frozen=True, slots=True)
 class GridDailyReport:
     session_id: int
@@ -55,7 +63,7 @@ class GridRunner:
         async with self._session_factory() as session:
             grid_session = await self._load_session(session, session_id)
             if grid_session.status == GridSessionStatus.ACTIVE.value:
-                raise ValueError(f"Grid session {session_id} is already active")
+                raise GridSessionAlreadyActiveError(f"Grid session {session_id} is already active")
 
             current_price = self._get_current_price(grid_session.symbol)
 
@@ -163,7 +171,7 @@ class GridRunner:
         async with self._session_factory() as session:
             grid_session = await session.get(GridSession, session_id)
             if grid_session is None:
-                raise ValueError(f"Grid session {session_id} was not found.")
+                raise GridSessionNotFoundError(f"Grid session {session_id} was not found.")
             return grid_session.symbol
 
     async def _load_session(self, session: AsyncSession, session_id: int) -> GridSession:
@@ -174,7 +182,7 @@ class GridRunner:
         )
         grid_session = (await session.execute(statement)).scalar_one_or_none()
         if grid_session is None:
-            raise ValueError(f"Grid session {session_id} was not found.")
+            raise GridSessionNotFoundError(f"Grid session {session_id} was not found.")
         return grid_session
 
     def _get_current_price(self, symbol: str) -> float:

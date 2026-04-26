@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from datetime import UTC
+
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from backend.grid_engine.grid_runner import GridSessionAlreadyActiveError, GridSessionNotFoundError
 from backend.main import create_app
 
 
@@ -16,11 +19,11 @@ class PassiveRestClient:
         category: str = "spot",
         end: int | None = None,
     ) -> list[object]:
+        from datetime import datetime, timedelta
+
         from backend.market_data.bybit_spot import BybitKline
-        
-        from datetime import datetime, timezone, timedelta
-        
-        now = datetime.now(timezone.utc)
+
+        now = datetime.now(UTC)
         return [
             BybitKline(
                 start_time=now - timedelta(minutes=15 * (limit - i)),
@@ -127,7 +130,12 @@ def test_grid_start_and_stop_call_runner(
 
 class FailingGridRunner:
     async def start(self, session_id: int) -> None:
-        raise ValueError(f"Grid session {session_id} is already active")
+        raise GridSessionAlreadyActiveError(f"Grid session {session_id} is already active")
+
+
+class MissingGridRunner:
+    async def start(self, session_id: int) -> None:
+        raise GridSessionNotFoundError(f"Grid session {session_id} was not found.")
 
 
 def test_grid_start_already_active_returns_409(
@@ -154,3 +162,16 @@ def test_grid_start_already_active_returns_409(
 
     assert start_response.status_code == 409
     assert "already active" in start_response.json()["detail"]
+
+
+def test_grid_start_missing_session_returns_404(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    app = create_app(session_factory=sqlite_session_factory, rest_client=PassiveRestClient())
+    app.state.grid_runner = MissingGridRunner()
+
+    with TestClient(app) as client:
+        start_response = client.post("/grid/999/start")
+
+    assert start_response.status_code == 404
+    assert "was not found" in start_response.json()["detail"]
