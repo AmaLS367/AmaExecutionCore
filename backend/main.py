@@ -172,7 +172,7 @@ def create_app(
         rest_client=rest_client,
     )
     grid_suggestion_service = GridSuggestionService(
-        snapshot_provider=BybitSpotSnapshotProvider(rest_client=cast(SupportsBybitSpotKlines, rest_client)),
+        snapshot_provider=BybitSpotSnapshotProvider(rest_client=cast("SupportsBybitSpotKlines", rest_client)),
     )
 
     app = FastAPI(
@@ -209,11 +209,10 @@ app = create_app()
 async def health_check() -> dict[str, Any]:
     """Basic health check to verify the app is running and config is loaded."""
     active_key = settings.active_api_key
-    obfuscated_key = f"{active_key[:4]}***" if len(active_key) > 4 else "Not Set"
     return {
         "status": "ok",
         "trading_mode": settings.trading_mode,
         "environment": settings.environment,
         "bybit_testnet": settings.bybit_testnet,
-        "api_key_status": obfuscated_key,
+        "api_key_configured": bool(active_key),
     }
