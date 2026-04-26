@@ -71,7 +71,7 @@ class Settings(BaseSettings):
 
     # Admin Panel
     admin_jwt_secret: str = ""
-    admin_jwt_access_ttl_hours: int = 8
+    admin_jwt_access_ttl_minutes: int = 30
     admin_jwt_refresh_ttl_days: int = 30
     admin_totp_issuer: str = "AmaExecutionCore"
     admin_cors_origin: str = ""

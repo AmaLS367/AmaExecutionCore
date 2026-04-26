@@ -45,6 +45,37 @@ def make_data_router(
         async with session_factory() as session:
             yield session
 
+    import ipaddress
+    def _is_trusted_proxy(ip_str: str) -> bool:
+        try:
+            ip = ipaddress.ip_address(ip_str)
+            return ip.is_private or ip.is_loopback
+        except ValueError:
+            return False
+
+    async def audit_log_access(
+        request: Request,
+        admin: str = Depends(get_current_admin),
+        session: AsyncSession = Depends(_get_session),
+    ) -> None:
+        from backend.admin.models import AdminUser, AuditLog
+        user = await session.scalar(select(AdminUser).where(AdminUser.username == admin))
+        if user:
+            peer = request.client.host if request.client else None
+            ip = peer or "unknown"
+            if peer and _is_trusted_proxy(peer):
+                real_ip = request.headers.get("X-Real-IP")
+                if real_ip:
+                    ip = real_ip
+                    
+            ua = request.headers.get("user-agent")
+            action = f"access:{request.url.path}"
+            session.add(AuditLog(admin_id=user.id, action=action, ip_address=ip, user_agent=ua))
+            await session.commit()
+
+    # Apply dependency to all routes in this router
+    router.router.dependencies.append(Depends(audit_log_access))
+
     # ------------------------------------------------------------------ Stats
 
     @router.get("/stats/dashboard")
