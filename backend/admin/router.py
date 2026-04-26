@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import ipaddress
 import time
 from typing import Annotated, cast
 
 import jwt
 from fastapi import APIRouter, Cookie, HTTPException, Request, Response, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -18,8 +19,6 @@ router = APIRouter(prefix="/admin/auth", tags=["admin-auth"])
 # Schemas
 # ---------------------------------------------------------------------------
 
-
-from pydantic import BaseModel, Field
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
@@ -82,14 +81,13 @@ def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
     return cast("async_sessionmaker[AsyncSession]", request.app.state.session_factory)
 
 
-import ipaddress
-
 def _is_trusted_proxy(ip_str: str) -> bool:
     try:
         ip = ipaddress.ip_address(ip_str)
-        return ip.is_private or ip.is_loopback
     except ValueError:
         return False
+    else:
+        return ip.is_private or ip.is_loopback
 
 def _client_ip(request: Request) -> str:
     peer = request.client.host if request.client else None
@@ -109,7 +107,7 @@ async def _append_audit(
 ) -> None:
     async with factory() as session:
         session.add(
-            AuditLog(admin_id=admin_id, action=action, ip_address=ip, user_agent=user_agent)
+            AuditLog(admin_id=admin_id, action=action, ip_address=ip, user_agent=user_agent),
         )
         await session.commit()
 
@@ -132,7 +130,7 @@ async def login(request: Request, payload: LoginRequest) -> LoginResponse:
     async with factory() as session:
         row = (
             await session.execute(
-                select(AdminUser).where(AdminUser.username == payload.username)
+                select(AdminUser).where(AdminUser.username == payload.username),
             )
         ).scalar_one_or_none()
 
@@ -161,7 +159,7 @@ async def login(request: Request, payload: LoginRequest) -> LoginResponse:
 
 @router.post("/verify-totp", response_model=TokenResponse)
 async def verify_totp(
-    request: Request, response: Response, payload: VerifyTotpRequest
+    request: Request, response: Response, payload: VerifyTotpRequest,
 ) -> TokenResponse:
     ip = _client_ip(request)
     user_agent = request.headers.get("User-Agent")
@@ -184,20 +182,20 @@ async def verify_totp(
     async with factory() as session:
         row = (
             await session.execute(
-                select(AdminUser).where(AdminUser.username == username)
+                select(AdminUser).where(AdminUser.username == username),
             )
         ).scalar_one_or_none()
 
     if row is None or not row.is_active:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials",
         )
 
     if not auth.verify_totp(row.totp_secret, payload.totp_code):
         _totp_failures[payload.session_token] = _totp_failures.get(payload.session_token, 0) + 1
         await _append_audit(factory, row.id if row else 0, "totp_failed", ip, user_agent)
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials",
         )
 
     await _append_audit(factory, row.id, "login_success", ip, user_agent)
@@ -222,7 +220,7 @@ async def refresh_access_token(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CSRF protection missing header")
     if refresh_token is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token provided"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token provided",
         )
     try:
         username = auth.decode_token(refresh_token, "refresh")

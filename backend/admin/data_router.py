@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+import ipaddress
 from collections.abc import AsyncGenerator
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
 from backend.admin import stats as admin_stats
 from backend.admin.deps import get_current_admin
+from backend.admin.models import AdminUser, AuditLog
 from backend.config import settings
 from backend.grid_engine.models import GridSession, GridSlotRecord  # noqa: F401
 from backend.trade_journal.models import Trade, TradeStatus
@@ -23,7 +25,7 @@ _SECRET_FIELDS = frozenset(
         "bybit_testnet_api_secret",
         "admin_jwt_secret",
         "database_url",
-    }
+    },
 )
 
 
@@ -45,20 +47,19 @@ def make_data_router(
         async with session_factory() as session:
             yield session
 
-    import ipaddress
     def _is_trusted_proxy(ip_str: str) -> bool:
         try:
             ip = ipaddress.ip_address(ip_str)
-            return ip.is_private or ip.is_loopback
         except ValueError:
             return False
+        else:
+            return ip.is_private or ip.is_loopback
 
     async def audit_log_access(
         request: Request,
         admin: str = Depends(get_current_admin),
         session: AsyncSession = Depends(_get_session),
     ) -> None:
-        from backend.admin.models import AdminUser, AuditLog
         user = await session.scalar(select(AdminUser).where(AdminUser.username == admin))
         if user:
             peer = request.client.host if request.client else None
@@ -67,7 +68,7 @@ def make_data_router(
                 real_ip = request.headers.get("X-Real-IP")
                 if real_ip:
                     ip = real_ip
-                    
+
             ua = request.headers.get("user-agent")
             action = f"access:{request.url.path}"
             session.add(AuditLog(admin_id=user.id, action=action, ip_address=ip, user_agent=ua))
@@ -116,7 +117,7 @@ def make_data_router(
         session: AsyncSession = Depends(_get_session),
     ) -> list[dict[str, Any]]:
         rows = await session.execute(
-            select(Trade).where(Trade.status == TradeStatus.POSITION_OPEN)
+            select(Trade).where(Trade.status == TradeStatus.POSITION_OPEN),
         )
         return [_trade_to_dict(t) for t in rows.scalars()]
 
@@ -141,7 +142,7 @@ def make_data_router(
         total = await session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
         offset = (page - 1) * limit
         rows = await session.execute(
-            stmt.order_by(Trade.closed_at.desc()).offset(offset).limit(limit)
+            stmt.order_by(Trade.closed_at.desc()).offset(offset).limit(limit),
         )
         items = [_trade_to_dict(t) for t in rows.scalars()]
         pages = max(1, -(-total // limit))
@@ -166,7 +167,7 @@ def make_data_router(
         gs = await session.scalar(
             select(GridSession)
             .where(GridSession.id == session_id)
-            .options(selectinload(GridSession.slots))
+            .options(selectinload(GridSession.slots)),
         )
         if gs is None:
             raise HTTPException(status_code=404, detail="Grid session not found")

@@ -109,10 +109,12 @@ ignore = [
 "backend/safety_guard/router.py" = ["B008"]
 "backend/signal_loop/runner.py" = ["BLE001"]
 "backend/signal_loop/ws_runner.py" = ["BLE001"]
-"backend/admin/router.py" = ["B008"]
-"scripts/*.py" = ["T201"]
+"backend/admin/data_router.py" = ["ARG001", "B008", "C901", "PLR0915"]
+"backend/admin/router.py" = ["B008", "S105"]
+"backend/admin/ws_logs.py" = ["BLE001", "S110", "SIM105"]
+"scripts/*.py" = ["BLE001", "PLC0415", "T201"]
 "scripts/run_backtest.py" = ["PLC0415", "T201"]
-"tests/**/*.py" = ["ARG001", "ARG002", "BLE001", "DTZ011", "INP001", "PLC0415", "S105", "S106", "SLF001"]
+"tests/**/*.py" = ["ARG001", "ARG002", "BLE001", "DTZ011", "ERA001", "INP001", "PLC0415", "S105", "S106", "S107", "SLF001"]
 
 [tool.ruff.format]
 quote-style = "double"

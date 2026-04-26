@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.admin import auth as admin_auth
-from backend.admin.models import AdminUser, AuditLog  # noqa: F401 — registers tables in Base
+from backend.admin.models import AdminUser, AuditLog
 from backend.config import settings
 from backend.main import create_app
 
@@ -102,12 +102,13 @@ def test_login_valid_credentials_returns_totp_required(
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app) as client:
         r = client.post(
-            "/admin/auth/login", json={"username": "admin", "password": "correct-pass"}
+            "/admin/auth/login", json={"username": "admin", "password": "correct-pass"},
         )
     assert r.status_code == 200
     body = r.json()
     assert body["totp_required"] is True
-    assert isinstance(body["session_token"], str) and body["session_token"]
+    assert isinstance(body["session_token"], str)
+    assert body["session_token"]
 
 
 # ---------------------------------------------------------------------------
@@ -118,7 +119,7 @@ def test_login_valid_credentials_returns_totp_required(
 def test_verify_totp_wrong_code_returns_401(
     sqlite_session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
-    _, secret = _make_user(sqlite_session_factory)
+    _make_user(sqlite_session_factory)
     session_token = admin_auth.create_totp_pending_token("admin")
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app) as client:
@@ -163,7 +164,7 @@ def test_full_login_flow_returns_access_token_and_sets_cookie(
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app, follow_redirects=False) as client:
         login_r = client.post(
-            "/admin/auth/login", json={"username": "admin", "password": "correct-pass"}
+            "/admin/auth/login", json={"username": "admin", "password": "correct-pass"},
         )
         session_token = login_r.json()["session_token"]
         verify_r = client.post(

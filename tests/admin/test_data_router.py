@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.admin import auth as admin_auth
 from backend.config import settings
-from backend.grid_engine.models import (  # noqa: F401 — registers tables
+from backend.grid_engine.models import (
     GridSession,
     GridSessionStatus,
     GridSlotRecord,
@@ -23,8 +23,8 @@ from backend.trade_journal.models import (  # noqa: F401 — registers tables
     SafetyState,
     SignalDirection,
     Trade,
-    TradingMode,
     TradeStatus,
+    TradingMode,
 )
 
 
@@ -91,9 +91,9 @@ def _make_grid_session(
 
 
 def _make_app(session_factory: async_sessionmaker[AsyncSession]) -> TestClient:
-    from backend.admin.data_router import make_data_router
-
     from fastapi import FastAPI
+
+    from backend.admin.data_router import make_data_router
 
     app = FastAPI()
     app.include_router(make_data_router(session_factory=session_factory))
@@ -305,7 +305,7 @@ def test_grid_sessions_requires_auth(
 
 
 # ---------------------------------------------------------------------------
-# GET /admin/grid/sessions/{id}
+# GET /admin/grid/sessions by ID
 # ---------------------------------------------------------------------------
 
 
@@ -322,7 +322,7 @@ def test_grid_session_detail_with_slots(
                     level=0,
                     buy_price=Decimal("1000.00"),
                     sell_price=Decimal("1010.00"),
-                )
+                ),
             )
             await db.commit()
 
