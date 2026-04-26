@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
 
 from pydantic import BaseModel
 from sqlalchemy import func, select
@@ -60,7 +59,7 @@ async def get_dashboard_stats(session: AsyncSession, *, rest_client: object) -> 
         safety_guard_status = "OK"
 
     open_count = await session.scalar(
-        select(func.count()).select_from(Trade).where(Trade.status == TradeStatus.POSITION_OPEN)
+        select(func.count()).select_from(Trade).where(Trade.status == TradeStatus.POSITION_OPEN),
     )
 
     today = datetime.now(UTC).date()
@@ -82,7 +81,7 @@ async def get_equity_curve(session: AsyncSession, *, days: int = 30) -> list[Equ
         select(DailyStat.stat_date, DailyStat.ending_equity)
         .where(DailyStat.stat_date >= cutoff)
         .where(DailyStat.ending_equity.is_not(None))
-        .order_by(DailyStat.stat_date)
+        .order_by(DailyStat.stat_date),
     )
     return [EquityPoint(date=r.stat_date, equity=float(r.ending_equity)) for r in rows]
 
@@ -93,7 +92,7 @@ async def get_daily_pnl(session: AsyncSession, *, days: int = 30) -> list[DailyP
         select(DailyStat.stat_date, DailyStat.net_pnl)
         .where(DailyStat.stat_date >= cutoff)
         .where(DailyStat.net_pnl.is_not(None))
-        .order_by(DailyStat.stat_date)
+        .order_by(DailyStat.stat_date),
     )
     return [DailyPnlPoint(date=r.stat_date, pnl=float(r.net_pnl)) for r in rows]
 
@@ -102,7 +101,7 @@ async def get_trades_summary(session: AsyncSession) -> TradeSummary:
     rows = await session.execute(
         select(Trade.realized_pnl)
         .where(Trade.status == TradeStatus.POSITION_CLOSED)
-        .where(Trade.realized_pnl.is_not(None))
+        .where(Trade.realized_pnl.is_not(None)),
     )
     pnls = [float(r.realized_pnl) for r in rows]
 

@@ -10,15 +10,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.admin import stats as admin_stats
 from backend.config import settings
-from backend.trade_journal.models import (  # noqa: F401 — registers tables in Base
+from backend.trade_journal.models import (
     DailyStat,
     ExchangeSide,
     MarketType,
     SafetyState,
     SignalDirection,
     Trade,
-    TradingMode,
     TradeStatus,
+    TradingMode,
 )
 
 
@@ -76,7 +76,7 @@ def _make_daily_stat(
                     stat_date=stat_date,
                     ending_equity=ending_equity,
                     net_pnl=net_pnl,
-                )
+                ),
             )
             await session.commit()
 
@@ -94,7 +94,7 @@ def test_dashboard_shadow_mode_returns_shadow_equity(
     async def run() -> admin_stats.DashboardStats:
         async with sqlite_session_factory() as session:
             return await admin_stats.get_dashboard_stats(
-                session, rest_client=_NullRestClient()
+                session, rest_client=_NullRestClient(),
             )
 
     result = asyncio.run(run())
@@ -108,7 +108,7 @@ def test_dashboard_returns_ok_status_when_safety_clear(
     async def run() -> admin_stats.DashboardStats:
         async with sqlite_session_factory() as session:
             return await admin_stats.get_dashboard_stats(
-                session, rest_client=_NullRestClient()
+                session, rest_client=_NullRestClient(),
             )
 
     result = asyncio.run(run())
@@ -125,7 +125,7 @@ def test_dashboard_counts_open_positions(
     async def run() -> admin_stats.DashboardStats:
         async with sqlite_session_factory() as session:
             return await admin_stats.get_dashboard_stats(
-                session, rest_client=_NullRestClient()
+                session, rest_client=_NullRestClient(),
             )
 
     result = asyncio.run(run())
@@ -146,7 +146,7 @@ def test_dashboard_returns_killed_when_kill_switch_active(
     async def run() -> admin_stats.DashboardStats:
         async with sqlite_session_factory() as session:
             return await admin_stats.get_dashboard_stats(
-                session, rest_client=_NullRestClient()
+                session, rest_client=_NullRestClient(),
             )
 
     result = asyncio.run(run())
@@ -161,7 +161,7 @@ def test_dashboard_returns_paused_when_pause_reason_set(
     async def _pause() -> None:
         async with sqlite_session_factory() as session:
             state = SafetyState(
-                id=1, kill_switch_active=False, pause_reason=PauseReason.DAILY_LOSS
+                id=1, kill_switch_active=False, pause_reason=PauseReason.DAILY_LOSS,
             )
             session.add(state)
             await session.commit()
@@ -171,7 +171,7 @@ def test_dashboard_returns_paused_when_pause_reason_set(
     async def run() -> admin_stats.DashboardStats:
         async with sqlite_session_factory() as session:
             return await admin_stats.get_dashboard_stats(
-                session, rest_client=_NullRestClient()
+                session, rest_client=_NullRestClient(),
             )
 
     result = asyncio.run(run())
@@ -182,13 +182,13 @@ def test_dashboard_pnl_today_from_daily_stat(
     sqlite_session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     _make_daily_stat(
-        sqlite_session_factory, stat_date=datetime.now(UTC).date(), net_pnl=Decimal("250.50")
+        sqlite_session_factory, stat_date=datetime.now(UTC).date(), net_pnl=Decimal("250.50"),
     )
 
     async def run() -> admin_stats.DashboardStats:
         async with sqlite_session_factory() as session:
             return await admin_stats.get_dashboard_stats(
-                session, rest_client=_NullRestClient()
+                session, rest_client=_NullRestClient(),
             )
 
     result = asyncio.run(run())
@@ -210,7 +210,7 @@ def test_equity_curve_returns_points_for_requested_days(
         ending_equity=Decimal("9500.00"),
     )
     _make_daily_stat(
-        sqlite_session_factory, stat_date=today, ending_equity=Decimal("10000.00")
+        sqlite_session_factory, stat_date=today, ending_equity=Decimal("10000.00"),
     )
 
     async def run() -> list[admin_stats.EquityPoint]:
@@ -232,7 +232,7 @@ def test_equity_curve_excludes_old_entries(
         ending_equity=Decimal("8000.00"),
     )
     _make_daily_stat(
-        sqlite_session_factory, stat_date=today, ending_equity=Decimal("10000.00")
+        sqlite_session_factory, stat_date=today, ending_equity=Decimal("10000.00"),
     )
 
     async def run() -> list[admin_stats.EquityPoint]:
@@ -254,7 +254,7 @@ def test_daily_pnl_returns_correct_values(
 ) -> None:
     today = datetime.now(UTC).date()
     _make_daily_stat(
-        sqlite_session_factory, stat_date=today, net_pnl=Decimal("-150.00")
+        sqlite_session_factory, stat_date=today, net_pnl=Decimal("-150.00"),
     )
 
     async def run() -> list[admin_stats.DailyPnlPoint]:

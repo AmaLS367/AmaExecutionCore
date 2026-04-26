@@ -195,7 +195,7 @@ def create_app(
     app.state.grid_suggestion_service = grid_suggestion_service
     app.include_router(admin_router)
     app.include_router(
-        make_data_router(session_factory=session_factory, rest_client=rest_client)
+        make_data_router(session_factory=session_factory, rest_client=rest_client),
     )
     app.include_router(make_ws_router())
     app.include_router(safety_router)

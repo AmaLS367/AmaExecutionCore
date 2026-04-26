@@ -23,9 +23,9 @@ def _access_token() -> str:
 
 
 def _make_app() -> TestClient:
-    from backend.admin.ws_logs import make_ws_router
-
     from fastapi import FastAPI
+
+    from backend.admin.ws_logs import make_ws_router
 
     app = FastAPI()
     app.include_router(make_ws_router())

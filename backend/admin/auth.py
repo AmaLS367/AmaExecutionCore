@@ -30,13 +30,13 @@ def _make_token(username: str, token_type: str, expires_delta: timedelta) -> str
 
 def create_access_token(username: str) -> str:
     return _make_token(
-        username, _TYPE_ACCESS, timedelta(minutes=settings.admin_jwt_access_ttl_minutes)
+        username, _TYPE_ACCESS, timedelta(minutes=settings.admin_jwt_access_ttl_minutes),
     )
 
 
 def create_refresh_token(username: str) -> str:
     return _make_token(
-        username, _TYPE_REFRESH, timedelta(days=settings.admin_jwt_refresh_ttl_days)
+        username, _TYPE_REFRESH, timedelta(days=settings.admin_jwt_refresh_ttl_days),
     )
 
 

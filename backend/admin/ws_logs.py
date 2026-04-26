@@ -39,7 +39,7 @@ class _WebSocketHandler(logging.Handler):
                 "level": record.levelname,
                 "module": record.name,
                 "message": self.format(record),
-            }
+            },
         )
         for sub in list(self._subscribers):
             try:
