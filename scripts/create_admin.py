@@ -45,7 +45,7 @@ async def _insert_admin(username: str, password: str) -> str:
 
 def _print_qr(uri: str) -> None:
     try:
-        import qrcode  # type: ignore[import-untyped]
+        import qrcode
 
         qr = qrcode.QRCode()
         qr.add_data(uri)

@@ -75,7 +75,7 @@ def make_data_router(
             await session.commit()
 
     # Apply dependency to all routes in this router
-    router.router.dependencies.append(Depends(audit_log_access))
+    router.dependencies.append(Depends(audit_log_access))
 
     # ------------------------------------------------------------------ Stats
 
