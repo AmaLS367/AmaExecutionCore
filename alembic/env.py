@@ -12,6 +12,7 @@ from backend.database import Base
 
 import_module("backend.trade_journal.models")
 import_module("backend.grid_engine.models")
+import_module("backend.admin.models")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
