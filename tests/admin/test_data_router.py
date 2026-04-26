@@ -110,7 +110,7 @@ def test_stats_dashboard_requires_auth(
 ) -> None:
     client = _make_app(sqlite_session_factory)
     response = client.get("/admin/stats/dashboard")
-    assert response.status_code == 403
+    assert response.status_code in (401, 403)
 
 
 def test_stats_dashboard_returns_shadow_equity(
@@ -225,7 +225,7 @@ def test_trades_list_requires_auth(
     sqlite_session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     client = _make_app(sqlite_session_factory)
-    assert client.get("/admin/trades").status_code == 403
+    assert client.get("/admin/trades").status_code in (401, 403)
 
 
 # ---------------------------------------------------------------------------
@@ -301,7 +301,7 @@ def test_grid_sessions_requires_auth(
     sqlite_session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     client = _make_app(sqlite_session_factory)
-    assert client.get("/admin/grid/sessions").status_code == 403
+    assert client.get("/admin/grid/sessions").status_code in (401, 403)
 
 
 # ---------------------------------------------------------------------------

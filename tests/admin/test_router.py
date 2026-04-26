@@ -71,7 +71,7 @@ def test_login_unknown_user_returns_401(
 ) -> None:
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app) as client:
-        r = client.post("/admin/auth/login", json={"username": "nobody", "password": "x"})
+        r = client.post("/admin/auth/login", json={"username": "nobody", "password": "x-invalid"})
     assert r.status_code == 401
 
 
@@ -81,7 +81,7 @@ def test_login_wrong_password_returns_401(
     _make_user(sqlite_session_factory)
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app) as client:
-        r = client.post("/admin/auth/login", json={"username": "admin", "password": "wrong"})
+        r = client.post("/admin/auth/login", json={"username": "admin", "password": "wrong-pass"})
     assert r.status_code == 401
 
 
@@ -183,12 +183,15 @@ def test_full_login_flow_returns_access_token_and_sets_cookie(
 # ---------------------------------------------------------------------------
 
 
+_CSRF_HEADER = {"X-Requested-With": "XMLHttpRequest"}
+
+
 def test_refresh_with_no_cookie_returns_401(
     sqlite_session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app) as client:
-        r = client.post("/admin/auth/refresh")
+        r = client.post("/admin/auth/refresh", headers=_CSRF_HEADER)
     assert r.status_code == 401
 
 
@@ -199,7 +202,7 @@ def test_refresh_with_valid_cookie_returns_new_access_token(
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app) as client:
         client.cookies.set("refresh_token", refresh_cookie)
-        r = client.post("/admin/auth/refresh")
+        r = client.post("/admin/auth/refresh", headers=_CSRF_HEADER)
     assert r.status_code == 200
     assert "access_token" in r.json()
 
@@ -210,7 +213,7 @@ def test_refresh_with_garbage_cookie_returns_401(
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app) as client:
         client.cookies.set("refresh_token", "garbage")
-        r = client.post("/admin/auth/refresh")
+        r = client.post("/admin/auth/refresh", headers=_CSRF_HEADER)
     assert r.status_code == 401
 
 
@@ -240,8 +243,8 @@ def test_brute_force_blocks_ip_after_five_failed_logins(
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app) as client:
         for _ in range(5):
-            client.post("/admin/auth/login", json={"username": "x", "password": "y"})
-        r = client.post("/admin/auth/login", json={"username": "x", "password": "y"})
+            client.post("/admin/auth/login", json={"username": "baduser", "password": "badpassword"})
+        r = client.post("/admin/auth/login", json={"username": "baduser", "password": "badpassword"})
     assert r.status_code == 429
 
 
@@ -258,7 +261,7 @@ def test_failed_login_writes_audit_log_for_known_user(
     _make_user(sqlite_session_factory)
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app) as client:
-        client.post("/admin/auth/login", json={"username": "admin", "password": "wrong"})
+        client.post("/admin/auth/login", json={"username": "admin", "password": "wrong-pass"})
 
     async def _count() -> int:
         async with sqlite_session_factory() as session:

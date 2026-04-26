@@ -40,13 +40,15 @@ def _make_app() -> TestClient:
 def test_ws_logs_rejects_missing_token() -> None:
     client = _make_app()
     with client.websocket_connect("/admin/ws/logs") as ws:
+        ws.send_json({})
         data = ws.receive_json()
         assert data.get("error") is not None
 
 
 def test_ws_logs_rejects_invalid_token() -> None:
     client = _make_app()
-    with client.websocket_connect("/admin/ws/logs?token=not-a-valid-jwt") as ws:
+    with client.websocket_connect("/admin/ws/logs") as ws:
+        ws.send_json({"token": "not-a-valid-jwt"})
         data = ws.receive_json()
         assert data.get("error") is not None
 
@@ -54,7 +56,8 @@ def test_ws_logs_rejects_invalid_token() -> None:
 def test_ws_logs_accepts_valid_token_and_sends_connected_ack() -> None:
     token = _access_token()
     client = _make_app()
-    with client.websocket_connect(f"/admin/ws/logs?token={token}") as ws:
+    with client.websocket_connect("/admin/ws/logs") as ws:
+        ws.send_json({"token": token})
         msg = ws.receive_json()
         assert msg.get("type") == "connected"
 
