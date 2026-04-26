@@ -1,9 +1,13 @@
 import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from decimal import Decimal
 from typing import Any, cast
 
+import redis.asyncio as redis
 from fastapi import FastAPI
+from loguru import logger
+from sqlalchemy import select
 
 from backend.admin.data_router import make_data_router
 from backend.admin.router import router as admin_router
@@ -16,7 +20,14 @@ from backend.database import AsyncSessionLocal
 from backend.exchange_sync.engine import ExchangeSyncEngine
 from backend.exchange_sync.listener import ws_listener
 from backend.grid_engine.grid_advisor import GridSuggestionService
+from backend.grid_engine.grid_config import GridConfig
 from backend.grid_engine.grid_runner import GridRunner
+from backend.grid_engine.models import (
+    GridSession,
+    GridSessionStatus,
+    GridSlotRecord,
+    GridSlotRecordStatus,
+)
 from backend.grid_engine.order_manager import GridOrderManager
 from backend.market_data.bybit_spot import BybitSpotSnapshotProvider, SupportsBybitSpotKlines
 from backend.market_data.bybit_ws_feed import BybitCandleFeed
@@ -36,6 +47,7 @@ from backend.task_utils import create_logged_task
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     _validate_runner_configuration()
+    app.state.redis = redis.Redis.from_url(settings.redis_url, decode_responses=True)
 
     sync_engine = ExchangeSyncEngine(
         session_factory=app.state.session_factory,
@@ -54,9 +66,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             name="spot-exit-monitor",
         )
 
+    _active = settings.active_strategy
+
     signal_loop_runner: SignalLoopRunner | None = None
     signal_loop_task: asyncio.Task[None] | None = None
-    if settings.signal_loop_enabled and settings.signal_loop_symbols:
+    if (_active == "signal_loop" or (not _active and settings.signal_loop_enabled)) and settings.signal_loop_symbols:
         strategy_service = StrategyExecutionService(
             snapshot_provider=BybitSpotSnapshotProvider(rest_client=app.state.rest_client),
             strategy=build_day_trading_strategy(
@@ -81,7 +95,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     scalping_runner: WebSocketSignalRunner | None = None
     scalping_task: asyncio.Task[None] | None = None
-    if settings.scalping_enabled and settings.scalping_symbols:
+    if (_active == "scalping" or (not _active and settings.scalping_enabled)) and settings.scalping_symbols:
         feed = BybitCandleFeed(
             symbols=settings.scalping_symbols,
             interval=settings.scalping_interval,
@@ -104,6 +118,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             name="scalping-runner",
         )
 
+    if _active == "grid":
+        await _autostart_grid(app)
+
     yield
 
     if scalping_runner is not None:
@@ -120,6 +137,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await asyncio.gather(spot_exit_monitor_task, return_exceptions=True)
     await sync_engine.stop_reconciliation_worker()
     ws_listener.stop()
+    await app.state.redis.aclose()
 
 
 class NullRestClient:
@@ -205,7 +223,80 @@ def create_app(
     return app
 
 
+async def _autostart_grid(app: FastAPI) -> None:
+    if not settings.grid_symbols:
+        logger.warning("ACTIVE_STRATEGY=grid but GRID_SYMBOLS is empty — nothing to start.")
+        return
+
+    grid_runner: GridRunner = app.state.grid_runner
+    suggestion_service: GridSuggestionService = app.state.grid_suggestion_service
+    session_factory = app.state.session_factory
+
+    for symbol in settings.grid_symbols:
+        async with session_factory() as db:
+            existing = (
+                await db.execute(
+                    select(GridSession)
+                    .where(GridSession.symbol == symbol)
+                    .order_by(GridSession.id.desc())
+                    .limit(1),
+                )
+            ).scalar_one_or_none()
+
+        if existing and existing.status == GridSessionStatus.ACTIVE.value:
+            logger.info("Grid auto-start: session {} for {} already ACTIVE — skipping.", existing.id, symbol)
+            continue
+
+        if existing and existing.status == GridSessionStatus.PAUSED.value:
+            logger.info("Grid auto-start: resuming existing PAUSED session {} for {}.", existing.id, symbol)
+            await grid_runner.start(existing.id)
+            continue
+
+        logger.info("Grid auto-start: no session for {} — requesting advisor config.", symbol)
+        try:
+            config: GridConfig = await suggestion_service.suggest_for_symbol(
+                symbol,
+                capital_usdt=settings.grid_capital_usdt,
+                lookback_days=settings.grid_lookback_days,
+            )
+        except Exception as exc:
+            logger.error("Grid auto-start: advisor failed for {}: {}", symbol, exc)
+            continue
+
+        session_record = GridSession(
+            symbol=config.symbol,
+            config_json={
+                "p_min": config.p_min,
+                "p_max": config.p_max,
+                "n_levels": config.n_levels,
+                "capital_usdt": config.capital_usdt,
+            },
+            status=GridSessionStatus.PAUSED.value,
+        )
+        session_record.slots = [
+            GridSlotRecord(
+                level=level,
+                buy_price=Decimal(str(buy_price)),
+                sell_price=Decimal(str(config.sell_price(buy_price))),
+                status=GridSlotRecordStatus.WAITING_BUY.value,
+                completed_cycles=0,
+                realized_pnl=Decimal(0),
+            )
+            for level, buy_price in enumerate(config.buy_prices())
+        ]
+        async with session_factory() as db:
+            db.add(session_record)
+            await db.commit()
+            await db.refresh(session_record)
+
+        await grid_runner.start(session_record.id)
+        logger.info("Grid auto-start: session {} created and started for {}.", session_record.id, symbol)
+
+
 def _validate_runner_configuration() -> None:
+    active = settings.active_strategy
+    if active:
+        return
     if not (settings.signal_loop_enabled and settings.scalping_enabled):
         return
     overlap = set(settings.signal_loop_symbols) & set(settings.scalping_symbols)
