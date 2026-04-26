@@ -42,7 +42,7 @@ jobs:
           --output artifacts/backtest-regression.json
 
       - name: Upload regression artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backtest-regression
           path: artifacts/backtest-regression.json
