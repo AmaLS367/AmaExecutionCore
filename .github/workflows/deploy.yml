@@ -57,7 +57,7 @@ jobs:
       contents: read
     steps:
       - name: Execute deployment commands via SSH
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
