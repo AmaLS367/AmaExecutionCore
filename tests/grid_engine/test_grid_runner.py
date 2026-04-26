@@ -7,7 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.grid_engine.grid_runner import GridRunner
 from backend.grid_engine.grid_ws_handler import GridOrderFillEvent
-from backend.grid_engine.models import GridSession, GridSlotRecord, GridSlotRecordStatus
+from backend.grid_engine.models import (
+    GridSession,
+    GridSessionStatus,
+    GridSlotRecord,
+    GridSlotRecordStatus,
+)
 
 
 class RecordingRunnerOrderManager:
@@ -72,6 +77,32 @@ async def test_grid_runner_fill_delegates_to_handler_and_places_sell(
     await runner.handle_order_fill(GridOrderFillEvent(order_id="buy-1", side="Buy", symbol="XRPUSDT"))
 
     assert order_manager.sell_calls == [("XRPUSDT", 1.84, 2.77777778)]
+
+
+@pytest.mark.asyncio
+async def test_grid_runner_start_fails_if_already_active(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    session_id = await _seed_grid_session(sqlite_session_factory)
+
+    # Make session active
+    async with sqlite_session_factory() as session:
+        grid_session = await session.get(GridSession, session_id)
+        assert grid_session is not None
+        grid_session.status = GridSessionStatus.ACTIVE.value
+        await session.commit()
+
+    order_manager = RecordingRunnerOrderManager()
+    runner = GridRunner(
+        session_factory=sqlite_session_factory,
+        order_manager=order_manager,  # type: ignore[arg-type]
+        rest_client=StaticPriceRestClient(),
+    )
+
+    with pytest.raises(ValueError, match="already active"):
+        await runner.start(session_id)
+
+    assert len(order_manager.buy_calls) == 0
 
 
 @pytest.mark.asyncio

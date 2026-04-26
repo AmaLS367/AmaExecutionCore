@@ -55,6 +55,9 @@ class GridRunner:
         current_price = self._get_current_price(await self._symbol_for_session(session_id))
         async with self._session_factory() as session:
             grid_session = await self._load_session(session, session_id)
+            if grid_session.status == GridSessionStatus.ACTIVE.value:
+                raise ValueError(f"Grid session {session_id} is already active")
+
             config = _config_from_json(grid_session.config_json)
             for slot in grid_session.slots:
                 units = Decimal(str(config.capital_per_level / float(slot.buy_price)))
@@ -62,7 +65,7 @@ class GridRunner:
                 if float(slot.buy_price) >= current_price:
                     slot.status = GridSlotRecordStatus.WAITING_SELL.value
                     continue
-                if slot.status == GridSlotRecordStatus.WAITING_BUY.value:
+                if slot.status == GridSlotRecordStatus.WAITING_BUY.value and not slot.buy_order_id:
                     order_id = self._order_manager.place_buy_limit(
                         grid_session.symbol,
                         price=float(slot.buy_price),
