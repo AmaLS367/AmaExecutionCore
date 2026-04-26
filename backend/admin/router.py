@@ -19,9 +19,11 @@ router = APIRouter(prefix="/admin/auth", tags=["admin-auth"])
 # ---------------------------------------------------------------------------
 
 
+from pydantic import BaseModel, Field
+
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
+    password: str = Field(..., min_length=8, max_length=128)
 
 
 class LoginResponse(BaseModel):
