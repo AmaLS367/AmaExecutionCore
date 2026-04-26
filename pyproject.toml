@@ -47,7 +47,7 @@ dependencies = [
 
     # Admin Panel
     "PyJWT>=2.8.0",
-    "passlib[bcrypt]>=1.7.4",
+    "bcrypt>=4.0.0",
     "pyotp>=2.9.0",
     "qrcode>=8.0",
 ]
@@ -139,7 +139,7 @@ module = "pyotp.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "passlib.*"
+module = "bcrypt.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
