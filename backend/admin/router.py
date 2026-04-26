@@ -82,11 +82,22 @@ def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
     return cast("async_sessionmaker[AsyncSession]", request.app.state.session_factory)
 
 
+import ipaddress
+
+def _is_trusted_proxy(ip_str: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(ip_str)
+        return ip.is_private or ip.is_loopback
+    except ValueError:
+        return False
+
 def _client_ip(request: Request) -> str:
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return real_ip
-    return request.client.host if request.client else "unknown"
+    peer = request.client.host if request.client else None
+    if peer and _is_trusted_proxy(peer):
+        real_ip = request.headers.get("X-Real-IP")
+        if real_ip:
+            return real_ip
+    return peer or "unknown"
 
 
 async def _append_audit(
