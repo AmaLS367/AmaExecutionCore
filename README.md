@@ -258,7 +258,7 @@ To report a vulnerability, **do not open a public issue**. See [SECURITY.md](SEC
 ---
 
 ## License
-
+Apache-2.0 © [AmaLS367](https://github.com/AmaLS367)
 Apache 2.0 © [AmaLS367](https://github.com/AmaLS367)
 
 <p align="center">
