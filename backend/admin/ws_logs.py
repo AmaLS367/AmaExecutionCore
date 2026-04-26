@@ -59,11 +59,18 @@ def make_ws_router() -> APIRouter:
     router = APIRouter(prefix="/admin", tags=["admin-ws"])
 
     @router.websocket("/ws/logs")
-    async def ws_logs(websocket: WebSocket, token: str | None = None) -> None:
+    async def ws_logs(websocket: WebSocket) -> None:
         await websocket.accept()
 
+        try:
+            data = await asyncio.wait_for(websocket.receive_json(), timeout=5.0)
+            token = data.get("token")
+        except Exception:
+            await websocket.close(code=1008)
+            return
+
         if not token:
-            await websocket.send_json({"error": "token query parameter required"})
+            await websocket.send_json({"error": "token required"})
             await websocket.close(code=1008)
             return
 

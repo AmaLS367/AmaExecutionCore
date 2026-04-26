@@ -4,6 +4,9 @@ import { useAuthStore } from "../store/authStore";
 export const apiClient = axios.create({
   baseURL: "",
   withCredentials: true,
+  headers: {
+    "X-Requested-With": "XMLHttpRequest",
+  },
 });
 
 apiClient.interceptors.request.use((config) => {

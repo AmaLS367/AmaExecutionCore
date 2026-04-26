@@ -154,6 +154,9 @@ def create_app(
     session_factory: Any = AsyncSessionLocal,
     rest_client: Any | None = None,
 ) -> FastAPI:
+    if not settings.admin_jwt_secret or len(settings.admin_jwt_secret) < 32:
+        raise ValueError("admin_jwt_secret must be at least 32 characters long")
+
     if rest_client is None:
         try:
             rest_client = BybitRESTClient()

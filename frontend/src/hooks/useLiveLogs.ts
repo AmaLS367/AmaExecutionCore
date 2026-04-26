@@ -18,12 +18,15 @@ export function useLiveLogs() {
     if (!token) return;
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/admin/ws/logs?token=${token}`;
+    const wsUrl = `${protocol}//${window.location.host}/api/admin/ws/logs`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
-    ws.onopen = () => setIsConnected(true);
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ token }));
+      setIsConnected(true);
+    };
     ws.onclose = () => setIsConnected(false);
     ws.onmessage = (event) => {
       try {

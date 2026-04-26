@@ -48,6 +48,7 @@ class LogoutResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 _brute_force: dict[str, dict[str, float]] = {}
+_totp_failures: dict[str, int] = {}
 _MAX_FAILURES = 5
 _BLOCK_SECONDS = 900.0  # 15 minutes
 
@@ -152,6 +153,12 @@ async def verify_totp(
     ip = _client_ip(request)
     user_agent = request.headers.get("User-Agent")
 
+    if _totp_failures.get(payload.session_token, 0) >= 5:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed TOTP attempts. Please login again.",
+        )
+
     try:
         username = auth.decode_token(payload.session_token, "totp_pending")
     except jwt.PyJWTError as exc:
@@ -170,13 +177,14 @@ async def verify_totp(
 
     if row is None or not row.is_active:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
 
     if not auth.verify_totp(row.totp_secret, payload.totp_code):
-        await _append_audit(factory, row.id, "totp_failed", ip, user_agent)
+        _totp_failures[payload.session_token] = _totp_failures.get(payload.session_token, 0) + 1
+        await _append_audit(factory, row.id if row else 0, "totp_failed", ip, user_agent)
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid TOTP code"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
 
     await _append_audit(factory, row.id, "login_success", ip, user_agent)
@@ -194,8 +202,11 @@ async def verify_totp(
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_access_token(
+    request: Request,
     refresh_token: Annotated[str | None, Cookie()] = None,
 ) -> TokenResponse:
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CSRF protection missing header")
     if refresh_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token provided"
