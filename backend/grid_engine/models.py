@@ -50,8 +50,8 @@ class GridSlotRecord(Base):
     __tablename__ = "grid_slot_records"
     __table_args__ = (
         Index("ix_grid_slot_records_session_id", "session_id"),
-        Index("ix_grid_slot_records_buy_order_id", "buy_order_id"),
-        Index("ix_grid_slot_records_sell_order_id", "sell_order_id"),
+        Index("ix_grid_slot_records_buy_order_id", "buy_order_id", unique=True),
+        Index("ix_grid_slot_records_sell_order_id", "sell_order_id", unique=True),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
