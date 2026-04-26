@@ -24,7 +24,7 @@ jobs:
       TRADING_MODE: shadow
       BYBIT_TESTNET: "false"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
         with:
