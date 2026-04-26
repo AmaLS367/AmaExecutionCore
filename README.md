@@ -24,8 +24,8 @@
 </p>
 
 <p align="center">
-  <a href="https://img.shields.io/badge/License-MIT-green">
-    <img src="https://img.shields.io/badge/License-Apache%202.0-green?style=for-the-badge" />
+  <a href="https://img.shields.io/badge/License-Apache--2.0-green">
+    <img src="https://img.shields.io/badge/License-Apache--2.0-green?style=for-the-badge" />
   </a>
   <img src="https://img.shields.io/badge/Trading%20Mode-Shadow%20%7C%20Demo%20%7C%20Live-blueviolet?style=for-the-badge" />
   <a href="https://github.com/sponsors/AmaLS367">
