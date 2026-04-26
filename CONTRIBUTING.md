@@ -124,7 +124,7 @@ Key rules:
 
 - **No `Any` types** — use explicit types everywhere.
 - **No `# noqa` suppression** without a comment explaining why.
-- **No print statements** — use `logging` or `structlog`.
+- **No print statements** — use `logging` or `loguru`.
 - Strategy modules **never** call order placement directly. Only `order_executor` places orders.
 - All new config values go through `backend/config.py` `Settings` with a `field_validator`.
 
