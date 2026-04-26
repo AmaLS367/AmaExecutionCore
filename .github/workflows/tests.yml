@@ -35,7 +35,7 @@ jobs:
     env:
       TEST_POSTGRESQL_URL: postgresql+asyncpg://appuser:tradingpass@localhost:5432/tradingbot_test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
         with:
@@ -52,7 +52,7 @@ jobs:
   backtest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
         with:
@@ -91,7 +91,7 @@ jobs:
     env:
       AMA_RUN_TESTNET_E2E: ${{ secrets.AMA_RUN_TESTNET_E2E }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
         with:
