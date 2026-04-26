@@ -184,7 +184,7 @@ def load_dataset(path: Path) -> CandleDataset:
 
     candles = tuple(
         MarketCandle(
-            opened_at=datetime.fromisoformat(str(candle["opened_at"]).replace("Z", "+00:00")),
+            opened_at=datetime.fromisoformat(str(candle["opened_at"])),
             open=float(candle["open"]) if "open" in candle else float(candle["close"]),
             high=float(candle["high"]),
             low=float(candle["low"]),
