@@ -80,3 +80,8 @@ artifacts/
 admin_panel_plan.md
 # Added by code-review-graph
 .code-review-graph/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
