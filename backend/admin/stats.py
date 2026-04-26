@@ -46,7 +46,10 @@ async def get_dashboard_stats(session: AsyncSession, *, rest_client: object) -> 
         equity = settings.shadow_equity
     else:
         balance = rest_client.get_wallet_balance()  # type: ignore[attr-defined]
-        equity = float(balance.get("totalWalletBalance", 0.0))
+        try:
+            equity = float(balance["result"]["list"][0].get("totalWalletBalance", 0.0))
+        except (KeyError, IndexError, TypeError):
+            equity = 0.0
 
     safety_state = await session.scalar(select(SafetyState).where(SafetyState.id == 1))
     if safety_state is None:
@@ -119,7 +122,7 @@ async def get_trades_summary(session: AsyncSession) -> TradeSummary:
     losses = [p for p in pnls if p < 0]
     gross_profit = sum(wins)
     gross_loss = abs(sum(losses))
-    profit_factor = gross_profit / gross_loss if gross_loss > 0 else 0.0
+    profit_factor = gross_profit / gross_loss if gross_loss > 0 else (float("inf") if gross_profit > 0 else 0.0)
 
     return TradeSummary(
         total_trades=total,

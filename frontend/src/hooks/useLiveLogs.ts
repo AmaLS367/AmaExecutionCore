@@ -31,6 +31,7 @@ export function useLiveLogs() {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        if (data.type === "connected") return;
         setLogs((prev) => [...prev, data].slice(-1000));
       } catch (e) {
         console.error("Error parsing log:", e);

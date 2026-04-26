@@ -12,6 +12,7 @@ os.environ["ENVIRONMENT"] = "test"
 os.environ["DEBUG"] = "false"
 os.environ["LOG_LEVEL"] = "INFO"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+os.environ["ADMIN_JWT_SECRET"] = "x" * 32
 
 from backend.config import settings
 from backend.database import Base

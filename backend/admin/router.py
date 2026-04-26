@@ -193,7 +193,7 @@ async def verify_totp(
 
     if not auth.verify_totp(row.totp_secret, payload.totp_code):
         _totp_failures[payload.session_token] = _totp_failures.get(payload.session_token, 0) + 1
-        await _append_audit(factory, row.id if row else 0, "totp_failed", ip, user_agent)
+        await _append_audit(factory, row.id, "totp_failed", ip, user_agent)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials",
         )

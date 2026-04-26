@@ -63,7 +63,7 @@ def generate_totp_secret() -> str:
 
 
 def verify_totp(secret: str, code: str) -> bool:
-    return bool(pyotp.TOTP(secret).verify(code, valid_window=0))
+    return bool(pyotp.TOTP(secret).verify(code, valid_window=1))
 
 
 def get_totp_provisioning_uri(secret: str, username: str) -> str:
