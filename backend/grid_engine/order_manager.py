@@ -76,8 +76,8 @@ class GridOrderManager:
             symbol=symbol,
             side=side,
             order_type="Limit",
-            qty=_format_decimal(qty),
-            price=_format_decimal(price),
+            qty=_format_qty(qty),
+            price=_format_price(price),
             is_post_only=True,
         )
         order_id = _order_id(result)
@@ -86,8 +86,28 @@ class GridOrderManager:
         return order_id
 
 
-def _format_decimal(value: float) -> str:
-    return f"{value:.8f}".rstrip("0").rstrip(".")
+def _price_decimals(price: float) -> int:
+    """Estimate tick-size precision from price magnitude.
+
+    Bybit spot typical tick sizes:
+    BTC/ETH/BNB (>=100 USDT)  → 0.01  (2 dp)
+    SOL/AVAX    (10-100 USDT) -> 0.01  (2 dp)
+    XRP/ADA     (1-10 USDT)  -> 0.0001 (4 dp)
+    DOGE/SHIB   (<1 USDT)     → 0.00001 (5 dp)
+    """
+    if price >= 10:
+        return 2
+    if price >= 1:
+        return 4
+    return 5
+
+
+def _format_price(price: float) -> str:
+    return f"{price:.{_price_decimals(price)}f}"
+
+
+def _format_qty(qty: float) -> str:
+    return f"{qty:.8f}".rstrip("0").rstrip(".")
 
 
 def _order_id(payload: dict[str, Any]) -> str | None:
