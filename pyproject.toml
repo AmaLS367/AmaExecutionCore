@@ -43,7 +43,13 @@ dependencies = [
     "alembic>=1.13.3",
     
     # Utilities
-    "loguru>=0.7.2"
+    "loguru>=0.7.2",
+
+    # Admin Panel
+    "PyJWT>=2.8.0",
+    "passlib[bcrypt]>=1.7.4",
+    "pyotp>=2.9.0",
+    "qrcode>=8.0",
 ]
 [project.urls]
 Homepage = "https://github.com/AmaLS367/AmaExecutionCore"
@@ -103,6 +109,7 @@ ignore = [
 "backend/safety_guard/router.py" = ["B008"]
 "backend/signal_loop/runner.py" = ["BLE001"]
 "backend/signal_loop/ws_runner.py" = ["BLE001"]
+"backend/admin/router.py" = ["B008"]
 "scripts/*.py" = ["T201"]
 "scripts/run_backtest.py" = ["PLC0415", "T201"]
 "tests/**/*.py" = ["ARG001", "ARG002", "BLE001", "DTZ011", "INP001", "PLC0415", "S105", "S106", "SLF001"]
@@ -125,6 +132,18 @@ exclude = [
 
 [[tool.mypy.overrides]]
 module = "pybit.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pyotp.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "passlib.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "qrcode.*"
 ignore_missing_imports = true
 
 [tool.hatch.build.targets.wheel]

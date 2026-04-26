@@ -69,6 +69,13 @@ class Settings(BaseSettings):
     market_data_max_staleness_intervals: int = 2
     market_data_staleness_grace_seconds: int = 15
 
+    # Admin Panel
+    admin_jwt_secret: str = ""
+    admin_jwt_access_ttl_hours: int = 8
+    admin_jwt_refresh_ttl_days: int = 30
+    admin_totp_issuer: str = "AmaExecutionCore"
+    admin_cors_origin: str = ""
+
     @property
     def active_api_key(self) -> str:
         """Returns the API key for the currently active environment."""
