@@ -105,6 +105,21 @@ jobs:
               sleep 2
             done
 
+            echo "Checking frontend health..."
+            for i in $(seq 1 15); do
+              if curl --fail --silent --show-error http://127.0.0.1:80/; then
+                echo "Frontend health check passed."
+                break
+              fi
+              if [ "$i" -eq 15 ]; then
+                echo "Frontend health check failed. Nginx logs:"
+                docker logs ama_nginx --tail 30
+                exit 1
+              fi
+              echo "Attempt $i failed, retrying in 2s..."
+              sleep 2
+            done
+
             echo "Cleaning up dangling images..."
             docker image prune -f
 

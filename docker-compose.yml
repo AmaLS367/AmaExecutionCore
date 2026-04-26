@@ -45,5 +45,26 @@ services:
       retries: 10
     restart: unless-stopped
 
+  ama_frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ama_frontend
+    restart: unless-stopped
+
+  ama_nginx:
+    image: nginx:alpine
+    container_name: ama_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - bot
+      - ama_frontend
+
 volumes:
   postgres_data:

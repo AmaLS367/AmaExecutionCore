@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useLiveLogs, LogEntry } from "../hooks/useLiveLogs";
+import { useLiveLogs } from "../hooks/useLiveLogs";
 import { Play, Pause, Trash2, Filter } from "lucide-react";
 
 export function LogsPage() {
