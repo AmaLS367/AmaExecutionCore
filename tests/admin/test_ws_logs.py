@@ -6,6 +6,7 @@ import logging
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from backend.admin import auth as admin_auth
 from backend.config import settings
@@ -28,6 +29,8 @@ def _make_app() -> TestClient:
     from backend.admin.ws_logs import make_ws_router
 
     app = FastAPI()
+    import fakeredis
+    app.state.redis = fakeredis.FakeAsyncRedis(decode_responses=True)
     app.include_router(make_ws_router())
     return TestClient(app, raise_server_exceptions=True)
 
@@ -60,6 +63,24 @@ def test_ws_logs_accepts_valid_token_and_sends_connected_ack() -> None:
         ws.send_json({"token": token})
         msg = ws.receive_json()
         assert msg.get("type") == "connected"
+
+
+def test_ws_logs_periodically_closes_revoked_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    from backend.admin import ws_logs
+
+    monkeypatch.setattr(ws_logs, "_REVALIDATE_INTERVAL_SECONDS", 0.01)
+    token = _access_token()
+    payload = admin_auth.decode_token(token, "access")
+    jti = str(payload["jti"])
+    client = _make_app()
+
+    with client.websocket_connect("/admin/ws/logs") as ws:
+        ws.send_json({"token": token})
+        assert ws.receive_json().get("type") == "connected"
+        asyncio.run(client.app.state.redis.setex(f"bl:{jti}", 300, "1"))
+
+        with pytest.raises(WebSocketDisconnect):
+            ws.receive_text()
 
 
 # ---------------------------------------------------------------------------

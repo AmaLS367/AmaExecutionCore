@@ -47,7 +47,7 @@ async def get_dashboard_stats(session: AsyncSession, *, rest_client: object) -> 
     else:
         balance = rest_client.get_wallet_balance()  # type: ignore[attr-defined]
         try:
-            equity = float(balance["result"]["list"][0].get("totalWalletBalance", 0.0))
+            equity = float(balance["list"][0].get("totalWalletBalance", 0.0))
         except (KeyError, IndexError, TypeError):
             equity = 0.0
 

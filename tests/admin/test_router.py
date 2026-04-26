@@ -18,13 +18,7 @@ def _configure_admin_settings() -> None:
     settings.admin_jwt_secret = "test-secret-at-least-32-characters-ok"
 
 
-@pytest.fixture(autouse=True)
-def _clear_brute_force() -> None:
-    from backend.admin import router as admin_router
 
-    admin_router._brute_force.clear()
-    yield  # type: ignore[misc]
-    admin_router._brute_force.clear()
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 import bcrypt
 import jwt
@@ -24,7 +26,12 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def _make_token(username: str, token_type: str, expires_delta: timedelta) -> str:
     expires = datetime.now(UTC) + expires_delta
-    payload: dict[str, object] = {"sub": username, "type": token_type, "exp": expires}
+    payload: dict[str, object] = {
+        "sub": username,
+        "type": token_type,
+        "exp": expires,
+        "jti": uuid.uuid4().hex,
+    }
     return jwt.encode(payload, settings.admin_jwt_secret, algorithm=_ALGORITHM)
 
 
@@ -44,8 +51,8 @@ def create_totp_pending_token(username: str) -> str:
     return _make_token(username, _TYPE_TOTP_PENDING, timedelta(minutes=5))
 
 
-def decode_token(token: str, expected_type: str) -> str:
-    """Decode a JWT and return the subject username.
+def decode_token(token: str, expected_type: str) -> dict[str, object]:
+    """Decode a JWT and return the payload.
 
     Raises jwt.PyJWTError on expiry, bad signature, or type mismatch.
     """
@@ -55,7 +62,7 @@ def decode_token(token: str, expected_type: str) -> str:
     sub = payload.get("sub")
     if not isinstance(sub, str):
         raise jwt.InvalidTokenError("Missing or invalid subject claim")
-    return sub
+    return cast("dict[str, object]", payload)
 
 
 def generate_totp_secret() -> str:

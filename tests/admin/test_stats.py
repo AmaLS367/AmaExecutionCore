@@ -34,6 +34,11 @@ class _NullRestClient:
         raise RuntimeError("should not be called in shadow mode")
 
 
+class _WalletRestClient:
+    def get_wallet_balance(self) -> dict[str, object]:
+        return {"list": [{"totalWalletBalance": "123.45"}]}
+
+
 def _make_trade(
     session_factory: async_sessionmaker[AsyncSession],
     *,
@@ -100,6 +105,21 @@ def test_dashboard_shadow_mode_returns_shadow_equity(
     result = asyncio.run(run())
     assert result.equity == 10_000.0
     assert result.trading_mode == "shadow"
+
+
+def test_dashboard_real_mode_reads_unwrapped_wallet_balance(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    settings.trading_mode = "real"
+
+    async def run() -> admin_stats.DashboardStats:
+        async with sqlite_session_factory() as session:
+            return await admin_stats.get_dashboard_stats(
+                session, rest_client=_WalletRestClient(),
+            )
+
+    result = asyncio.run(run())
+    assert result.equity == pytest.approx(123.45)
 
 
 def test_dashboard_returns_ok_status_when_safety_clear(

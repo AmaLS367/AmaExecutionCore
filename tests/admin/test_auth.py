@@ -42,24 +42,25 @@ def test_create_access_token_decodes_with_access_type() -> None:
     from backend.admin import auth
 
     token = auth.create_access_token("alice")
-    username = auth.decode_token(token, "access")
-    assert username == "alice"
+    payload = auth.decode_token(token, "access")
+    assert payload["sub"] == "alice"
+    assert "jti" in payload
 
 
 def test_create_totp_pending_token_decodes_with_totp_pending_type() -> None:
     from backend.admin import auth
 
     token = auth.create_totp_pending_token("alice")
-    username = auth.decode_token(token, "totp_pending")
-    assert username == "alice"
+    payload = auth.decode_token(token, "totp_pending")
+    assert payload["sub"] == "alice"
 
 
 def test_create_refresh_token_decodes_with_refresh_type() -> None:
     from backend.admin import auth
 
     token = auth.create_refresh_token("alice")
-    username = auth.decode_token(token, "refresh")
-    assert username == "alice"
+    payload = auth.decode_token(token, "refresh")
+    assert payload["sub"] == "alice"
 
 
 def test_decode_token_with_wrong_type_raises() -> None:

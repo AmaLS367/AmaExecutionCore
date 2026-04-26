@@ -96,6 +96,8 @@ def _make_app(session_factory: async_sessionmaker[AsyncSession]) -> TestClient:
     from backend.admin.data_router import make_data_router
 
     app = FastAPI()
+    import fakeredis
+    app.state.redis = fakeredis.FakeAsyncRedis(decode_responses=True)
     app.include_router(make_data_router(session_factory=session_factory))
     return TestClient(app, raise_server_exceptions=True)
 

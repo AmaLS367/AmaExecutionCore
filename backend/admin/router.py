@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ipaddress
-import time
 from typing import Annotated, cast
 
 import jwt
@@ -48,28 +47,25 @@ class LogoutResponse(BaseModel):
 # Brute-force protection (in-memory, per IP)
 # ---------------------------------------------------------------------------
 
-_brute_force: dict[str, dict[str, float]] = {}
-_totp_failures: dict[str, int] = {}
 _MAX_FAILURES = 5
-_BLOCK_SECONDS = 900.0  # 15 minutes
+_BLOCK_SECONDS = 900  # 15 minutes
 
 
-def _is_blocked(ip: str) -> bool:
-    record = _brute_force.get(ip)
-    if record is None:
-        return False
-    return record.get("blocked_until", 0.0) > time.monotonic()
+async def _is_blocked(redis_client: object, ip: str) -> bool:
+    return bool(await redis_client.exists(f"blocked:{ip}"))  # type: ignore[attr-defined]
 
 
-def _record_failure(ip: str) -> None:
-    record = _brute_force.setdefault(ip, {"failures": 0.0, "blocked_until": 0.0})
-    record["failures"] += 1.0
-    if record["failures"] >= _MAX_FAILURES:
-        record["blocked_until"] = time.monotonic() + _BLOCK_SECONDS
+async def _record_failure(redis_client: object, ip: str) -> None:
+    key = f"failures:{ip}"
+    count = await redis_client.incr(key)  # type: ignore[attr-defined]
+    if count == 1:
+        await redis_client.expire(key, 900)  # type: ignore[attr-defined]
+    if count >= _MAX_FAILURES:
+        await redis_client.setex(f"blocked:{ip}", _BLOCK_SECONDS, "1")  # type: ignore[attr-defined]
 
 
-def _reset_failures(ip: str) -> None:
-    _brute_force.pop(ip, None)
+async def _reset_failures(redis_client: object, ip: str) -> None:
+    await redis_client.delete(f"failures:{ip}")  # type: ignore[attr-defined]
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +116,8 @@ async def _append_audit(
 @router.post("/login", response_model=LoginResponse)
 async def login(request: Request, payload: LoginRequest) -> LoginResponse:
     ip = _client_ip(request)
-    if _is_blocked(ip):
+    redis_client = request.app.state.redis
+    if await _is_blocked(redis_client, ip):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many failed attempts — try again later",
@@ -142,7 +139,7 @@ async def login(request: Request, payload: LoginRequest) -> LoginResponse:
     )
 
     if not valid:
-        _record_failure(ip)
+        await _record_failure(redis_client, ip)
         if row is not None:
             await _append_audit(factory, row.id, "login_failed", ip, user_agent)
         raise HTTPException(
@@ -150,7 +147,7 @@ async def login(request: Request, payload: LoginRequest) -> LoginResponse:
             detail="Invalid credentials",
         )
 
-    _reset_failures(ip)
+    await _reset_failures(redis_client, ip)
     return LoginResponse(
         totp_required=True,
         session_token=auth.create_totp_pending_token(row.username),  # type: ignore[union-attr]
@@ -163,15 +160,19 @@ async def verify_totp(
 ) -> TokenResponse:
     ip = _client_ip(request)
     user_agent = request.headers.get("User-Agent")
+    redis_client = request.app.state.redis
+    totp_fail_key = f"totp_fail:{payload.session_token}"
+    fail_count = await redis_client.get(totp_fail_key)
 
-    if _totp_failures.get(payload.session_token, 0) >= 5:
+    if fail_count and int(fail_count) >= 5:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many failed TOTP attempts. Please login again.",
         )
 
     try:
-        username = auth.decode_token(payload.session_token, "totp_pending")
+        token_payload = auth.decode_token(payload.session_token, "totp_pending")
+        username = str(token_payload.get("sub"))
     except jwt.PyJWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -192,7 +193,9 @@ async def verify_totp(
         )
 
     if not auth.verify_totp(row.totp_secret, payload.totp_code):
-        _totp_failures[payload.session_token] = _totp_failures.get(payload.session_token, 0) + 1
+        count = await redis_client.incr(totp_fail_key)
+        if count == 1:
+            await redis_client.expire(totp_fail_key, 300)
         await _append_audit(factory, row.id, "totp_failed", ip, user_agent)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials",
@@ -223,7 +226,12 @@ async def refresh_access_token(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token provided",
         )
     try:
-        username = auth.decode_token(refresh_token, "refresh")
+        token_payload = auth.decode_token(refresh_token, "refresh")
+        username = str(token_payload.get("sub"))
+        jti = str(token_payload.get("jti", ""))
+        redis_client = request.app.state.redis
+        if jti and await redis_client.exists(f"bl:{jti}"):
+            raise jwt.PyJWTError("Token revoked")  # noqa: TRY301
     except jwt.PyJWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -233,6 +241,18 @@ async def refresh_access_token(
 
 
 @router.post("/logout", response_model=LogoutResponse)
-async def logout(response: Response) -> LogoutResponse:
+async def logout(
+    request: Request,
+    response: Response,
+    refresh_token: Annotated[str | None, Cookie()] = None,
+) -> LogoutResponse:
+    if refresh_token:
+        try:
+            token_payload = auth.decode_token(refresh_token, "refresh")
+            jti = str(token_payload.get("jti", ""))
+            if jti:
+                await request.app.state.redis.setex(f"bl:{jti}", 60 * 60 * 24 * 30, "1")
+        except jwt.PyJWTError:
+            pass
     response.delete_cookie("refresh_token")
     return LogoutResponse(ok=True)

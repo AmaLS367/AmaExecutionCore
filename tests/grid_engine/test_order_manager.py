@@ -37,7 +37,7 @@ def test_place_buy_limit_calls_rest_client_with_correct_params() -> None:
             "side": "Buy",
             "order_type": "Limit",
             "qty": "2.5",
-            "price": "1.8",
+            "price": "1.8000",
             "is_post_only": True,
         },
     ]
