@@ -14,6 +14,7 @@ FASTAPI_ALLOWED_MODULES = {
     "backend.admin.data_router",
     "backend.admin.deps",
     "backend.admin.router",
+    "backend.admin.ws_logs",
     "backend.api.grid_router",
     "backend.main",
     "backend.position_manager.router",
