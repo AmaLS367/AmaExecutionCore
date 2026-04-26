@@ -98,3 +98,34 @@ def test_grid_start_and_stop_call_runner(
     assert stop_response.status_code == 200
     assert runner.started == [session_id]
     assert runner.stopped == [session_id]
+
+
+class FailingGridRunner:
+    async def start(self, session_id: int) -> None:
+        raise ValueError(f"Grid session {session_id} is already active")
+
+
+def test_grid_start_already_active_returns_409(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    app = create_app(session_factory=sqlite_session_factory, rest_client=PassiveRestClient())
+    runner = FailingGridRunner()
+    app.state.grid_runner = runner
+
+    with TestClient(app) as client:
+        create_response = client.post(
+            "/grid/create",
+            json={
+                "symbol": "XRPUSDT",
+                "p_min": 1.80,
+                "p_max": 2.20,
+                "n_levels": 10,
+                "capital_usdt": 20.0,
+            },
+        )
+        session_id = create_response.json()["session_id"]
+
+        start_response = client.post(f"/grid/{session_id}/start")
+
+    assert start_response.status_code == 409
+    assert "already active" in start_response.json()["detail"]

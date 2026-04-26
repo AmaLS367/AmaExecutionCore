@@ -173,7 +173,10 @@ async def get_grid_status(request: Request, session_id: int) -> GridStatusRespon
 @router.post("/{session_id}/start", response_model=GridStateResponse)
 async def start_grid_session(request: Request, session_id: int) -> GridStateResponse:
     runner = _grid_runner(request)
-    await runner.start(session_id)
+    try:
+        await runner.start(session_id)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
     return GridStateResponse(session_id=session_id, status=GridSessionStatus.ACTIVE.value)
 
 

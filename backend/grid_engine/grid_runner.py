@@ -52,11 +52,12 @@ class GridRunner:
         self._last_daily_report_at: dict[int, datetime] = {}
 
     async def start(self, session_id: int) -> None:
-        current_price = self._get_current_price(await self._symbol_for_session(session_id))
         async with self._session_factory() as session:
             grid_session = await self._load_session(session, session_id)
             if grid_session.status == GridSessionStatus.ACTIVE.value:
                 raise ValueError(f"Grid session {session_id} is already active")
+
+            current_price = self._get_current_price(grid_session.symbol)
 
             config = _config_from_json(grid_session.config_json)
             for slot in grid_session.slots:
