@@ -6,6 +6,7 @@ import json
 import os
 import sys
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import cast
@@ -32,6 +33,7 @@ class FixtureCandle:
     low: float
     close: float
     volume: float = 0.0
+    open: float | None = None
 
 
 @dataclass(slots=True, frozen=True)
@@ -39,6 +41,7 @@ class FixturePayload:
     symbol: str
     interval: str
     candles: tuple[FixtureCandle, ...]
+    lookback_days: int | None = None
 
 
 @dataclass(slots=True, frozen=True)
@@ -81,7 +84,16 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _load_candles(*, args: argparse.Namespace) -> tuple[str, str, int | None, tuple[MarketCandle, ...]]:
     if args.fixture is not None:
-        dataset = load_dataset(args.fixture)
+        try:
+            dataset = load_dataset(args.fixture)
+        except KeyError:
+            payload = _load_fixture_payload(args.fixture)
+            return (
+                args.symbol or payload.symbol,
+                args.interval or payload.interval,
+                args.lookback_days or payload.lookback_days,
+                _fixture_payload_to_market_candles(payload),
+            )
         return (
             args.symbol or dataset.symbol,
             args.interval or dataset.interval,
@@ -114,6 +126,7 @@ def _load_fixture_payload(path: Path) -> FixturePayload:
     symbol = str(raw_payload.get("symbol", "")).strip().upper()
     interval = str(raw_payload.get("interval", "")).strip()
     raw_candles = raw_payload.get("candles")
+    raw_lookback_days = raw_payload.get("lookback_days")
     if not symbol:
         raise ValueError("Fixture payload must define a non-empty symbol.")
     if not interval:
@@ -128,11 +141,32 @@ def _load_fixture_payload(path: Path) -> FixturePayload:
             low=float(raw_candle["low"]),
             close=float(raw_candle["close"]),
             volume=float(raw_candle.get("volume", 0.0)),
+            open=float(raw_candle["open"]) if "open" in raw_candle else None,
         )
         for raw_candle in raw_candles
         if isinstance(raw_candle, dict)
     )
-    return FixturePayload(symbol=symbol, interval=interval, candles=candles)
+    lookback_days = int(raw_lookback_days) if raw_lookback_days is not None else None
+    return FixturePayload(
+        symbol=symbol,
+        interval=interval,
+        candles=candles,
+        lookback_days=lookback_days,
+    )
+
+
+def _fixture_payload_to_market_candles(payload: FixturePayload) -> tuple[MarketCandle, ...]:
+    return tuple(
+        MarketCandle(
+            opened_at=datetime.fromisoformat(candle.opened_at),
+            open=candle.open if candle.open is not None else candle.close,
+            high=candle.high,
+            low=candle.low,
+            close=candle.close,
+            volume=candle.volume,
+        )
+        for candle in payload.candles
+    )
 
 
 def _build_strategy(*, family: str, strategy_name: str, min_rrr: float) -> object:

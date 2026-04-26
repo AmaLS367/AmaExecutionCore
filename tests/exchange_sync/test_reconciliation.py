@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -92,7 +92,7 @@ def build_trade(
         risk_amount_usd=Decimal(10),
         risk_pct=Decimal("0.01"),
         status=status,
-        opened_at=datetime.now(timezone.utc),
+        opened_at=datetime.now(UTC),
     )
 
 

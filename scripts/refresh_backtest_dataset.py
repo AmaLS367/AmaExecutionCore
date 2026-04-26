@@ -11,7 +11,12 @@ from pathlib import Path
 from loguru import logger
 
 from backend.backtest import load_manifest
-from backend.backtest.datasets import SupportsKlineFetch, fetch_candles_with_retry, save_dataset
+from backend.backtest.datasets import (
+    SupportsKlineFetch,
+    candles_for_lookback,
+    fetch_candles_with_retry,
+    save_dataset,
+)
 from backend.bybit_client.rest import BybitRESTClient
 
 
@@ -79,6 +84,15 @@ async def refresh_manifest_datasets(
             retries=3,
             base_delay_seconds=2.0,
         )
+        expected_candles = candles_for_lookback(
+            interval=scenario.interval,
+            lookback_days=scenario.lookback_days,
+        )
+        if len(candles) != expected_candles:
+            raise ValueError(
+                f"Partial candle fetch for {scenario.name}: "
+                f"expected {expected_candles}, got {len(candles)}.",
+            )
         save_dataset(
             dataset_path,
             symbol=scenario.symbol,

@@ -2,7 +2,7 @@ import asyncio
 import uuid
 from collections.abc import Coroutine
 from contextlib import suppress
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, Protocol
 
@@ -374,7 +374,7 @@ class ExchangeSyncEngine:
                 TradeStatus.ORDER_CONFIRMED,
                 event_metadata={"source": "exchange_sync"},
             )
-            trade.opened_at = datetime.now(timezone.utc)
+            trade.opened_at = datetime.now(UTC)
             if is_fully_filled:
                 protection_ready = await self._ensure_spot_market_protection(
                     session=session,
@@ -400,14 +400,14 @@ class ExchangeSyncEngine:
                 TradeStatus.POSITION_CLOSED,
                 event_metadata={"source": "exchange_sync"},
             )
-            trade.closed_at = datetime.now(timezone.utc)
+            trade.closed_at = datetime.now(UTC)
             if trade.opened_at is not None:
                 opened_at = trade.opened_at
                 closed_at = trade.closed_at
                 if opened_at.tzinfo is None:
-                    opened_at = opened_at.replace(tzinfo=timezone.utc)
+                    opened_at = opened_at.replace(tzinfo=UTC)
                 if closed_at.tzinfo is None:
-                    closed_at = closed_at.replace(tzinfo=timezone.utc)
+                    closed_at = closed_at.replace(tzinfo=UTC)
                 trade.hold_time_seconds = int((closed_at - opened_at).total_seconds())
             if is_stop_order:
                 trade.exit_reason = ExitReason.SL_HIT

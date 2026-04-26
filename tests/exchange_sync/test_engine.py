@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -74,7 +74,7 @@ async def test_exchange_sync_records_close_and_pnl(
             risk_amount_usd=Decimal(10),
             risk_pct=Decimal("0.01"),
             status=TradeStatus.POSITION_CLOSE_PENDING,
-            opened_at=datetime.now(timezone.utc),
+            opened_at=datetime.now(UTC),
         )
         session.add(trade)
         await session.commit()
@@ -160,7 +160,7 @@ def _build_entry_trade(
         risk_amount_usd=Decimal(10),
         risk_pct=Decimal("0.01"),
         status=status,
-        opened_at=datetime.now(timezone.utc),
+        opened_at=datetime.now(UTC),
         order_type=order_type,
     )
 
@@ -184,8 +184,8 @@ def _build_close_trade(*, status: TradeStatus = TradeStatus.POSITION_CLOSE_PENDI
         realized_pnl=Decimal(10) if status == TradeStatus.PNL_RECORDED else None,
         avg_exit_price=Decimal(110) if status == TradeStatus.PNL_RECORDED else None,
         status=status,
-        opened_at=datetime.now(timezone.utc),
-        closed_at=datetime.now(timezone.utc) if status == TradeStatus.PNL_RECORDED else None,
+        opened_at=datetime.now(UTC),
+        closed_at=datetime.now(UTC) if status == TradeStatus.PNL_RECORDED else None,
         exit_reason=ExitReason.MANUAL if status == TradeStatus.PNL_RECORDED else None,
     )
 

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Generic, Protocol, TypeGuard, TypeVar, cast
 
+from backend.backtest.metrics import calculate_max_drawdown
 from backend.backtest.shadow_runner import SupportsExecutionService, _to_execute_signal_request
 from backend.market_data.contracts import MarketCandle, MarketSnapshot
 from backend.signal_execution.schemas import ExecuteSignalRequest
@@ -324,7 +325,7 @@ def _build_report(
     profit_factor: Decimal | None = None
     if losing_trades:
         profit_factor = sum(winning_trades, Decimal(0)) / abs(sum(losing_trades, Decimal(0)))
-    max_drawdown = _calculate_max_drawdown(realized_pnls) if trade_count else None
+    max_drawdown = calculate_max_drawdown(realized_pnls) if trade_count else None
 
     slippage_summary: HistoricalReplaySlippageSummary | None = None
     if slippages:
@@ -512,18 +513,6 @@ def _coerce_int(value: object | None) -> int | None:
         except ValueError:
             return None
     return None
-
-
-def _calculate_max_drawdown(realized_pnls: list[Decimal]) -> Decimal:
-    equity_curve = Decimal(0)
-    peak_equity = Decimal(0)
-    max_drawdown = Decimal(0)
-    for realized_pnl in realized_pnls:
-        equity_curve += realized_pnl
-        peak_equity = max(peak_equity, equity_curve)
-        drawdown = peak_equity - equity_curve
-        max_drawdown = max(max_drawdown, drawdown)
-    return max_drawdown
 
 
 def _future_candles_for_step(

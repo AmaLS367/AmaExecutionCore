@@ -217,7 +217,7 @@ class PositionManagerService:
 
             try:
                 await asyncio.wait_for(monitor_stop_event.wait(), timeout=poll_interval_seconds)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
 
     def stop_spot_exit_monitor(self) -> None:

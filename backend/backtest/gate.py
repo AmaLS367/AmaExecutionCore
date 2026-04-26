@@ -6,6 +6,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Literal, cast
 
+from backend.backtest.metrics import calculate_max_drawdown
 from backend.backtest.replay_runner import (
     HistoricalReplayRequest,
     HistoricalReplayRunner,
@@ -247,7 +248,7 @@ def _calculate_metrics(
     else:
         profit_factor = gross_wins / gross_losses
 
-    max_drawdown = _calculate_max_drawdown(net_trade_pnls)
+    max_drawdown = calculate_max_drawdown(net_trade_pnls)
     max_drawdown_pct = None
     if scenario.starting_equity_usd > 0:
         max_drawdown_pct = max_drawdown / Decimal(str(scenario.starting_equity_usd))
@@ -263,18 +264,6 @@ def _calculate_metrics(
         net_pnl=net_pnl,
         fees_paid=fees_paid,
     )
-
-
-def _calculate_max_drawdown(net_trade_pnls: tuple[Decimal, ...]) -> Decimal:
-    running_equity = Decimal(0)
-    peak = Decimal(0)
-    max_drawdown = Decimal(0)
-    for pnl in net_trade_pnls:
-        running_equity += pnl
-        peak = max(peak, running_equity)
-        max_drawdown = max(max_drawdown, peak - running_equity)
-    return max_drawdown
-
 
 def _evaluate_profile(
     *,

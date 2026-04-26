@@ -67,7 +67,7 @@ class WebSocketSignalRunner:
         while not self._stop_event.is_set():
             try:
                 feed_snapshot = await asyncio.wait_for(self._feed.queue.get(), timeout=2.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             await self._process_feed_snapshot(feed_snapshot)
 

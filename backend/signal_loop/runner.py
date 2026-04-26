@@ -162,7 +162,7 @@ class SignalLoopRunner:
 
         try:
             await asyncio.wait_for(self._stop_event.wait(), timeout=wait_seconds)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return
 
     async def _is_symbol_blacklisted(self, symbol: str) -> bool:

@@ -241,3 +241,81 @@ async def test_refresh_manifest_datasets_writes_summary(
     assert summary_path.exists()
     assert dataset_path.exists()
     assert len(report["datasets"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_refresh_manifest_datasets_rejects_partial_fetch_before_writing(
+    tmp_path: Path,
+) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    dataset_path = tmp_path / "btc.json.gz"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "profiles": {
+                    "regression_v1": {
+                        "min_closed_trades": 0,
+                        "min_win_rate": 0,
+                        "min_profit_factor": 0,
+                        "require_positive_expectancy": False,
+                        "max_drawdown_pct": 1,
+                    },
+                },
+                "scenarios": [
+                    {
+                        "name": "btc",
+                        "family": "scalping",
+                        "strategy": "vwap_reversion",
+                        "symbol": "BTCUSDT",
+                        "interval": "5",
+                        "lookback_days": 1,
+                        "live_lookback_days": 1,
+                        "dataset_path": dataset_path.relative_to(tmp_path).as_posix(),
+                        "risk_amount_usd": 100.0,
+                        "starting_equity_usd": 10000.0,
+                        "max_hold_candles": 20,
+                        "min_rrr": 1.5,
+                        "regression_profile": "regression_v1",
+                        "live_profile": "regression_v1",
+                    },
+                ],
+            },
+        ),
+        encoding="utf-8",
+    )
+
+    class _ShortClient:
+        def get_klines(
+            self,
+            *,
+            symbol: str,
+            interval: str,
+            limit: int,
+            category: str,
+            end: int | None = None,
+        ) -> object:
+            del symbol, interval, limit, category, end
+            from backend.bybit_client.rest import BybitKline
+
+            return [
+                BybitKline(
+                    start_time=datetime(2024, 1, 1, tzinfo=UTC),
+                    open_price=100.0,
+                    high_price=101.0,
+                    low_price=99.0,
+                    close_price=100.0,
+                    volume=1000.0,
+                    turnover=10000.0,
+                ),
+            ]
+
+    summary_path = tmp_path / "refresh.json"
+    with pytest.raises(ValueError, match="Partial candle fetch"):
+        await refresh_manifest_datasets(
+            manifest_path=manifest_path,
+            output_summary_path=summary_path,
+            client=_ShortClient(),  # type: ignore[arg-type]
+        )
+
+    assert not summary_path.exists()
+    assert not dataset_path.exists()
