@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
-import uuid
 from typing import Protocol
 
 from loguru import logger
@@ -11,7 +11,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.config import settings
-from backend.trade_journal.models import ExchangeSide, ExitReason, SignalDirection, Trade, TradeStatus
+from backend.trade_journal.models import (
+    ExchangeSide,
+    ExitReason,
+    SignalDirection,
+    Trade,
+    TradeStatus,
+)
 from backend.trade_journal.store import TradeJournalStore
 
 OPEN_POSITION_STATUSES: frozenset[TradeStatus] = frozenset(
@@ -20,14 +26,14 @@ OPEN_POSITION_STATUSES: frozenset[TradeStatus] = frozenset(
         TradeStatus.ORDER_PARTIALLY_FILLED,
         TradeStatus.POSITION_CLOSE_PENDING,
         TradeStatus.POSITION_CLOSE_FAILED,
-    }
+    },
 )
 _CLOSE_RETRYABLE_STATUSES: frozenset[TradeStatus] = frozenset(
     {
         TradeStatus.POSITION_OPEN,
         TradeStatus.ORDER_PARTIALLY_FILLED,
         TradeStatus.POSITION_CLOSE_FAILED,
-    }
+    },
 )
 
 
@@ -74,7 +80,7 @@ class PositionManagerService:
             result = await session.execute(
                 select(Trade)
                 .where(Trade.status.in_(tuple(OPEN_POSITION_STATUSES)))
-                .order_by(Trade.created_at.desc())
+                .order_by(Trade.created_at.desc()),
             )
             return list(result.scalars().all())
 
@@ -110,7 +116,7 @@ class PositionManagerService:
                 else:
                     trade.avg_exit_price = trade.target_price or trade.entry_price or trade.stop_price
                 trade.closed_at = datetime.now(UTC)
-                exit_price = trade.avg_exit_price or Decimal("0")
+                exit_price = trade.avg_exit_price or Decimal(0)
                 realized_pnl = TradeJournalStore.calculate_realized_pnl(trade, exit_price)
                 trade.realized_pnl = realized_pnl
                 trade.pnl_pct = TradeJournalStore.calculate_pnl_pct(trade, realized_pnl)
@@ -123,7 +129,7 @@ class PositionManagerService:
                     if closed_at is not None and closed_at.tzinfo is None:
                         closed_at = closed_at.replace(tzinfo=UTC)
                     trade.hold_time_seconds = int(
-                        (closed_at - opened_at).total_seconds()
+                        (closed_at - opened_at).total_seconds(),
                     )
                 await store.transition_trade_status(
                     trade,
@@ -211,7 +217,7 @@ class PositionManagerService:
 
             try:
                 await asyncio.wait_for(monitor_stop_event.wait(), timeout=poll_interval_seconds)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
 
     def stop_spot_exit_monitor(self) -> None:
@@ -225,7 +231,7 @@ class PositionManagerService:
     ) -> tuple[str, ExchangeSide, Decimal]:
         close_order_link_id = f"close_{uuid.uuid4().hex[:12]}"
         close_side = ExchangeSide.SELL if trade.exchange_side == ExchangeSide.BUY else ExchangeSide.BUY
-        qty = trade.filled_qty or trade.qty or Decimal("0")
+        qty = trade.filled_qty or trade.qty or Decimal(0)
 
         trade.close_order_link_id = close_order_link_id
         trade.close_exchange_order_id = None

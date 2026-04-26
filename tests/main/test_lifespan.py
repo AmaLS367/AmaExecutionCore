@@ -27,6 +27,5 @@ def test_create_app_lifespan_rejects_overlapping_signal_loop_and_scalping_symbol
 
     app = create_app(session_factory=sqlite_session_factory, rest_client=NoopRestClient())
 
-    with pytest.raises(RuntimeError, match="overlap"):
-        with TestClient(app):
-            pass
+    with pytest.raises(RuntimeError, match="overlap"), TestClient(app):
+        pass

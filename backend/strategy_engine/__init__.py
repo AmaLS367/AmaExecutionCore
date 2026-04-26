@@ -2,6 +2,7 @@ from backend.strategy_engine.contracts import BaseStrategy, StrategySignal
 from backend.strategy_engine.ema_crossover import EMACrossoverStrategy
 from backend.strategy_engine.factory import build_day_trading_strategy
 from backend.strategy_engine.orchestrator import StrategyOrchestrator
+from backend.strategy_engine.regime_detector import detect_regime
 from backend.strategy_engine.rsi_ema_strategy import RSIEMAStrategy
 from backend.strategy_engine.service import (
     StrategyExecutionRequest,
@@ -14,11 +15,12 @@ __all__ = [
     "BaseStrategy",
     "EMACrossoverStrategy",
     "RSIEMAStrategy",
-    "StrategyOrchestrator",
     "StrategyExecutionRequest",
     "StrategyExecutionResult",
     "StrategyExecutionService",
+    "StrategyOrchestrator",
     "StrategySignal",
     "VWAPReversionStrategy",
     "build_day_trading_strategy",
+    "detect_regime",
 ]

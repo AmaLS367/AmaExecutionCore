@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Generator
 import os
+from collections.abc import AsyncGenerator, Generator
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from pathlib import Path
 
 os.environ["ENVIRONMENT"] = "test"
 os.environ["DEBUG"] = "false"
@@ -20,11 +20,17 @@ from backend.database import Base
 @pytest.fixture(autouse=True)
 def reset_settings() -> Generator[None, None, None]:
     original_values = {
+        "bybit_testnet_api_key": settings.bybit_testnet_api_key,
+        "bybit_testnet_api_secret": settings.bybit_testnet_api_secret,
+        "bybit_api_key": settings.bybit_api_key,
+        "bybit_api_secret": settings.bybit_api_secret,
         "database_url": settings.database_url,
         "trading_mode": settings.trading_mode,
         "order_mode": settings.order_mode,
         "shadow_equity": getattr(settings, "shadow_equity", 10_000.0),
         "risk_per_trade_pct": settings.risk_per_trade_pct,
+        "canary_mode": settings.canary_mode,
+        "canary_risk_multiplier": settings.canary_risk_multiplier,
         "min_rrr": settings.min_rrr,
         "max_open_positions": settings.max_open_positions,
         "max_total_risk_exposure_pct": settings.max_total_risk_exposure_pct,
@@ -45,8 +51,15 @@ def reset_settings() -> Generator[None, None, None]:
         "scalping_interval": settings.scalping_interval,
         "scalping_ws_window_size": settings.scalping_ws_window_size,
         "scalping_cooldown_seconds": settings.scalping_cooldown_seconds,
+        "market_data_max_staleness_intervals": settings.market_data_max_staleness_intervals,
+        "market_data_staleness_grace_seconds": settings.market_data_staleness_grace_seconds,
         "max_trades_per_day": settings.max_trades_per_day,
     }
+    if os.environ.get("AMA_RUN_TESTNET_E2E") != "1":
+        settings.bybit_testnet_api_key = ""
+        settings.bybit_testnet_api_secret = ""
+        settings.bybit_api_key = ""
+        settings.bybit_api_secret = ""
     yield
     for field_name, field_value in original_values.items():
         setattr(settings, field_name, field_value)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from dataclasses import dataclass
 
 from backend.market_data.contracts import MarketSnapshot
@@ -11,14 +12,14 @@ def _calculate_rsi(values: list[float], period: int) -> list[float]:
         raise ValueError(f"At least {period + 1} closes are required to calculate RSI.")
     gains: list[float] = []
     losses: list[float] = []
-    for previous, current in zip(values, values[1:]):
+    for previous, current in itertools.pairwise(values):
         delta = current - previous
         gains.append(max(delta, 0.0))
         losses.append(max(-delta, 0.0))
     average_gain = sum(gains[:period]) / period
     average_loss = sum(losses[:period]) / period
     rsi_values = [_to_rsi(average_gain=average_gain, average_loss=average_loss)]
-    for gain, loss in zip(gains[period:], losses[period:]):
+    for gain, loss in zip(gains[period:], losses[period:], strict=False):
         average_gain = ((average_gain * (period - 1)) + gain) / period
         average_loss = ((average_loss * (period - 1)) + loss) / period
         rsi_values.append(_to_rsi(average_gain=average_gain, average_loss=average_loss))
@@ -32,23 +33,25 @@ def _to_rsi(*, average_gain: float, average_loss: float) -> float:
 
 
 def _find_swing_lows(values: list[float], wing: int) -> list[int]:
-    result: list[int] = []
-    for i in range(wing, len(values) - wing):
-        if all(values[i] < values[i - k] for k in range(1, wing + 1)) and all(
+    return [
+        i
+        for i in range(wing, len(values) - wing)
+        if all(values[i] < values[i - k] for k in range(1, wing + 1))
+        and all(
             values[i] < values[i + k] for k in range(1, wing + 1)
-        ):
-            result.append(i)
-    return result
+        )
+    ]
 
 
 def _find_swing_highs(values: list[float], wing: int) -> list[int]:
-    result: list[int] = []
-    for i in range(wing, len(values) - wing):
-        if all(values[i] > values[i - k] for k in range(1, wing + 1)) and all(
+    return [
+        i
+        for i in range(wing, len(values) - wing)
+        if all(values[i] > values[i - k] for k in range(1, wing + 1))
+        and all(
             values[i] > values[i + k] for k in range(1, wing + 1)
-        ):
-            result.append(i)
-    return result
+        )
+    ]
 
 
 @dataclass(slots=True)

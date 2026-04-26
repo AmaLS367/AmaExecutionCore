@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
-import uuid
 
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
@@ -64,7 +64,7 @@ class TradeJournalStore:
 
     async def get_signal_submission(self, fingerprint: str) -> SignalSubmission | None:
         result = await self._session.execute(
-            select(SignalSubmission).where(SignalSubmission.fingerprint == fingerprint)
+            select(SignalSubmission).where(SignalSubmission.fingerprint == fingerprint),
         )
         return result.scalar_one_or_none()
 
@@ -86,7 +86,7 @@ class TradeJournalStore:
         result = await self._session.execute(
             select(Trade)
             .where(Trade.signal_id == submission.signal_id)
-            .order_by(Trade.created_at.desc())
+            .order_by(Trade.created_at.desc()),
         )
         return result.scalars().first()
 
@@ -102,7 +102,7 @@ class TradeJournalStore:
                 Trade.close_order_link_id == order_link_id,
                 Trade.stop_order_link_id == order_link_id,
                 Trade.take_profit_order_link_id == order_link_id,
-            )
+            ),
         )
         if for_update and self._supports_for_update():
             stmt = stmt.with_for_update()
@@ -122,14 +122,14 @@ class TradeJournalStore:
         dialect_name = self._dialect_name()
         if dialect_name == "postgresql":
             postgres_stmt = postgresql_insert(DailyStat).values(date=stat_date).on_conflict_do_nothing(
-                index_elements=["date"]
+                index_elements=["date"],
             )
             await self._session.execute(postgres_stmt)
             await self._session.flush()
             return
         if dialect_name == "sqlite":
             sqlite_stmt = sqlite_insert(DailyStat).values(date=stat_date).on_conflict_do_nothing(
-                index_elements=["date"]
+                index_elements=["date"],
             )
             await self._session.execute(sqlite_stmt)
             await self._session.flush()
@@ -205,21 +205,21 @@ class TradeJournalStore:
         stat = await self.get_or_create_daily_stat(stat_date=closed_at.date())
 
         realized_pnl = trade.realized_pnl
-        fee_paid = trade.fee_paid or Decimal("0")
+        fee_paid = trade.fee_paid or Decimal(0)
         net_pnl = realized_pnl - fee_paid
 
         closed_trade_count = (stat.winning_trades or 0) + (stat.losing_trades or 0)
         if (stat.total_trades or 0) <= closed_trade_count:
             stat.total_trades = (stat.total_trades or 0) + 1
-        stat.gross_pnl = (stat.gross_pnl or Decimal("0")) + realized_pnl
-        stat.total_fees = (stat.total_fees or Decimal("0")) + fee_paid
-        stat.net_pnl = (stat.net_pnl or Decimal("0")) + net_pnl
+        stat.gross_pnl = (stat.gross_pnl or Decimal(0)) + realized_pnl
+        stat.total_fees = (stat.total_fees or Decimal(0)) + fee_paid
+        stat.net_pnl = (stat.net_pnl or Decimal(0)) + net_pnl
 
         if realized_pnl < 0:
             stat.losing_trades = (stat.losing_trades or 0) + 1
             stat.consecutive_losses = (stat.consecutive_losses or 0) + 1
             if trade.pnl_pct is not None:
-                stat.daily_loss_pct = (stat.daily_loss_pct or Decimal("0")) + abs(trade.pnl_pct)
+                stat.daily_loss_pct = (stat.daily_loss_pct or Decimal(0)) + abs(trade.pnl_pct)
             self._update_symbol_stats(trade.symbol, stat, is_win=False)
         else:
             stat.winning_trades = (stat.winning_trades or 0) + 1
@@ -230,7 +230,7 @@ class TradeJournalStore:
         return stat
 
     async def get_or_create_today_daily_stat(self) -> DailyStat:
-        return await self.get_or_create_daily_stat(stat_date=date.today())
+        return await self.get_or_create_daily_stat(stat_date=datetime.now(UTC).date())
 
     @staticmethod
     def symbol_consecutive_losses(stat: DailyStat, symbol: str) -> int:
@@ -249,7 +249,7 @@ class TradeJournalStore:
         result = await self._session.execute(
             select(Trade)
             .where(Trade.status.in_(tuple(statuses)))
-            .order_by(Trade.created_at.asc())
+            .order_by(Trade.created_at.asc()),
         )
         return list(result.scalars().all())
 
@@ -260,7 +260,7 @@ class TradeJournalStore:
                 Trade.market_type == MarketType.SPOT,
                 Trade.order_type == "Market",
                 Trade.status.in_((TradeStatus.ORDER_CONFIRMED, TradeStatus.POSITION_OPEN)),
-            )
+            ),
         )
         trades = list(result.scalars().all())
         return [
@@ -269,7 +269,7 @@ class TradeJournalStore:
             if trade.market_type.value == "spot"
             and trade.order_type == "Market"
             and trade.status in {TradeStatus.ORDER_CONFIRMED, TradeStatus.POSITION_OPEN}
-            and trade.filled_qty not in (None, Decimal("0"))
+            and trade.filled_qty not in (None, Decimal(0))
             and (
                 trade.stop_order_link_id is None
                 or (
@@ -365,7 +365,7 @@ class TradeJournalStore:
                 event_type=event_type,
                 description=description,
                 event_metadata=event_metadata,
-            )
+            ),
         )
 
     async def add_execution_fee(self, *, order_link_id: str, fee: Decimal) -> bool:
@@ -376,8 +376,8 @@ class TradeJournalStore:
                     Trade.close_order_link_id == order_link_id,
                     Trade.stop_order_link_id == order_link_id,
                     Trade.take_profit_order_link_id == order_link_id,
-                )
-            )
+                ),
+            ),
         )
         if trade_exists.scalar_one_or_none() is None:
             return False
@@ -390,9 +390,9 @@ class TradeJournalStore:
                     Trade.close_order_link_id == order_link_id,
                     Trade.stop_order_link_id == order_link_id,
                     Trade.take_profit_order_link_id == order_link_id,
-                )
+                ),
             )
-            .values(fee_paid=func.coalesce(Trade.fee_paid, Decimal("0")) + fee)
+            .values(fee_paid=func.coalesce(Trade.fee_paid, Decimal(0)) + fee),
         )
         return result is not None
 
@@ -401,7 +401,7 @@ class TradeJournalStore:
         await self._session.execute(
             update(DailyStat)
             .where(DailyStat.stat_date == stat_date)
-            .values(total_trades=DailyStat.total_trades + 1)
+            .values(total_trades=DailyStat.total_trades + 1),
         )
         await self._session.flush()
         return await self.get_or_create_daily_stat(stat_date=stat_date)
@@ -414,8 +414,8 @@ class TradeJournalStore:
             .values(
                 losing_trades=DailyStat.losing_trades + 1,
                 consecutive_losses=DailyStat.consecutive_losses + 1,
-                daily_loss_pct=func.coalesce(DailyStat.daily_loss_pct, Decimal("0")) + loss_pct,
-            )
+                daily_loss_pct=func.coalesce(DailyStat.daily_loss_pct, Decimal(0)) + loss_pct,
+            ),
         )
         await self._session.flush()
         return await self.get_or_create_daily_stat(stat_date=stat_date)
@@ -428,15 +428,15 @@ class TradeJournalStore:
             .values(
                 winning_trades=DailyStat.winning_trades + 1,
                 consecutive_losses=0,
-            )
+            ),
         )
         await self._session.flush()
         return await self.get_or_create_daily_stat(stat_date=stat_date)
 
     @staticmethod
     def calculate_realized_pnl(trade: Trade, exit_price: Decimal) -> Decimal:
-        entry_price = trade.avg_fill_price or trade.entry_price or Decimal("0")
-        filled_qty = trade.filled_qty or trade.qty or Decimal("0")
+        entry_price = trade.avg_fill_price or trade.entry_price or Decimal(0)
+        filled_qty = trade.filled_qty or trade.qty or Decimal(0)
         if trade.signal_direction == SignalDirection.LONG:
             return (exit_price - entry_price) * filled_qty
         return (entry_price - exit_price) * filled_qty
@@ -444,7 +444,7 @@ class TradeJournalStore:
     @staticmethod
     def calculate_pnl_pct(trade: Trade, realized_pnl: Decimal) -> Decimal | None:
         equity_at_entry = trade.equity_at_entry
-        if equity_at_entry in (None, Decimal("0")):
+        if equity_at_entry in (None, Decimal(0)):
             return None
         assert equity_at_entry is not None
         return realized_pnl / equity_at_entry
@@ -452,7 +452,7 @@ class TradeJournalStore:
     @staticmethod
     def calculate_pnl_in_r(trade: Trade, realized_pnl: Decimal) -> Decimal | None:
         risk_amount = trade.risk_amount_usd
-        if risk_amount in (None, Decimal("0")):
+        if risk_amount in (None, Decimal(0)):
             return None
         assert risk_amount is not None
         return realized_pnl / risk_amount
@@ -460,7 +460,7 @@ class TradeJournalStore:
     @staticmethod
     def _loss_streak_stat_date(state: SafetyState) -> date:
         if state.last_triggered_at is None:
-            return date.today()
+            return datetime.now(UTC).date()
 
         last_triggered_at = state.last_triggered_at
         if last_triggered_at.tzinfo is None:

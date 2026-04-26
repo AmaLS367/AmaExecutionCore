@@ -28,7 +28,7 @@ def _calculate_rsi(closes: list[float], period: int) -> list[float]:
         rs = avg_gain / avg_loss
         values.append(100.0 - (100.0 / (1.0 + rs)))
 
-    for gain, loss in zip(gains[period:], losses[period:]):
+    for gain, loss in zip(gains[period:], losses[period:], strict=False):
         avg_gain = ((avg_gain * (period - 1)) + gain) / period
         avg_loss = ((avg_loss * (period - 1)) + loss) / period
         if avg_loss == 0:
@@ -43,15 +43,14 @@ def _calculate_atr(highs: list[float], lows: list[float], closes: list[float], p
     if len(closes) <= period:
         raise ValueError("Not enough candles to calculate ATR.")
 
-    true_ranges: list[float] = []
-    for index in range(1, len(closes)):
-        true_ranges.append(
-            max(
-                highs[index] - lows[index],
-                abs(highs[index] - closes[index - 1]),
-                abs(lows[index] - closes[index - 1]),
-            )
+    true_ranges = [
+        max(
+            highs[index] - lows[index],
+            abs(highs[index] - closes[index - 1]),
+            abs(lows[index] - closes[index - 1]),
         )
+        for index in range(1, len(closes))
+    ]
 
     atr_values = [sum(true_ranges[:period]) / period]
     for true_range in true_ranges[period:]:
@@ -87,12 +86,25 @@ def _count_current_utc_day_candles(snapshot: MarketSnapshot) -> int:
 class VWAPReversionStrategy(BaseStrategy[MarketSnapshot]):
     atr_period: int = 14
     rsi_period: int = 7
-    min_deviation: float = 0.002
+    min_deviation: float = 0.005
     min_current_day_candles: int = 12
+    min_rrr: float = 1.0
 
     @property
     def required_candle_count(self) -> int:
         return 50
+
+    def _rrr_meets_minimum(self, *, entry: float, stop: float, target: float) -> bool:
+        risk = abs(entry - stop)
+        reward = abs(target - entry)
+        if risk == 0 or (reward / risk) < self.min_rrr:
+            logger.debug(
+                "VWAPReversionStrategy RRR below minimum. rrr={:.3f} min_rrr={}",
+                reward / risk if risk != 0 else 0,
+                self.min_rrr,
+            )
+            return False
+        return True
 
     async def generate_signal(self, snapshot: MarketSnapshot) -> StrategySignal | None:
         if len(snapshot.candles) < self.required_candle_count:
@@ -134,6 +146,7 @@ class VWAPReversionStrategy(BaseStrategy[MarketSnapshot]):
             current_day_candle_count,
         )
 
+        signal: StrategySignal | None = None
         if (
             current_close < (vwap * (1 - self.min_deviation))
             and previous_close < current_close
@@ -141,41 +154,42 @@ class VWAPReversionStrategy(BaseStrategy[MarketSnapshot]):
         ):
             stop = current_close - (2 * current_atr)
             target = vwap
-            return StrategySignal(
-                symbol=snapshot.symbol,
-                direction="long",
-                entry=current_close,
-                stop=stop,
-                target=target,
-                reason="vwap_reversion_long",
-                strategy_version="vwap-reversion-v1",
-                indicators_snapshot={
-                    "vwap": vwap,
-                    "rsi": current_rsi,
-                    "atr": current_atr,
-                },
-            )
-
-        if (
+            if self._rrr_meets_minimum(entry=current_close, stop=stop, target=target):
+                signal = StrategySignal(
+                    symbol=snapshot.symbol,
+                    direction="long",
+                    entry=current_close,
+                    stop=stop,
+                    target=target,
+                    reason="vwap_reversion_long",
+                    strategy_version="vwap-reversion-v1",
+                    indicators_snapshot={
+                        "vwap": vwap,
+                        "rsi": current_rsi,
+                        "atr": current_atr,
+                    },
+                )
+        elif (
             current_close > (vwap * (1 + self.min_deviation))
             and previous_close > current_close
             and current_rsi > 65.0
         ):
             stop = current_close + (2 * current_atr)
             target = vwap
-            return StrategySignal(
-                symbol=snapshot.symbol,
-                direction="short",
-                entry=current_close,
-                stop=stop,
-                target=target,
-                reason="vwap_reversion_short",
-                strategy_version="vwap-reversion-v1",
-                indicators_snapshot={
-                    "vwap": vwap,
-                    "rsi": current_rsi,
-                    "atr": current_atr,
-                },
-            )
+            if self._rrr_meets_minimum(entry=current_close, stop=stop, target=target):
+                signal = StrategySignal(
+                    symbol=snapshot.symbol,
+                    direction="short",
+                    entry=current_close,
+                    stop=stop,
+                    target=target,
+                    reason="vwap_reversion_short",
+                    strategy_version="vwap-reversion-v1",
+                    indicators_snapshot={
+                        "vwap": vwap,
+                        "rsi": current_rsi,
+                        "atr": current_atr,
+                    },
+                )
 
-        return None
+        return signal

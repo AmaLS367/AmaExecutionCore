@@ -1,0 +1,109 @@
+{
+  "mode": "regression",
+  "manifest": "scripts/fixtures/backtest_manifest.json",
+  "generated_at": "2026-04-24T06:45:43.750311+00:00",
+  "fee_rate_per_side": "0.001",
+  "all_passed": false,
+  "results": [
+    {
+      "name": "vwap_reversion_btcusdt_5m",
+      "family": "scalping",
+      "strategy": "vwap_reversion",
+      "symbol": "BTCUSDT",
+      "interval": "5",
+      "lookback_days": 365,
+      "profile": "regression_vwap_reversion_v1",
+      "passed": false,
+      "failure_reasons": [
+        "win_rate 0.3544409265122479586735544076 < 0.6",
+        "profit_factor 0.2372836627044122179551833251 < 1.2",
+        "expectancy -69.03910354021695858137698727 <= 0",
+        "max_drawdown_pct 41.43865479124605208724728382 > 0.2"
+      ],
+      "closed_trades": 6001,
+      "winning_trades": 2127,
+      "win_rate": "0.3544409265122479586735544076",
+      "expectancy": "-69.03910354021695858137698727",
+      "profit_factor": "0.2372836627044122179551833251",
+      "max_drawdown": "414386.5479124605208724728382",
+      "max_drawdown_pct": "41.43865479124605208724728382",
+      "net_pnl": "-414303.6603448419684468433006",
+      "fees_paid": "399226.6338173820399704498607"
+    },
+    {
+      "name": "vwap_reversion_ethusdt_5m",
+      "family": "scalping",
+      "strategy": "vwap_reversion",
+      "symbol": "ETHUSDT",
+      "interval": "5",
+      "lookback_days": 365,
+      "profile": "regression_vwap_reversion_v1",
+      "passed": false,
+      "failure_reasons": [
+        "win_rate 0.4122038765254845656855707107 < 0.6",
+        "profit_factor 0.3750256911740987115577995939 < 1.2",
+        "expectancy -43.08027948317321005490577480 <= 0",
+        "max_drawdown_pct 30.04436379684567664308280659 > 0.2"
+      ],
+      "closed_trades": 6965,
+      "winning_trades": 2871,
+      "win_rate": "0.4122038765254845656855707107",
+      "expectancy": "-43.08027948317321005490577480",
+      "profit_factor": "0.3750256911740987115577995939",
+      "max_drawdown": "300443.6379684567664308280659",
+      "max_drawdown_pct": "30.04436379684567664308280659",
+      "net_pnl": "-300054.1466003014080324187215",
+      "fees_paid": "280768.8327732901117968041213"
+    },
+    {
+      "name": "vwap_reversion_solusdt_5m",
+      "family": "scalping",
+      "strategy": "vwap_reversion",
+      "symbol": "SOLUSDT",
+      "interval": "5",
+      "lookback_days": 365,
+      "profile": "regression_vwap_reversion_v1",
+      "passed": false,
+      "failure_reasons": [
+        "win_rate 0.4269321166874049495368450159 < 0.6",
+        "profit_factor 0.4286080271011784733392275283 < 1.2",
+        "expectancy -38.02362193785787236305457247 <= 0",
+        "max_drawdown_pct 27.51221063000106250714120448 > 0.2"
+      ],
+      "closed_trades": 7233,
+      "winning_trades": 3088,
+      "win_rate": "0.4269321166874049495368450159",
+      "expectancy": "-38.02362193785787236305457247",
+      "profit_factor": "0.4286080271011784733392275283",
+      "max_drawdown": "275122.1063000106250714120448",
+      "max_drawdown_pct": "27.51221063000106250714120448",
+      "net_pnl": "-275024.8574765259908019737227",
+      "fees_paid": "262389.6963909957655904807902"
+    },
+    {
+      "name": "vwap_reversion_xrpusdt_5m",
+      "family": "scalping",
+      "strategy": "vwap_reversion",
+      "symbol": "XRPUSDT",
+      "interval": "5",
+      "lookback_days": 365,
+      "profile": "regression_vwap_reversion_v1",
+      "passed": false,
+      "failure_reasons": [
+        "win_rate 0.4151753758052970651395848246 < 0.6",
+        "profit_factor 0.3868919736894525873246150465 < 1.2",
+        "expectancy -44.31158214478723425472692610 <= 0",
+        "max_drawdown_pct 30.95834539586646578079626224 > 0.2"
+      ],
+      "closed_trades": 6985,
+      "winning_trades": 2900,
+      "win_rate": "0.4151753758052970651395848246",
+      "expectancy": "-44.31158214478723425472692610",
+      "profit_factor": "0.3868919736894525873246150465",
+      "max_drawdown": "309583.4539586646578079626224",
+      "max_drawdown_pct": "30.95834539586646578079626224",
+      "net_pnl": "-309516.4012813388312692675788",
+      "fees_paid": "299137.8919170485523087247330"
+    }
+  ]
+}

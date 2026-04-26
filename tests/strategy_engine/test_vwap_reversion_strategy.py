@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from backend.market_data.contracts import MarketCandle, MarketSnapshot
+from backend.strategy_engine.factory import build_scalping_strategy
 from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
 
 
@@ -68,7 +69,7 @@ def _build_snapshot_with_current_day_count(
                 low=close - 1.0,
                 close=close,
                 volume=candle_volumes[index],
-            )
+            ),
         )
 
     for index in range(current_day_count):
@@ -81,7 +82,7 @@ def _build_snapshot_with_current_day_count(
                 low=close - 1.0,
                 close=close,
                 volume=candle_volumes[close_index],
-            )
+            ),
         )
 
     return MarketSnapshot(symbol="BTCUSDT", interval="5", candles=tuple(candles))
@@ -89,7 +90,7 @@ def _build_snapshot_with_current_day_count(
 
 @pytest.mark.asyncio
 async def test_vwap_reversion_returns_long_signal_on_reclaim_from_below_vwap() -> None:
-    strategy = VWAPReversionStrategy()
+    strategy = VWAPReversionStrategy(min_rrr=0.1)
     closes = [100.0] * 47 + [99.0, 98.4, 99.0]
     volumes = [100.0] * 47 + [400.0, 500.0, 600.0]
 
@@ -129,7 +130,25 @@ async def test_vwap_reversion_skips_signal_when_current_utc_day_has_under_one_ho
             closes,
             current_day_count=11,
             volumes=volumes,
-        )
+        ),
     )
+
+    assert signal is None
+
+
+def test_factory_passes_min_rrr_to_vwap() -> None:
+    strategy = build_scalping_strategy(strategy_name="vwap_reversion", min_rrr=2.0)
+
+    assert isinstance(strategy, VWAPReversionStrategy)
+    assert strategy.min_rrr == 2.0
+
+
+@pytest.mark.asyncio
+async def test_vwap_strategy_rejects_bad_rrr() -> None:
+    strategy = VWAPReversionStrategy(min_rrr=2.0)
+    closes = [100.0] * 47 + [99.0, 98.4, 99.0]
+    volumes = [100.0] * 47 + [400.0, 500.0, 600.0]
+
+    signal = await strategy.generate_signal(_build_snapshot(closes, volumes=volumes))
 
     assert signal is None

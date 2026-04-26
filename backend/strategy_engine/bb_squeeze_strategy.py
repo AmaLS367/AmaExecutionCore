@@ -33,15 +33,14 @@ def _calculate_atr(
 ) -> list[float]:
     if len(closes) <= period:
         raise ValueError("Not enough candles to calculate ATR.")
-    true_ranges: list[float] = []
-    for index in range(1, len(closes)):
-        true_ranges.append(
-            max(
-                highs[index] - lows[index],
-                abs(highs[index] - closes[index - 1]),
-                abs(lows[index] - closes[index - 1]),
-            )
+    true_ranges = [
+        max(
+            highs[index] - lows[index],
+            abs(highs[index] - closes[index - 1]),
+            abs(lows[index] - closes[index - 1]),
         )
+        for index in range(1, len(closes))
+    ]
     atr_values = [sum(true_ranges[:period]) / period]
     for true_range in true_ranges[period:]:
         atr_values.append(((atr_values[-1] * (period - 1)) + true_range) / period)
@@ -72,7 +71,7 @@ class BBSqueezeStrategy(BaseStrategy[MarketSnapshot]):
 
         band_widths = [
             (upper_band - lower_band) / middle_band if middle_band != 0 else 0.0
-            for upper_band, lower_band, middle_band in zip(bb_upper, bb_lower, bb_middle)
+            for upper_band, lower_band, middle_band in zip(bb_upper, bb_lower, bb_middle, strict=False)
         ]
 
         # Historical widths exclude the current and previous BB periods.

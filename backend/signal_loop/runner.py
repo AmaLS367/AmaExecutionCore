@@ -7,6 +7,14 @@ from typing import Any, Literal, Protocol, cast
 
 from loguru import logger
 
+from backend.config import settings
+from backend.market_data.contracts import MarketSnapshot
+from backend.market_data.intervals import interval_to_minutes
+from backend.market_data.staleness import (
+    allowed_snapshot_staleness_seconds,
+    is_snapshot_stale,
+    snapshot_age_seconds,
+)
 from backend.safety_guard.exceptions import SafetyGuardError
 from backend.signal_execution.schemas import ExecuteSignalRequest
 from backend.strategy_engine.service import StrategyExecutionRequest
@@ -89,13 +97,31 @@ class SignalLoopRunner:
 
             try:
                 result = await self._strategy_service.run(
-                    StrategyExecutionRequest(symbol=state.symbol, interval=self._interval)
+                    StrategyExecutionRequest(symbol=state.symbol, interval=self._interval),
                 )
             except SafetyGuardError:
                 self.stop()
                 raise
             except Exception:
                 logger.exception("Signal loop strategy evaluation failed for {}.", state.symbol)
+                return
+
+            snapshot = getattr(result, "snapshot", None)
+            if isinstance(snapshot, MarketSnapshot) and is_snapshot_stale(
+                snapshot,
+                max_staleness_intervals=settings.market_data_max_staleness_intervals,
+                grace_seconds=settings.market_data_staleness_grace_seconds,
+            ):
+                logger.info(
+                    "Signal loop snapshot skipped. symbol={} reason=stale_snapshot age_seconds={:.1f} allowed_seconds={}",
+                    state.symbol,
+                    snapshot_age_seconds(snapshot),
+                    allowed_snapshot_staleness_seconds(
+                        snapshot,
+                        max_staleness_intervals=settings.market_data_max_staleness_intervals,
+                        grace_seconds=settings.market_data_staleness_grace_seconds,
+                    ),
+                )
                 return
 
             if result.signal is None:
@@ -109,14 +135,14 @@ class SignalLoopRunner:
                 await self._execution_service.execute_signal(
                     signal=ExecuteSignalRequest(
                         symbol=signal.symbol,
-                        direction=cast(Literal["long", "short"], direction),
+                        direction=cast("Literal['long', 'short']", direction),
                         entry=signal.entry,
                         stop=signal.stop,
                         target=signal.target,
                         reason=signal.reason,
                         strategy_version=signal.strategy_version,
                         indicators_snapshot=signal.indicators_snapshot,
-                    )
+                    ),
                 )
                 state.record_entry()
             except SafetyGuardError:
@@ -136,7 +162,7 @@ class SignalLoopRunner:
 
         try:
             await asyncio.wait_for(self._stop_event.wait(), timeout=wait_seconds)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return
 
     async def _is_symbol_blacklisted(self, symbol: str) -> bool:
@@ -149,17 +175,4 @@ class SignalLoopRunner:
 
 
 def _interval_to_minutes(interval: str) -> int:
-    mapping = {
-        "1": 1,
-        "3": 3,
-        "5": 5,
-        "15": 15,
-        "30": 30,
-        "60": 60,
-        "120": 120,
-        "240": 240,
-        "D": 1440,
-    }
-    if interval not in mapping:
-        raise ValueError(f"Unknown interval: {interval!r}")
-    return mapping[interval]
+    return interval_to_minutes(interval)

@@ -44,7 +44,7 @@ class BybitCandleFeed:
         self._windows: dict[str, deque[MarketCandle]] = {
             symbol: deque(maxlen=window_size) for symbol in symbols
         }
-        self._warmed_up = {symbol: False for symbol in symbols}
+        self._warmed_up = dict.fromkeys(symbols, False)
 
     @property
     def queue(self) -> asyncio.Queue[CandleFeedSnapshot]:
@@ -82,17 +82,18 @@ class BybitCandleFeed:
             window.append(
                 MarketCandle(
                     opened_at=kline.start_time,
+                    open=kline.open_price,
                     high=kline.high_price,
                     low=kline.low_price,
                     close=kline.close_price,
                     volume=kline.volume,
-                )
+                ),
             )
         self._warmed_up[symbol] = len(window) >= self._window_size
 
     def _start_ws(self) -> None:
         try:
-            from pybit.unified_trading import WebSocket  # type: ignore[import-not-found]
+            from pybit.unified_trading import WebSocket
         except ModuleNotFoundError:
             logger.warning("pybit is not installed — public candle feed not started.")
             return
@@ -121,6 +122,7 @@ class BybitCandleFeed:
         try:
             candle = MarketCandle(
                 opened_at=datetime.fromtimestamp(int(item["start"]) / 1000, tz=UTC),
+                open=float(item["open"]),
                 high=float(item["high"]),
                 low=float(item["low"]),
                 close=float(item["close"]),

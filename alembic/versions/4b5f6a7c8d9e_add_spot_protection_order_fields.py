@@ -6,16 +6,16 @@ Create Date: 2026-04-19 18:00:00.000000
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 revision: str = "4b5f6a7c8d9e"
-down_revision: Union[str, Sequence[str], None] = "9a1c2d3e4f5a"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "9a1c2d3e4f5a"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -24,7 +24,7 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column("stop_exchange_order_id", sa.String(length=64), nullable=True))
         batch_op.add_column(sa.Column("take_profit_order_link_id", sa.String(length=64), nullable=True))
         batch_op.add_column(
-            sa.Column("take_profit_exchange_order_id", sa.String(length=64), nullable=True)
+            sa.Column("take_profit_exchange_order_id", sa.String(length=64), nullable=True),
         )
         batch_op.create_unique_constraint(
             "uq_trades_stop_order_link_id",

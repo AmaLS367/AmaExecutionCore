@@ -58,6 +58,17 @@ def test_create_app_lifespan_builds_configured_day_trading_strategy(
     settings.scalping_enabled = False
     settings.scalping_symbols = []
 
+    async def _async_noop(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    def _noop(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    monkeypatch.setattr("backend.main.ws_listener.start", lambda: None)
+    monkeypatch.setattr("backend.main.ws_listener.stop", lambda: None)
+    monkeypatch.setattr("backend.main.ExchangeSyncEngine.start_reconciliation_worker", _noop)
+    monkeypatch.setattr("backend.main.ExchangeSyncEngine.stop_reconciliation_worker", _async_noop)
+
     monkeypatch.setattr("backend.main.build_day_trading_strategy", _fake_build_day_trading_strategy)
     monkeypatch.setattr("backend.main.SignalLoopRunner", _RecordingSignalLoopRunner)
 

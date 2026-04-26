@@ -22,7 +22,28 @@ The project strictly separates responsibilities into these pipelines:
 3. Never use generic or placeholder credentials in source code. 
 4. Be precise with tool calls and edits. Do not rewrite files top-to-bottom unless implementing entirely new components. Apply edits surgically.
 
-## 4. Git Commit Style
+## 4. Docker & Server Operations
+
+### CRITICAL: Applying .env changes on the server
+
+**`docker compose restart` does NOT reload env variables.** The container keeps the environment from the last `up`. If you change `.env` on the server, you MUST recreate the container:
+
+```bash
+# WRONG — env changes are ignored
+docker compose restart bot
+
+# CORRECT — recreates container and picks up new .env
+docker compose up -d bot
+```
+
+After recreating, always verify the variable landed inside the container:
+```bash
+docker compose exec bot env | grep <VAR_NAME>
+```
+
+Failing to do this means config changes silently have no effect — costing real trading time.
+
+## 5. Git Commit Style
 * **Use Conventional Commits only**: All commit messages must follow the `type(scope): subject` format whenever a scope is applicable.
 * **Preferred types**: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
 * **Preferred scopes**: Use existing module boundaries such as `risk-manager`, `safety-guard`, `order-executor`, `exchange-sync`, `trade-journal`, `strategy-engine`, `market-data`, `backtest`, `bybit-client`, `api`.

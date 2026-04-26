@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import uuid
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-import uuid
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -50,11 +50,11 @@ def build_trade(
         exchange_side=ExchangeSide.BUY,
         market_type=MarketType.SPOT,
         mode=mode,
-        entry_price=Decimal("100"),
-        stop_price=Decimal("90"),
-        target_price=Decimal("130"),
-        qty=Decimal("1"),
-        filled_qty=Decimal("1"),
+        entry_price=Decimal(100),
+        stop_price=Decimal(90),
+        target_price=Decimal(130),
+        qty=Decimal(1),
+        filled_qty=Decimal(1),
         status=status,
         opened_at=datetime.now(UTC) - timedelta(minutes=1),
         created_at=created_at,
@@ -144,7 +144,7 @@ def test_get_trades_supports_pagination(
                         status=TradeStatus.ORDER_SUBMITTED,
                         created_at=datetime.now(UTC) - timedelta(minutes=1),
                     ),
-                ]
+                ],
             )
             await session.commit()
 

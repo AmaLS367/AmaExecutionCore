@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from loguru import logger
@@ -31,7 +31,7 @@ class CircuitBreaker:
 
     async def _get_or_create_today(self, session: AsyncSession) -> DailyStat:
         store = TradeJournalStore(session)
-        return await store.get_or_create_daily_stat(stat_date=date.today())
+        return await store.get_or_create_daily_stat(stat_date=datetime.now(UTC).date())
 
     async def check(self, session: AsyncSession) -> None:
         """
@@ -57,11 +57,11 @@ class CircuitBreaker:
 
         if stat.total_trades >= settings.max_trades_per_day:
             raise DailyLossLimitError(
-                f"Daily trade cap of {settings.max_trades_per_day} reached."
+                f"Daily trade cap of {settings.max_trades_per_day} reached.",
             )
 
         if stat.daily_loss_pct is not None and stat.daily_loss_pct >= Decimal(
-            str(settings.max_daily_loss_pct)
+            str(settings.max_daily_loss_pct),
         ):
             stat.circuit_breaker_triggered = True
             await store.set_pause(
@@ -77,7 +77,7 @@ class CircuitBreaker:
             logger.warning("Circuit breaker: daily loss limit. pct={}", stat.daily_loss_pct)
             raise DailyLossLimitError(
                 f"Daily loss {stat.daily_loss_pct:.2%} exceeds limit "
-                f"{settings.max_daily_loss_pct:.2%}."
+                f"{settings.max_daily_loss_pct:.2%}.",
             )
 
         weekly_loss = await self._calculate_weekly_loss_pct(session)
@@ -93,7 +93,7 @@ class CircuitBreaker:
             )
             await session.commit()
             raise WeeklyLossLimitError(
-                f"Weekly loss {weekly_loss:.2%} exceeds limit {settings.max_weekly_loss_pct:.2%}."
+                f"Weekly loss {weekly_loss:.2%} exceeds limit {settings.max_weekly_loss_pct:.2%}.",
             )
 
         if stat.consecutive_losses >= settings.hard_pause_consecutive_losses:
@@ -138,13 +138,13 @@ class CircuitBreaker:
             )
             raise CooldownActiveError(
                 f"{stat.consecutive_losses} consecutive losses. "
-                f"Cooldown: {settings.cooldown_hours}h."
+                f"Cooldown: {settings.cooldown_hours}h.",
             )
 
     async def record_loss(self, session: AsyncSession, loss_pct: Decimal) -> None:
         """Call when a position closes at a loss."""
         store = TradeJournalStore(session)
-        stat = await store.record_daily_loss(stat_date=date.today(), loss_pct=loss_pct)
+        stat = await store.record_daily_loss(stat_date=datetime.now(UTC).date(), loss_pct=loss_pct)
         await session.commit()
         logger.info(
             "Loss recorded. consecutive={} daily_loss_pct={}",
@@ -155,7 +155,7 @@ class CircuitBreaker:
     async def record_win(self, session: AsyncSession) -> None:
         """Call when a position closes at a profit. Resets consecutive loss counter."""
         store = TradeJournalStore(session)
-        stat = await store.record_daily_win(stat_date=date.today())
+        stat = await store.record_daily_win(stat_date=datetime.now(UTC).date())
         await session.commit()
         logger.info(
             "Win recorded. winning_trades={} consecutive losses reset.",
@@ -164,16 +164,16 @@ class CircuitBreaker:
 
     async def increment_trade_count(self, session: AsyncSession) -> None:
         store = TradeJournalStore(session)
-        await store.increment_daily_trade_count(stat_date=date.today())
+        await store.increment_daily_trade_count(stat_date=datetime.now(UTC).date())
 
     async def _calculate_weekly_loss_pct(self, session: AsyncSession) -> Decimal:
-        week_start = date.today() - timedelta(days=6)
+        week_start = datetime.now(UTC).date() - timedelta(days=6)
         result = await session.execute(
-            select(func.sum(DailyStat.daily_loss_pct)).where(DailyStat.stat_date >= week_start)
+            select(func.sum(DailyStat.daily_loss_pct)).where(DailyStat.stat_date >= week_start),
         )
         value = result.scalar_one_or_none()
         if value is None:
-            return Decimal("0")
+            return Decimal(0)
         return Decimal(value)
 
 

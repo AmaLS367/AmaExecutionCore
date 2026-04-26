@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from decimal import Decimal
 import hashlib
 import json
+from dataclasses import dataclass
+from decimal import Decimal
 
 from backend.signal_execution.schemas import ExecuteSignalRequest
 
@@ -68,5 +68,5 @@ def _normalize_decimal(value: float) -> Decimal:
 def _decimal_to_string(value: float) -> str:
     normalized = _normalize_decimal(value)
     if normalized == normalized.to_integral():
-        return str(normalized.quantize(Decimal("1")))
+        return str(normalized.quantize(Decimal(1)))
     return format(normalized, "f").rstrip("0").rstrip(".")

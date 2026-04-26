@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 import sys
 import types
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -191,7 +191,7 @@ def test_get_klines_parses_items_into_dataclass(monkeypatch: pytest.MonkeyPatch)
             close_price=1.5,
             volume=10.0,
             turnover=20.0,
-        )
+        ),
     ]
 
 
@@ -273,7 +273,7 @@ def test_place_order_sets_derivatives_stop_loss_order_type(monkeypatch: pytest.M
 def test_place_order_maps_invalid_request_to_bybit_api_error(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_session = FakeHTTPSession()
     invalid_request_error = type("InvalidRequestError", (Exception,), {})("bad params")
-    setattr(invalid_request_error, "status_code", 400)
+    invalid_request_error.status_code = 400
     fake_session.raise_on_place_order = invalid_request_error
     client, _ = _build_client(monkeypatch, fake_session)
 

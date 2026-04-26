@@ -5,11 +5,11 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Generic, Protocol, TypeGuard, TypeVar, cast
 
+from backend.backtest.metrics import calculate_max_drawdown
+from backend.backtest.shadow_runner import SupportsExecutionService, _to_execute_signal_request
 from backend.market_data.contracts import MarketCandle, MarketSnapshot
 from backend.signal_execution.schemas import ExecuteSignalRequest
 from backend.strategy_engine.contracts import StrategySignal
-
-from backend.backtest.shadow_runner import SupportsExecutionService, _to_execute_signal_request
 
 ExecutionResultT = TypeVar("ExecutionResultT")
 ExecutionResultT_co = TypeVar("ExecutionResultT_co", covariant=True)
@@ -57,7 +57,7 @@ class HistoricalReplayStep(Generic[ExecutionResultT]):
 class HistoricalReplayResult(Generic[ExecutionResultT]):
     request: HistoricalReplayRequest
     steps: tuple[HistoricalReplayStep[ExecutionResultT], ...]
-    report: "HistoricalReplayReport"
+    report: HistoricalReplayReport
 
 
 @dataclass(slots=True, frozen=True)
@@ -85,6 +85,35 @@ class HistoricalReplayReport:
     slippage: HistoricalReplaySlippageSummary | None
 
 
+@dataclass(slots=True, frozen=True)
+class ReplayOpenPosition:
+    symbol: str
+    direction: str
+    entry_price: Decimal
+    stop_price: Decimal
+    target_price: Decimal
+    opened_at_step: int
+    planned_close_step: int
+
+
+@dataclass(slots=True)
+class ReplayPortfolioState:
+    open_positions: dict[str, ReplayOpenPosition]
+    cooldown_until: dict[str, int]
+    daily_trades: dict[str, int]
+    consecutive_losses: int
+    session_halted: bool
+    current_date_str: str | None
+
+
+@dataclass(slots=True, frozen=True)
+class ReplayScheduledClosure:
+    symbol: str
+    close_step: int
+    entry_date_str: str
+    net_trade_pnl: Decimal | None
+
+
 class HistoricalReplayRunner(Generic[ExecutionResultT]):
     def __init__(
         self,
@@ -92,9 +121,17 @@ class HistoricalReplayRunner(Generic[ExecutionResultT]):
         strategy: SupportsReplayStrategy,
         execution_service: SupportsExecutionService[ExecutionResultT]
         | SupportsReplayExecutionContext[ExecutionResultT],
+        max_open_positions: int = 1,
+        max_trades_per_day: int = 10,
+        cooldown_candles: int = 2,
+        hard_pause_consecutive_losses: int = 5,
     ) -> None:
         self._strategy = strategy
         self._execution_service = execution_service
+        self._max_open_positions = max_open_positions
+        self._max_trades_per_day = max_trades_per_day
+        self._cooldown_candles = cooldown_candles
+        self._hard_pause_consecutive_losses = hard_pause_consecutive_losses
 
     async def replay(
         self,
@@ -107,10 +144,38 @@ class HistoricalReplayRunner(Generic[ExecutionResultT]):
         )
 
         results: list[HistoricalReplayStep[ExecutionResultT]] = []
+        portfolio_state = ReplayPortfolioState(
+            open_positions={},
+            cooldown_until={},
+            daily_trades={},
+            consecutive_losses=0,
+            session_halted=False,
+            current_date_str=None,
+        )
+        scheduled_closures: dict[int, list[ReplayScheduledClosure]] = {}
         for step_index, snapshot in replay_steps:
+            current_date_str = snapshot.candles[-1].opened_at.date().isoformat()
+            _reset_daily_circuit_breaker(
+                state=portfolio_state,
+                current_date_str=current_date_str,
+            )
+            _apply_scheduled_closures(
+                state=portfolio_state,
+                scheduled_closures=scheduled_closures,
+                step_index=step_index,
+                cooldown_candles=self._cooldown_candles,
+                hard_pause_consecutive_losses=self._hard_pause_consecutive_losses,
+            )
             signal = await self._strategy.generate_signal(snapshot)
             execution: ExecutionResultT | None = None
-            if signal is not None:
+            if signal is not None and _can_execute_signal(
+                state=portfolio_state,
+                signal=signal,
+                step_index=step_index,
+                date_str=current_date_str,
+                max_open_positions=self._max_open_positions,
+                max_trades_per_day=self._max_trades_per_day,
+            ):
                 execute_signal_request = _to_execute_signal_request(signal)
                 if _supports_replay_execution_context(self._execution_service):
                     future_candles = _future_candles_for_step(
@@ -125,18 +190,28 @@ class HistoricalReplayRunner(Generic[ExecutionResultT]):
                 else:
                     execution_service = self._execution_service
                     execution = await cast(
-                        SupportsExecutionService[ExecutionResultT],
+                        "SupportsExecutionService[ExecutionResultT]",
                         execution_service,
                     ).execute_signal(
-                        signal=execute_signal_request
+                        signal=execute_signal_request,
                     )
+                _track_execution(
+                    state=portfolio_state,
+                    scheduled_closures=scheduled_closures,
+                    signal=signal,
+                    execution=execution,
+                    step_index=step_index,
+                    entry_date_str=current_date_str,
+                    cooldown_candles=self._cooldown_candles,
+                    hard_pause_consecutive_losses=self._hard_pause_consecutive_losses,
+                )
             results.append(
                 HistoricalReplayStep(
                     step_index=step_index,
                     snapshot=snapshot,
                     signal=signal,
                     execution=execution,
-                )
+                ),
             )
 
         return HistoricalReplayResult(
@@ -245,18 +320,18 @@ def _build_report(
     winning_trades = [pnl for pnl in realized_pnls if pnl > 0]
     losing_trades = [pnl for pnl in realized_pnls if pnl < 0]
     trade_count = len(realized_pnls)
-    expectancy = sum(realized_pnls, Decimal("0")) / Decimal(trade_count) if trade_count else None
+    expectancy = sum(realized_pnls, Decimal(0)) / Decimal(trade_count) if trade_count else None
     win_rate = Decimal(len(winning_trades)) / Decimal(trade_count) if trade_count else None
     profit_factor: Decimal | None = None
     if losing_trades:
-        profit_factor = sum(winning_trades, Decimal("0")) / abs(sum(losing_trades, Decimal("0")))
-    max_drawdown = _calculate_max_drawdown(realized_pnls) if trade_count else None
+        profit_factor = sum(winning_trades, Decimal(0)) / abs(sum(losing_trades, Decimal(0)))
+    max_drawdown = calculate_max_drawdown(realized_pnls) if trade_count else None
 
     slippage_summary: HistoricalReplaySlippageSummary | None = None
     if slippages:
         slippage_summary = HistoricalReplaySlippageSummary(
             count=len(slippages),
-            average=sum(slippages, Decimal("0")) / Decimal(len(slippages)),
+            average=sum(slippages, Decimal(0)) / Decimal(len(slippages)),
             minimum=min(slippages),
             maximum=max(slippages),
         )
@@ -281,6 +356,136 @@ def _read_metric(execution: object, field_name: str) -> object | None:
     return getattr(execution, field_name, None)
 
 
+def _track_execution(
+    *,
+    state: ReplayPortfolioState,
+    scheduled_closures: dict[int, list[ReplayScheduledClosure]],
+    signal: StrategySignal,
+    execution: object,
+    step_index: int,
+    entry_date_str: str,
+    cooldown_candles: int,
+    hard_pause_consecutive_losses: int,
+) -> None:
+    close_step = _resolve_close_step(execution=execution, step_index=step_index)
+    state.open_positions[signal.symbol] = ReplayOpenPosition(
+        symbol=signal.symbol,
+        direction=signal.direction,
+        entry_price=_coerce_decimal(_read_metric(execution, "entry_price")) or Decimal(str(signal.entry)),
+        stop_price=Decimal(str(signal.stop)),
+        target_price=Decimal(str(signal.target)),
+        opened_at_step=step_index,
+        planned_close_step=close_step,
+    )
+    closure = ReplayScheduledClosure(
+        symbol=signal.symbol,
+        close_step=close_step,
+        entry_date_str=entry_date_str,
+        net_trade_pnl=_net_trade_pnl(execution),
+    )
+    if close_step <= step_index:
+        _record_closed_trade(
+            state=state,
+            closure=closure,
+            cooldown_candles=cooldown_candles,
+            hard_pause_consecutive_losses=hard_pause_consecutive_losses,
+        )
+        return
+    scheduled_closures.setdefault(close_step, []).append(closure)
+
+
+def _apply_scheduled_closures(
+    *,
+    state: ReplayPortfolioState,
+    scheduled_closures: dict[int, list[ReplayScheduledClosure]],
+    step_index: int,
+    cooldown_candles: int,
+    hard_pause_consecutive_losses: int,
+) -> None:
+    for closure in scheduled_closures.pop(step_index, []):
+        _record_closed_trade(
+            state=state,
+            closure=closure,
+            cooldown_candles=cooldown_candles,
+            hard_pause_consecutive_losses=hard_pause_consecutive_losses,
+        )
+
+
+def _record_closed_trade(
+    *,
+    state: ReplayPortfolioState,
+    closure: ReplayScheduledClosure,
+    cooldown_candles: int,
+    hard_pause_consecutive_losses: int,
+) -> None:
+    state.open_positions.pop(closure.symbol, None)
+    state.cooldown_until[closure.symbol] = closure.close_step + cooldown_candles
+    state.daily_trades[closure.entry_date_str] = state.daily_trades.get(closure.entry_date_str, 0) + 1
+
+    if closure.net_trade_pnl is None:
+        return
+    if closure.net_trade_pnl < 0:
+        state.consecutive_losses += 1
+        if state.consecutive_losses >= hard_pause_consecutive_losses:
+            state.session_halted = True
+        return
+    if closure.net_trade_pnl > 0:
+        state.consecutive_losses = 0
+
+
+def _reset_daily_circuit_breaker(
+    *,
+    state: ReplayPortfolioState,
+    current_date_str: str,
+) -> None:
+    if state.current_date_str == current_date_str:
+        return
+    state.current_date_str = current_date_str
+    state.consecutive_losses = 0
+    state.session_halted = False
+
+
+def _can_execute_signal(
+    *,
+    state: ReplayPortfolioState,
+    signal: StrategySignal,
+    step_index: int,
+    date_str: str,
+    max_open_positions: int,
+    max_trades_per_day: int,
+) -> bool:
+    if state.session_halted:
+        return False
+    if signal.symbol in state.open_positions:
+        return False
+    if len(state.open_positions) >= max_open_positions:
+        return False
+    if step_index <= state.cooldown_until.get(signal.symbol, -1):
+        return False
+    return state.daily_trades.get(date_str, 0) < max_trades_per_day
+
+
+def _resolve_close_step(*, execution: object, step_index: int) -> int:
+    explicit_close_step = _coerce_int(_read_metric(execution, "closed_at_step"))
+    if explicit_close_step is not None:
+        return explicit_close_step
+
+    hold_candles = _coerce_int(_read_metric(execution, "hold_candles"))
+    if hold_candles is None:
+        return step_index
+    return step_index + hold_candles
+
+
+def _net_trade_pnl(execution: object) -> Decimal | None:
+    realized_pnl = _coerce_decimal(_read_metric(execution, "realized_pnl"))
+    fees_paid = _coerce_decimal(_read_metric(execution, "fees_paid"))
+    if realized_pnl is None:
+        return None
+    if fees_paid is None:
+        return realized_pnl
+    return realized_pnl - fees_paid
+
+
 def _coerce_decimal(value: object | None) -> Decimal | None:
     if value is None:
         return None
@@ -295,18 +500,19 @@ def _coerce_decimal(value: object | None) -> Decimal | None:
     return None
 
 
-def _calculate_max_drawdown(realized_pnls: list[Decimal]) -> Decimal:
-    equity_curve = Decimal("0")
-    peak_equity = Decimal("0")
-    max_drawdown = Decimal("0")
-    for realized_pnl in realized_pnls:
-        equity_curve += realized_pnl
-        if equity_curve > peak_equity:
-            peak_equity = equity_curve
-        drawdown = peak_equity - equity_curve
-        if drawdown > max_drawdown:
-            max_drawdown = drawdown
-    return max_drawdown
+def _coerce_int(value: object | None) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, Decimal | float):
+        return int(value)
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return None
+    return None
 
 
 def _future_candles_for_step(

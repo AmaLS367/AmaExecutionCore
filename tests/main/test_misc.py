@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+
 import pytest
 
 from backend.bybit_client.exceptions import BybitConnectionError
@@ -20,7 +21,7 @@ def test_health_check_returns_obfuscated_api_key() -> None:
     payload = asyncio.run(health_check())
 
     assert payload["status"] == "ok"
-    assert payload["api_key_status"] == "abcd***"
+    assert payload["api_key_configured"] is True
     assert payload["bybit_testnet"] is False
 
 

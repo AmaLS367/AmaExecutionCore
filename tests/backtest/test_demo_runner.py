@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
-import uuid
 
 import pytest
 from sqlalchemy import select
@@ -31,11 +31,11 @@ def _build_trade(*, trade_id: uuid.UUID, status: TradeStatus) -> Trade:
         exchange_side=ExchangeSide.BUY,
         market_type=MarketType.SPOT,
         mode=TradingMode.DEMO,
-        entry_price=Decimal("100"),
-        stop_price=Decimal("90"),
-        target_price=Decimal("130"),
-        qty=Decimal("1"),
-        filled_qty=Decimal("1"),
+        entry_price=Decimal(100),
+        stop_price=Decimal(90),
+        target_price=Decimal(130),
+        qty=Decimal(1),
+        filled_qty=Decimal(1),
         status=status,
         opened_at=datetime.now(UTC),
     )

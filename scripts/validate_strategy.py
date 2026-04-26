@@ -5,8 +5,15 @@ import asyncio
 import json
 from decimal import Decimal
 from pathlib import Path
+from typing import cast
 
-from backend.backtest import HistoricalReplayRequest, HistoricalReplayRunner, SimulationExecutionService
+from backend.backtest import (
+    HistoricalReplayRequest,
+    HistoricalReplayRunner,
+    SimulationExecutionResult,
+    SimulationExecutionService,
+)
+from backend.backtest.replay_runner import SupportsReplayExecutionContext
 from backend.bybit_client.rest import BybitRESTClient
 from backend.market_data.contracts import MarketCandle
 from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
@@ -52,16 +59,14 @@ def _fetch_candles(
 
 
 def _calculate_max_drawdown(pnls: list[Decimal]) -> Decimal:
-    running_equity = Decimal("0")
-    peak = Decimal("0")
-    max_drawdown = Decimal("0")
+    running_equity = Decimal(0)
+    peak = Decimal(0)
+    max_drawdown = Decimal(0)
     for pnl in pnls:
         running_equity += pnl
-        if running_equity > peak:
-            peak = running_equity
+        peak = max(peak, running_equity)
         drawdown = peak - running_equity
-        if drawdown > max_drawdown:
-            max_drawdown = drawdown
+        max_drawdown = max(max_drawdown, drawdown)
     return max_drawdown
 
 
@@ -82,9 +87,15 @@ async def main() -> None:
         max_hold_candles=args.max_hold,
         risk_amount_usd=args.risk_amount,
     )
-    runner = HistoricalReplayRunner(strategy=strategy, execution_service=simulation_service)
+    runner: HistoricalReplayRunner[SimulationExecutionResult] = HistoricalReplayRunner(
+        strategy=strategy,
+        execution_service=cast(
+            "SupportsReplayExecutionContext[SimulationExecutionResult]",
+            simulation_service,
+        ),
+    )
     result = await runner.replay(
-        HistoricalReplayRequest(symbol=args.symbol, interval=args.interval, candles=candles)
+        HistoricalReplayRequest(symbol=args.symbol, interval=args.interval, candles=candles),
     )
 
     fee_amount = Decimal(str(args.risk_amount)) * (FEE_RATE_PER_SIDE * 2)
@@ -100,18 +111,18 @@ async def main() -> None:
 
     closed_trades = len(net_trade_pnls)
     winning_trades = len([pnl for pnl in net_trade_pnls if pnl > 0])
-    win_rate = (Decimal(winning_trades) / Decimal(closed_trades)) if closed_trades else Decimal("0")
-    expectancy = (sum(net_trade_pnls, Decimal("0")) / Decimal(closed_trades)) if closed_trades else Decimal("0")
-    max_drawdown = _calculate_max_drawdown(net_trade_pnls) if net_trade_pnls else Decimal("0")
+    win_rate = (Decimal(winning_trades) / Decimal(closed_trades)) if closed_trades else Decimal(0)
+    expectancy = (sum(net_trade_pnls, Decimal(0)) / Decimal(closed_trades)) if closed_trades else Decimal(0)
+    max_drawdown = _calculate_max_drawdown(net_trade_pnls) if net_trade_pnls else Decimal(0)
     avg_risk_amount = Decimal(str(args.risk_amount))
 
     passed = all(
         (
             win_rate > Decimal("0.55"),
-            expectancy > Decimal("0"),
-            max_drawdown < (avg_risk_amount * Decimal("10")),
+            expectancy > Decimal(0),
+            max_drawdown < (avg_risk_amount * Decimal(10)),
             closed_trades >= 30,
-        )
+        ),
     )
 
     payload = {

@@ -66,7 +66,7 @@ class PassiveRestClient:
 
 async def assert_trade_events_table_exists(session: AsyncSession) -> None:
     table_name = await session.scalar(
-        text("SELECT name FROM sqlite_master WHERE type='table' AND name='trade_events'")
+        text("SELECT name FROM sqlite_master WHERE type='table' AND name='trade_events'"),
     )
     assert table_name == "trade_events"
 
@@ -85,25 +85,22 @@ async def fetch_trade_events(
                 FROM trade_events
                 WHERE lower(replace(trade_id, '-', '')) = :trade_id
                 ORDER BY id
-                """
-            )
+                """,
+            ),
         ),
         {"trade_id": trade_id.hex},
     )
     events: list[dict[str, object]] = []
     for row in result.mappings().all():
         raw_metadata = row["metadata"]
-        if isinstance(raw_metadata, str):
-            metadata = json.loads(raw_metadata)
-        else:
-            metadata = raw_metadata
+        metadata = json.loads(raw_metadata) if isinstance(raw_metadata, str) else raw_metadata
         events.append(
             {
                 "event_type": row["event_type"],
                 "from_status": row["from_status"],
                 "to_status": row["to_status"],
                 "metadata": metadata,
-            }
+            },
         )
     return events
 
@@ -117,14 +114,14 @@ def build_open_trade() -> Trade:
         exchange_side=ExchangeSide.BUY,
         market_type=MarketType.SPOT,
         mode=TradingMode.SHADOW,
-        entry_price=Decimal("100"),
-        avg_fill_price=Decimal("100"),
-        stop_price=Decimal("90"),
-        target_price=Decimal("130"),
-        qty=Decimal("1"),
-        filled_qty=Decimal("1"),
-        equity_at_entry=Decimal("1000"),
-        risk_amount_usd=Decimal("10"),
+        entry_price=Decimal(100),
+        avg_fill_price=Decimal(100),
+        stop_price=Decimal(90),
+        target_price=Decimal(130),
+        qty=Decimal(1),
+        filled_qty=Decimal(1),
+        equity_at_entry=Decimal(1000),
+        risk_amount_usd=Decimal(10),
         status=TradeStatus.POSITION_OPEN,
     )
 
@@ -146,7 +143,7 @@ def test_shadow_execution_persists_trade_creation_and_status_events(
                 entry=100.0,
                 stop=90.0,
                 target=130.0,
-            )
+            ),
         )
         async with sqlite_session_factory() as session:
             trade_id = UUID(str(result.trade_id))
@@ -181,7 +178,7 @@ def test_pending_unknown_reconciliation_appends_transition_history(
                 entry=100.0,
                 stop=90.0,
                 target=130.0,
-            )
+            ),
         )
         second_result = await service.execute_signal(
             signal=ExecuteSignalRequest(
@@ -190,7 +187,7 @@ def test_pending_unknown_reconciliation_appends_transition_history(
                 entry=100.0,
                 stop=90.0,
                 target=130.0,
-            )
+            ),
         )
         assert second_result.trade_id == first_result.trade_id
 
@@ -226,11 +223,11 @@ async def test_exchange_sync_close_updates_daily_analytics_and_records_events(
             exchange_side=ExchangeSide.BUY,
             market_type=MarketType.SPOT,
             mode=TradingMode.DEMO,
-            entry_price=Decimal("100"),
-            avg_fill_price=Decimal("100"),
-            filled_qty=Decimal("1"),
-            qty=Decimal("1"),
-            risk_amount_usd=Decimal("10"),
+            entry_price=Decimal(100),
+            avg_fill_price=Decimal(100),
+            filled_qty=Decimal(1),
+            qty=Decimal(1),
+            risk_amount_usd=Decimal(10),
             risk_pct=Decimal("0.01"),
             fee_paid=Decimal("1.5"),
             status=TradeStatus.POSITION_CLOSE_PENDING,
@@ -239,14 +236,14 @@ async def test_exchange_sync_close_updates_daily_analytics_and_records_events(
         await session.commit()
         trade_id = trade.id
 
-    await engine._process_order(  # noqa: SLF001
+    await engine._process_order(
         {
             "orderLinkId": "close-1",
             "orderStatus": "Filled",
             "avgPrice": "110",
             "cumExecQty": "1",
             "leavesQty": "0",
-        }
+        },
     )
 
     async with sqlite_session_factory() as session:
@@ -257,7 +254,7 @@ async def test_exchange_sync_close_updates_daily_analytics_and_records_events(
     assert persisted_trade.status == TradeStatus.PNL_RECORDED
     assert daily_stat.total_trades == 1
     assert daily_stat.winning_trades == 1
-    assert daily_stat.gross_pnl == Decimal("10")
+    assert daily_stat.gross_pnl == Decimal(10)
     assert daily_stat.total_fees == Decimal("1.5")
     assert daily_stat.net_pnl == Decimal("8.5")
     assert [(event["from_status"], event["to_status"]) for event in events] == [
@@ -266,7 +263,7 @@ async def test_exchange_sync_close_updates_daily_analytics_and_records_events(
         (TradeStatus.POSITION_CLOSED.value, TradeStatus.PNL_RECORDED.value),
     ]
     assert daily_stat.symbol_stats == {
-        "BTCUSDT": {"wins": 1, "losses": 0, "consecutive_losses": 0}
+        "BTCUSDT": {"wins": 1, "losses": 0, "consecutive_losses": 0},
     }
 
 
@@ -297,9 +294,9 @@ async def test_shadow_close_updates_daily_analytics_and_records_events(
     assert daily_stat.total_trades == 1
     assert daily_stat.losing_trades == 1
     assert daily_stat.consecutive_losses == 1
-    assert daily_stat.gross_pnl == Decimal("-10")
-    assert daily_stat.total_fees == Decimal("0")
-    assert daily_stat.net_pnl == Decimal("-10")
+    assert daily_stat.gross_pnl == Decimal(-10)
+    assert daily_stat.total_fees == Decimal(0)
+    assert daily_stat.net_pnl == Decimal(-10)
     assert daily_stat.daily_loss_pct == Decimal("0.01")
     assert [(event["from_status"], event["to_status"]) for event in events] == [
         (TradeStatus.POSITION_OPEN.value, TradeStatus.POSITION_CLOSE_PENDING.value),
@@ -309,5 +306,5 @@ async def test_shadow_close_updates_daily_analytics_and_records_events(
         ),
     ]
     assert daily_stat.symbol_stats == {
-        "BTCUSDT": {"wins": 0, "losses": 1, "consecutive_losses": 1}
+        "BTCUSDT": {"wins": 0, "losses": 1, "consecutive_losses": 1},
     }

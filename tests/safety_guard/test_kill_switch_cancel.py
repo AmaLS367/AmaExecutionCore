@@ -45,7 +45,7 @@ async def test_kill_switch_cancels_pending_orders(
                 market_type=MarketType.SPOT,
                 mode=TradingMode.DEMO,
                 status=TradeStatus.ORDER_SUBMITTED,
-            )
+            ),
         )
         await session.commit()
 
@@ -56,5 +56,5 @@ async def test_kill_switch_cancels_pending_orders(
             "category": "spot",
             "symbol": "BTCUSDT",
             "order_link_id": "pending-1",
-        }
+        },
     ]

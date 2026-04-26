@@ -1,0 +1,43 @@
+name: Backtest Live
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+env:
+  ENVIRONMENT: ci
+  DEBUG: "false"
+  LOG_LEVEL: INFO
+  DATABASE_URL: sqlite+aiosqlite:///tmp/amaexecutioncore-live.db
+  TRADING_MODE: shadow
+  BYBIT_TESTNET: "false"
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Run live-data backtest gate
+        run: >-
+          uv run python scripts/backtest_gate.py
+          --manifest scripts/fixtures/backtest_manifest.json
+          --mode live
+          --output artifacts/backtest-live.json
+
+      - name: Upload live backtest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backtest-live
+          path: artifacts/backtest-live.json

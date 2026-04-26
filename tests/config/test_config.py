@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
 
 from backend.config import Settings, _split_symbols
 
@@ -10,6 +10,10 @@ def _base_settings(**overrides: object) -> Settings:
     values: dict[str, object] = {
         "database_url": "sqlite+aiosqlite:///:memory:",
         "trading_mode": "shadow",
+        "bybit_testnet_api_key": "",
+        "bybit_testnet_api_secret": "",
+        "bybit_api_key": "",
+        "bybit_api_secret": "",
         "_env_file": None,
     }
     values.update(overrides)
@@ -83,7 +87,7 @@ def test_signal_loop_strategy_is_normalized_and_must_not_be_empty() -> None:
     ],
 )
 def test_api_keys_are_required_outside_shadow(kwargs: dict[str, object], message: str) -> None:
-    with pytest.raises(ValidationError, match=message):
+    with pytest.raises(ValueError, match=message):
         _base_settings(**kwargs)
 
 

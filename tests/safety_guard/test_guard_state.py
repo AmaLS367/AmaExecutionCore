@@ -20,6 +20,10 @@ from backend.trade_journal.models import DailyStat, PauseReason, SafetyState
 from backend.trade_journal.store import TradeJournalStore
 
 
+def _utc_today() -> date:
+    return datetime.now(UTC).date()
+
+
 @pytest.mark.asyncio
 async def test_circuit_breaker_persists_daily_pause_and_reset(
     sqlite_session_factory: async_sessionmaker[AsyncSession],
@@ -30,9 +34,9 @@ async def test_circuit_breaker_persists_daily_pause_and_reset(
     async with sqlite_session_factory() as session:
         session.add(
             DailyStat(
-                stat_date=date.today(),
+                stat_date=_utc_today(),
                 daily_loss_pct=Decimal("0.04"),
-            )
+            ),
         )
         await session.commit()
 
@@ -64,14 +68,14 @@ async def test_circuit_breaker_weekly_loss_limit(
         session.add_all(
             [
                 DailyStat(
-                    stat_date=date.today() - timedelta(days=1),
+                    stat_date=_utc_today() - timedelta(days=1),
                     daily_loss_pct=Decimal("0.03"),
                 ),
                 DailyStat(
-                    stat_date=date.today(),
+                    stat_date=_utc_today(),
                     daily_loss_pct=Decimal("0.02"),
                 ),
-            ]
+            ],
         )
         await session.commit()
 
@@ -93,10 +97,10 @@ async def test_circuit_breaker_triggers_cooldown_after_three_losses(
     async with sqlite_session_factory() as session:
         session.add(
             DailyStat(
-                stat_date=date.today(),
+                stat_date=_utc_today(),
                 consecutive_losses=3,
                 daily_loss_pct=Decimal("0.01"),
-            )
+            ),
         )
         await session.commit()
 
@@ -118,10 +122,10 @@ async def test_circuit_breaker_triggers_hard_pause_after_five_losses(
     async with sqlite_session_factory() as session:
         session.add(
             DailyStat(
-                stat_date=date.today(),
+                stat_date=_utc_today(),
                 consecutive_losses=5,
                 daily_loss_pct=Decimal("0.01"),
-            )
+            ),
         )
         await session.commit()
 
@@ -147,10 +151,10 @@ async def test_cooldown_auto_expires_after_deadline(
     async with sqlite_session_factory() as session:
         session.add(
             DailyStat(
-                stat_date=date.today(),
+                stat_date=_utc_today(),
                 consecutive_losses=3,
                 daily_loss_pct=Decimal("0.01"),
-            )
+            ),
         )
         store = TradeJournalStore(session)
         await store.set_pause(
@@ -179,10 +183,10 @@ async def test_manual_reset_clears_hard_pause_and_loss_streak(
     async with sqlite_session_factory() as session:
         session.add(
             DailyStat(
-                stat_date=date.today(),
+                stat_date=_utc_today(),
                 consecutive_losses=5,
                 daily_loss_pct=Decimal("0.01"),
-            )
+            ),
         )
         await session.commit()
 
@@ -207,7 +211,7 @@ async def test_circuit_breaker_get_or_create_today_is_safe_under_concurrent_firs
     async def worker() -> int | Exception:
         try:
             async with sqlite_session_factory() as session:
-                stat = await breaker._get_or_create_today(session)  # noqa: SLF001
+                stat = await breaker._get_or_create_today(session)
                 await asyncio.sleep(0.05)
                 await session.commit()
                 return stat.id
@@ -230,7 +234,7 @@ async def test_increment_trade_count_counts_both_concurrent_submissions(
     breaker = CircuitBreaker()
 
     async with sqlite_session_factory() as session:
-        session.add(DailyStat(stat_date=date.today(), total_trades=0))
+        session.add(DailyStat(stat_date=_utc_today(), total_trades=0))
         await session.commit()
 
     async def worker() -> None:
@@ -257,11 +261,11 @@ async def test_record_loss_accumulates_both_concurrent_losses(
     async with sqlite_session_factory() as session:
         session.add(
             DailyStat(
-                stat_date=date.today(),
+                stat_date=_utc_today(),
                 losing_trades=0,
                 consecutive_losses=0,
-                daily_loss_pct=Decimal("0"),
-            )
+                daily_loss_pct=Decimal(0),
+            ),
         )
         await session.commit()
 
@@ -290,10 +294,10 @@ async def test_record_win_counts_both_concurrent_wins(
     async with sqlite_session_factory() as session:
         session.add(
             DailyStat(
-                stat_date=date.today(),
+                stat_date=_utc_today(),
                 winning_trades=0,
                 consecutive_losses=2,
-            )
+            ),
         )
         await session.commit()
 

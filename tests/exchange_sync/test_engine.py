@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
-from decimal import Decimal
 import uuid
+from datetime import UTC, datetime
+from decimal import Decimal
 
 import pytest
 from sqlalchemy import select
@@ -16,10 +16,10 @@ from backend.exchange_sync.listener import BybitWebSocketListener
 from backend.trade_journal.models import (
     ExchangeSide,
     ExitReason,
-    SafetyState,
-    SystemEvent,
     MarketType,
+    SafetyState,
     SignalDirection,
+    SystemEvent,
     Trade,
     TradeStatus,
     TradingMode,
@@ -67,33 +67,33 @@ async def test_exchange_sync_records_close_and_pnl(
             exchange_side=ExchangeSide.BUY,
             market_type=MarketType.SPOT,
             mode=TradingMode.DEMO,
-            entry_price=Decimal("100"),
-            avg_fill_price=Decimal("100"),
-            filled_qty=Decimal("1"),
-            qty=Decimal("1"),
-            risk_amount_usd=Decimal("10"),
+            entry_price=Decimal(100),
+            avg_fill_price=Decimal(100),
+            filled_qty=Decimal(1),
+            qty=Decimal(1),
+            risk_amount_usd=Decimal(10),
             risk_pct=Decimal("0.01"),
             status=TradeStatus.POSITION_CLOSE_PENDING,
-            opened_at=datetime.now(timezone.utc),
+            opened_at=datetime.now(UTC),
         )
         session.add(trade)
         await session.commit()
 
-    await engine._process_order(  # noqa: SLF001
+    await engine._process_order(
         {
             "orderLinkId": "close-1",
             "orderStatus": "Filled",
             "avgPrice": "110",
             "cumExecQty": "1",
             "leavesQty": "0",
-        }
+        },
     )
 
     async with sqlite_session_factory() as session:
         persisted_trade = (await session.execute(select(Trade))).scalar_one()
         assert persisted_trade.status == TradeStatus.PNL_RECORDED
         assert persisted_trade.exit_reason == ExitReason.MANUAL
-        assert persisted_trade.realized_pnl == Decimal("10")
+        assert persisted_trade.realized_pnl == Decimal(10)
 
 
 @pytest.mark.asyncio
@@ -105,8 +105,8 @@ async def test_exchange_sync_wire_uses_running_loop(
 
     engine.wire(listener)
 
-    assert engine._loop is not None  # noqa: SLF001
-    assert engine._loop.is_running()  # noqa: SLF001
+    assert engine._loop is not None
+    assert engine._loop.is_running()
 
 
 @pytest.mark.asyncio
@@ -141,7 +141,7 @@ def _build_entry_trade(
     *,
     status: TradeStatus = TradeStatus.ORDER_SUBMITTED,
     order_type: str | None = None,
-    target_price: Decimal | None = Decimal("130"),
+    target_price: Decimal | None = Decimal(130),
 ) -> Trade:
     return Trade(
         signal_id=uuid.uuid4(),
@@ -151,16 +151,16 @@ def _build_entry_trade(
         exchange_side=ExchangeSide.BUY,
         market_type=MarketType.SPOT,
         mode=TradingMode.DEMO,
-        entry_price=Decimal("100"),
-        avg_fill_price=Decimal("100"),
-        stop_price=Decimal("90"),
+        entry_price=Decimal(100),
+        avg_fill_price=Decimal(100),
+        stop_price=Decimal(90),
         target_price=target_price,
-        filled_qty=Decimal("1"),
-        qty=Decimal("1"),
-        risk_amount_usd=Decimal("10"),
+        filled_qty=Decimal(1),
+        qty=Decimal(1),
+        risk_amount_usd=Decimal(10),
         risk_pct=Decimal("0.01"),
         status=status,
-        opened_at=datetime.now(timezone.utc),
+        opened_at=datetime.now(UTC),
         order_type=order_type,
     )
 
@@ -175,17 +175,17 @@ def _build_close_trade(*, status: TradeStatus = TradeStatus.POSITION_CLOSE_PENDI
         exchange_side=ExchangeSide.BUY,
         market_type=MarketType.SPOT,
         mode=TradingMode.DEMO,
-        entry_price=Decimal("100"),
-        avg_fill_price=Decimal("100"),
-        filled_qty=Decimal("1"),
-        qty=Decimal("1"),
-        risk_amount_usd=Decimal("10"),
+        entry_price=Decimal(100),
+        avg_fill_price=Decimal(100),
+        filled_qty=Decimal(1),
+        qty=Decimal(1),
+        risk_amount_usd=Decimal(10),
         risk_pct=Decimal("0.01"),
-        realized_pnl=Decimal("10") if status == TradeStatus.PNL_RECORDED else None,
-        avg_exit_price=Decimal("110") if status == TradeStatus.PNL_RECORDED else None,
+        realized_pnl=Decimal(10) if status == TradeStatus.PNL_RECORDED else None,
+        avg_exit_price=Decimal(110) if status == TradeStatus.PNL_RECORDED else None,
         status=status,
-        opened_at=datetime.now(timezone.utc),
-        closed_at=datetime.now(timezone.utc) if status == TradeStatus.PNL_RECORDED else None,
+        opened_at=datetime.now(UTC),
+        closed_at=datetime.now(UTC) if status == TradeStatus.PNL_RECORDED else None,
         exit_reason=ExitReason.MANUAL if status == TradeStatus.PNL_RECORDED else None,
     )
 
@@ -203,14 +203,14 @@ async def test_exchange_sync_ignores_stale_entry_updates_after_position_is_open(
         session.add(trade)
         await session.commit()
 
-    await engine._process_order(  # noqa: SLF001
+    await engine._process_order(
         {
             "orderLinkId": "entry-1",
             "orderStatus": late_status,
             "avgPrice": "100",
             "cumExecQty": "1",
             "leavesQty": "0" if late_status != "PartiallyFilled" else "0.5",
-        }
+        },
     )
 
     async with sqlite_session_factory() as session:
@@ -232,14 +232,14 @@ async def test_exchange_sync_ignores_stale_close_updates_after_pnl_is_recorded(
         session.add(trade)
         await session.commit()
 
-    await engine._process_order(  # noqa: SLF001
+    await engine._process_order(
         {
             "orderLinkId": "close-1",
             "orderStatus": late_status,
             "avgPrice": "110",
             "cumExecQty": "1",
             "leavesQty": "0" if late_status != "PartiallyFilled" else "0.5",
-        }
+        },
     )
 
     async with sqlite_session_factory() as session:
@@ -258,15 +258,15 @@ async def test_exchange_sync_accumulates_concurrent_execution_fees_without_lost_
 
     async with sqlite_session_factory() as session:
         trade = _build_entry_trade()
-        trade.fee_paid = Decimal("0")
+        trade.fee_paid = Decimal(0)
         session.add(trade)
         await session.commit()
 
     first = asyncio.create_task(
-        engine._process_execution({"orderLinkId": "entry-1", "execFee": "0.10"})
+        engine._process_execution({"orderLinkId": "entry-1", "execFee": "0.10"}),
     )
     second = asyncio.create_task(
-        engine._process_execution({"orderLinkId": "entry-1", "execFee": "0.20"})
+        engine._process_execution({"orderLinkId": "entry-1", "execFee": "0.20"}),
     )
 
     await asyncio.gather(first, second)
@@ -289,21 +289,21 @@ async def test_exchange_sync_spot_market_fill_arms_stop_loss_and_take_profit(
         session.add(trade)
         await session.commit()
 
-    await engine._process_order(  # noqa: SLF001
+    await engine._process_order(
         {
             "orderLinkId": "entry-1",
             "orderStatus": "Filled",
             "avgPrice": "101",
             "cumExecQty": "1",
             "leavesQty": "0",
-        }
+        },
     )
 
     async with sqlite_session_factory() as session:
         persisted_trade = (await session.execute(select(Trade))).scalar_one()
 
     assert persisted_trade.status == TradeStatus.POSITION_OPEN
-    assert persisted_trade.avg_fill_price == Decimal("101")
+    assert persisted_trade.avg_fill_price == Decimal(101)
     assert persisted_trade.stop_order_link_id is not None
     assert persisted_trade.stop_exchange_order_id == "exchange-1"
     assert persisted_trade.take_profit_order_link_id is not None
@@ -325,14 +325,14 @@ async def test_exchange_sync_emergency_closes_when_stop_loss_cannot_be_armed(
         session.add(trade)
         await session.commit()
 
-    await engine._process_order(  # noqa: SLF001
+    await engine._process_order(
         {
             "orderLinkId": "entry-1",
             "orderStatus": "Filled",
             "avgPrice": "101",
             "cumExecQty": "1",
             "leavesQty": "0",
-        }
+        },
     )
 
     async with sqlite_session_factory() as session:

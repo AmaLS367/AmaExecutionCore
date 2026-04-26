@@ -5,14 +5,20 @@ from typing import Any, Literal, Protocol, cast
 
 from loguru import logger
 
+from backend.config import settings
 from backend.market_data.bybit_ws_feed import CandleFeedSnapshot
 from backend.market_data.contracts import MarketSnapshot
+from backend.market_data.staleness import (
+    allowed_snapshot_staleness_seconds,
+    is_snapshot_stale,
+    snapshot_age_seconds,
+)
 from backend.risk_manager.exceptions import InsufficientSpotBalanceError
 from backend.safety_guard.exceptions import SafetyGuardError
 from backend.signal_execution.schemas import ExecuteSignalRequest
 from backend.signal_loop.runner import _SymbolState
-from backend.trade_journal.store import TradeJournalStore
 from backend.strategy_engine.contracts import StrategySignal
+from backend.trade_journal.store import TradeJournalStore
 
 
 class SupportsWebSocketStrategy(Protocol):
@@ -61,7 +67,7 @@ class WebSocketSignalRunner:
         while not self._stop_event.is_set():
             try:
                 feed_snapshot = await asyncio.wait_for(self._feed.queue.get(), timeout=2.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             await self._process_feed_snapshot(feed_snapshot)
 
@@ -75,23 +81,9 @@ class WebSocketSignalRunner:
             snapshot.symbol,
             _SymbolState(symbol=snapshot.symbol, cooldown_seconds=self._cooldown_seconds),
         )
-        if feed_snapshot.gap_recovered:
-            logger.info(
-                "WebSocket snapshot skipped. symbol={} reason=gap_recovered",
-                snapshot.symbol,
-            )
-            return
-        if state.is_in_cooldown():
-            logger.info(
-                "WebSocket snapshot skipped. symbol={} reason=cooldown",
-                snapshot.symbol,
-            )
-            return
-        if await self._is_symbol_blacklisted(snapshot.symbol):
-            logger.info(
-                "WebSocket snapshot skipped. symbol={} reason=blacklist",
-                snapshot.symbol,
-            )
+        skip_reason = await self._skip_reason(feed_snapshot=feed_snapshot, state=state)
+        if skip_reason is not None:
+            logger.info(skip_reason, snapshot.symbol)
             return
 
         try:
@@ -103,21 +95,27 @@ class WebSocketSignalRunner:
         if signal is None:
             return
 
+        direction = signal.direction
+        if direction not in ("long", "short"):
+            logger.warning(
+                "WebSocket signal rejected. symbol={} reason=unsupported_direction direction={}",
+                signal.symbol,
+                direction,
+            )
+            return
+
         try:
-            direction = signal.direction
-            if direction not in ("long", "short"):
-                raise ValueError(f"Unsupported strategy signal direction: {direction}")
             await self._execution_service.execute_signal(
                 signal=ExecuteSignalRequest(
                     symbol=signal.symbol,
-                    direction=cast(Literal["long", "short"], direction),
+                    direction=cast("Literal['long', 'short']", direction),
                     entry=signal.entry,
                     stop=signal.stop,
                     target=signal.target,
                     reason=signal.reason,
                     strategy_version=signal.strategy_version,
                     indicators_snapshot=signal.indicators_snapshot,
-                )
+                ),
             )
             state.record_entry()
         except InsufficientSpotBalanceError as exc:
@@ -130,6 +128,31 @@ class WebSocketSignalRunner:
             self.stop()
         except Exception:
             logger.exception("WebSocket execution failed for {}.", signal.symbol)
+
+    async def _skip_reason(
+        self,
+        *,
+        feed_snapshot: CandleFeedSnapshot,
+        state: _SymbolState,
+    ) -> str | None:
+        snapshot = feed_snapshot.snapshot
+        if feed_snapshot.gap_recovered:
+            return "WebSocket snapshot skipped. symbol={} reason=gap_recovered"
+        if is_snapshot_stale(
+            snapshot,
+            max_staleness_intervals=settings.market_data_max_staleness_intervals,
+            grace_seconds=settings.market_data_staleness_grace_seconds,
+        ):
+            return (
+                "WebSocket snapshot skipped. symbol={} reason=stale_snapshot "
+                f"age_seconds={snapshot_age_seconds(snapshot):.1f} "
+                f"allowed_seconds={allowed_snapshot_staleness_seconds(snapshot, max_staleness_intervals=settings.market_data_max_staleness_intervals, grace_seconds=settings.market_data_staleness_grace_seconds)}"
+            )
+        if state.is_in_cooldown():
+            return "WebSocket snapshot skipped. symbol={} reason=cooldown"
+        if await self._is_symbol_blacklisted(snapshot.symbol):
+            return "WebSocket snapshot skipped. symbol={} reason=blacklist"
+        return None
 
     async def _is_symbol_blacklisted(self, symbol: str) -> bool:
         if self._session_factory is None:

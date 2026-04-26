@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from backend.backtest.shadow_runner import ShadowRunRequest, ShadowRunner
+from backend.backtest.shadow_runner import ShadowRunner, ShadowRunRequest
 from backend.config import settings
 from backend.market_data.contracts import (
     MarketCandle,

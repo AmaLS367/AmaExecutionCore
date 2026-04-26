@@ -12,7 +12,6 @@ from backend.risk_manager.exceptions import (
     ZeroRiskDistanceError,
 )
 
-
 # --- check_rrr ---
 
 def test_check_rrr_long_passes() -> None:

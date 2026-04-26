@@ -1,0 +1,122 @@
+name: Tests
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+env:
+  DATABASE_URL: sqlite+aiosqlite:///tmp/amaexecutioncore-ci.db
+  DEBUG: "true"
+  BYBIT_TESTNET: "true"
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: appuser
+          POSTGRES_PASSWORD: tradingpass
+          POSTGRES_DB: tradingbot_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U appuser -d tradingbot_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_POSTGRESQL_URL: postgresql+asyncpg://appuser:tradingpass@localhost:5432/tradingbot_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Pytest
+        run: uv run pytest -q -rs
+
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Run Offline Backtest Smoke
+        run: >-
+          uv run python scripts/backtest_gate.py
+          --manifest scripts/fixtures/backtest_manifest.json
+          --mode regression
+          --suite smoke
+          --output artifacts/backtest-smoke.json
+
+  testnet-e2e:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: appuser
+          POSTGRES_PASSWORD: tradingpass
+          POSTGRES_DB: tradingbot_testnet
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U appuser -d tradingbot_testnet"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      AMA_RUN_TESTNET_E2E: ${{ secrets.AMA_RUN_TESTNET_E2E }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Prepare testnet env file
+        run: |
+          cat > .env <<EOF
+          ENVIRONMENT=test
+          DEBUG=false
+          LOG_LEVEL=INFO
+          DATABASE_URL=postgresql+asyncpg://appuser:tradingpass@localhost:5432/tradingbot_testnet
+          BYBIT_TESTNET=true
+          BYBIT_TESTNET_API_KEY=${{ secrets.BYBIT_TESTNET_API_KEY }}
+          BYBIT_TESTNET_API_SECRET=${{ secrets.BYBIT_TESTNET_API_SECRET }}
+          DEMO_TESTNET_SYMBOL=${{ secrets.DEMO_TESTNET_SYMBOL }}
+          DEMO_TESTNET_ENTRY=${{ secrets.DEMO_TESTNET_ENTRY }}
+          DEMO_TESTNET_STOP=${{ secrets.DEMO_TESTNET_STOP }}
+          DEMO_TESTNET_TARGET=${{ secrets.DEMO_TESTNET_TARGET }}
+          EOF
+
+      - name: Run Bybit Testnet E2E
+        run: uv run pytest tests/demo/test_testnet_flow.py -q -rs

@@ -7,6 +7,7 @@ import pytest
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from backend.config import settings
 from backend.market_data.bybit_ws_feed import CandleFeedSnapshot
 from backend.market_data.contracts import MarketCandle, MarketSnapshot
 from backend.risk_manager.exceptions import InsufficientSpotBalanceError
@@ -29,6 +30,10 @@ def _snapshot(symbol: str = "BTCUSDT") -> MarketSnapshot:
         for idx in range(3)
     )
     return MarketSnapshot(symbol=symbol, interval="5", candles=candles)
+
+
+def _utc_today() -> date:
+    return datetime.now(UTC).date()
 
 
 class _Feed:
@@ -116,7 +121,7 @@ async def test_process_feed_snapshot_executes_signal_and_records_entry() -> None
             entry=100.0,
             stop=90.0,
             target=130.0,
-        )
+        ),
     )
     execution_service = _ExecutionService()
     runner = WebSocketSignalRunner(
@@ -141,7 +146,7 @@ async def test_process_feed_snapshot_ignores_gap_recovered_and_cooldown() -> Non
             entry=100.0,
             stop=90.0,
             target=130.0,
-        )
+        ),
     )
     execution_service = _ExecutionService()
     runner = WebSocketSignalRunner(
@@ -168,7 +173,7 @@ async def test_process_feed_snapshot_logs_cooldown_skip() -> None:
             entry=100.0,
             stop=90.0,
             target=130.0,
-        )
+        ),
     )
     runner = WebSocketSignalRunner(
         strategy=strategy,
@@ -199,9 +204,9 @@ async def test_process_feed_snapshot_logs_blacklist_skip(
     async with sqlite_session_factory() as session:
         session.add(
             DailyStat(
-                stat_date=date.today(),
+                stat_date=_utc_today(),
                 symbol_stats={"BTCUSDT": {"consecutive_losses": 5}},
-            )
+            ),
         )
         await session.commit()
 
@@ -209,6 +214,37 @@ async def test_process_feed_snapshot_logs_blacklist_skip(
     logger.remove(sink_id)
 
     assert any("INFO|WebSocket snapshot skipped. symbol=BTCUSDT reason=blacklist" in message for message in messages)
+
+
+@pytest.mark.asyncio
+async def test_process_feed_snapshot_logs_stale_skip() -> None:
+    messages, sink_id = _capture_logs()
+    settings.market_data_max_staleness_intervals = 1
+    settings.market_data_staleness_grace_seconds = 0
+    stale_snapshot = MarketSnapshot(
+        symbol="BTCUSDT",
+        interval="5",
+        candles=(
+            MarketCandle(
+                opened_at=datetime(2024, 1, 1, tzinfo=UTC),
+                high=101.0,
+                low=99.0,
+                close=100.0,
+                volume=1000.0,
+            ),
+        ),
+    )
+    runner = WebSocketSignalRunner(
+        strategy=_Strategy(),
+        execution_service=_ExecutionService(),
+        feed=_Feed(),
+        cooldown_seconds=60,
+    )
+
+    await runner._process_feed_snapshot(CandleFeedSnapshot(snapshot=stale_snapshot))
+    logger.remove(sink_id)
+
+    assert any("INFO|WebSocket snapshot skipped. symbol=BTCUSDT reason=stale_snapshot" in message for message in messages)
 
 
 @pytest.mark.asyncio
@@ -222,10 +258,10 @@ async def test_process_feed_snapshot_logs_balance_reject_without_stopping_runner
                 entry=100.0,
                 stop=90.0,
                 target=130.0,
-            )
+            ),
         ),
         execution_service=_ExecutionService(
-            exc=InsufficientSpotBalanceError("Insufficient spot quote balance for BTCUSDT")
+            exc=InsufficientSpotBalanceError("Insufficient spot quote balance for BTCUSDT"),
         ),
         feed=_Feed(),
         cooldown_seconds=60,
@@ -262,7 +298,7 @@ async def test_process_feed_snapshot_stops_on_safety_guard_error() -> None:
                 entry=100.0,
                 stop=90.0,
                 target=130.0,
-            )
+            ),
         ),
         execution_service=_ExecutionService(exc=SafetyGuardError("blocked")),
         feed=_Feed(),
@@ -284,7 +320,7 @@ async def test_process_feed_snapshot_ignores_invalid_direction() -> None:
                 entry=100.0,
                 stop=90.0,
                 target=130.0,
-            )
+            ),
         ),
         execution_service=_ExecutionService(),
         feed=_Feed(),
@@ -303,9 +339,9 @@ async def test_is_symbol_blacklisted_uses_daily_stat_symbol_losses(
     async with sqlite_session_factory() as session:
         session.add(
             DailyStat(
-                stat_date=date.today(),
+                stat_date=_utc_today(),
                 symbol_stats={"BTCUSDT": {"consecutive_losses": 5}},
-            )
+            ),
         )
         await session.commit()
 

@@ -1,0 +1,173 @@
+{
+  "default_suites": {
+    "regression": "regression",
+    "live": "live"
+  },
+  "suites": {
+    "smoke": ["grid_xrpusdt_smoke"],
+    "regression": [
+      "grid_xrpusdt_regression",
+      "grid_solusdt_regression",
+      "grid_ethusdt_regression"
+    ],
+    "live": [
+      "grid_xrpusdt_regression",
+      "grid_solusdt_regression"
+    ]
+  },
+  "grid_threshold_profiles": {
+    "grid_smoke": {
+      "min_completed_cycles": 1,
+      "min_annualized_yield_pct": 0.0,
+      "min_fee_coverage_ratio": 0.0,
+      "min_net_pnl_usdt": -999999.0,
+      "max_unrealized_drawdown_pct": 100.0
+    },
+    "grid_regression": {
+      "min_completed_cycles": 20,
+      "min_profitable_window_rate": 0.5,
+      "min_annualized_yield_pct": 10.0,
+      "min_fee_coverage_ratio": 2.0,
+      "min_net_pnl_usdt": 0.0,
+      "max_unrealized_drawdown_pct": 55.0
+    },
+    "grid_live": {
+      "min_completed_cycles": 15,
+      "min_annualized_yield_pct": 8.0,
+      "min_fee_coverage_ratio": 1.5,
+      "min_net_pnl_usdt": 0.0,
+      "max_unrealized_drawdown_pct": 60.0
+    }
+  },
+  "grid_scenarios": [
+    {
+      "name": "grid_xrpusdt_smoke",
+      "symbol": "XRPUSDT",
+      "dataset_path": "scripts/fixtures/regression/xrpusdt_15m_365d.json.gz",
+      "p_min_pct_from_start": -0.16,
+      "p_max_pct_from_start": 0.16,
+      "n_levels": 8,
+      "capital_usdt": 20.0,
+      "profile": "grid_smoke",
+      "max_candles": 960
+    },
+    {
+      "name": "grid_xrpusdt_regression",
+      "symbol": "XRPUSDT",
+      "dataset_path": "scripts/fixtures/regression/xrpusdt_15m_365d.json.gz",
+      "p_min_pct_from_start": -0.16,
+      "p_max_pct_from_start": 0.16,
+      "n_levels": 8,
+      "capital_usdt": 20.0,
+      "profile": "grid_regression",
+      "walk_forward_days": 30,
+      "walk_forward_windows": 12
+    },
+    {
+      "name": "grid_solusdt_regression",
+      "symbol": "SOLUSDT",
+      "dataset_path": "scripts/fixtures/regression/solusdt_15m_365d.json.gz",
+      "p_min_pct_from_start": -0.16,
+      "p_max_pct_from_start": 0.16,
+      "n_levels": 8,
+      "capital_usdt": 20.0,
+      "profile": "grid_regression",
+      "walk_forward_days": 30,
+      "walk_forward_windows": 12
+    },
+    {
+      "name": "grid_ethusdt_regression",
+      "symbol": "ETHUSDT",
+      "dataset_path": "scripts/fixtures/regression/ethusdt_15m_365d.json.gz",
+      "p_min_pct_from_start": -0.2,
+      "p_max_pct_from_start": 0.2,
+      "n_levels": 8,
+      "capital_usdt": 20.0,
+      "profile": "grid_regression",
+      "walk_forward_days": 30,
+      "walk_forward_windows": 12
+    }
+  ],
+  "profiles": {
+    "regression_vwap_reversion_v1": {
+      "min_closed_trades": 80,
+      "min_win_rate": 0.6,
+      "min_profit_factor": 1.2,
+      "require_positive_expectancy": true,
+      "max_drawdown_pct": 0.2
+    },
+    "live_vwap_reversion_v1": {
+      "min_closed_trades": 40,
+      "min_win_rate": 0.6,
+      "min_profit_factor": 1.15,
+      "require_positive_expectancy": true,
+      "max_drawdown_pct": 0.2
+    }
+  },
+  "scenarios": [
+    {
+      "name": "vwap_reversion_btcusdt_15m",
+      "family": "scalping",
+      "strategy": "vwap_reversion",
+      "symbol": "BTCUSDT",
+      "interval": "15",
+      "lookback_days": 365,
+      "live_lookback_days": 180,
+      "dataset_path": "scripts/fixtures/regression/btcusdt_15m_365d.json.gz",
+      "risk_amount_usd": 100.0,
+      "starting_equity_usd": 10000.0,
+      "max_hold_candles": 20,
+      "min_rrr": 1.5,
+      "regression_profile": "regression_vwap_reversion_v1",
+      "live_profile": "live_vwap_reversion_v1"
+    },
+    {
+      "name": "vwap_reversion_ethusdt_15m",
+      "family": "scalping",
+      "strategy": "vwap_reversion",
+      "symbol": "ETHUSDT",
+      "interval": "15",
+      "lookback_days": 365,
+      "live_lookback_days": 180,
+      "dataset_path": "scripts/fixtures/regression/ethusdt_15m_365d.json.gz",
+      "risk_amount_usd": 100.0,
+      "starting_equity_usd": 10000.0,
+      "max_hold_candles": 20,
+      "min_rrr": 1.5,
+      "regression_profile": "regression_vwap_reversion_v1",
+      "live_profile": "live_vwap_reversion_v1"
+    },
+    {
+      "name": "vwap_reversion_solusdt_15m",
+      "family": "scalping",
+      "strategy": "vwap_reversion",
+      "symbol": "SOLUSDT",
+      "interval": "15",
+      "lookback_days": 365,
+      "live_lookback_days": 180,
+      "dataset_path": "scripts/fixtures/regression/solusdt_15m_365d.json.gz",
+      "risk_amount_usd": 100.0,
+      "starting_equity_usd": 10000.0,
+      "max_hold_candles": 20,
+      "min_rrr": 1.5,
+      "regression_profile": "regression_vwap_reversion_v1",
+      "live_profile": "live_vwap_reversion_v1"
+    },
+    {
+      "name": "vwap_reversion_xrpusdt_15m",
+      "family": "scalping",
+      "strategy": "vwap_reversion",
+      "symbol": "XRPUSDT",
+      "interval": "15",
+      "lookback_days": 365,
+      "live_lookback_days": 180,
+      "dataset_path": "scripts/fixtures/regression/xrpusdt_15m_365d.json.gz",
+      "risk_amount_usd": 100.0,
+      "starting_equity_usd": 10000.0,
+      "max_hold_candles": 20,
+      "min_rrr": 1.5,
+      "regression_profile": "regression_vwap_reversion_v1",
+      "live_profile": "live_vwap_reversion_v1"
+    }
+  ]
+}

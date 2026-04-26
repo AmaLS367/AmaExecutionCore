@@ -51,7 +51,7 @@ class ShadowRunner(Generic[ExecutionResultT]):
 
     async def run_once(self, request: ShadowRunRequest) -> ShadowRunResult[ExecutionResultT]:
         strategy_result = await self._strategy_execution_service.run(
-            StrategyExecutionRequest(symbol=request.symbol, interval=request.interval)
+            StrategyExecutionRequest(symbol=request.symbol, interval=request.interval),
         )
         signal = strategy_result.signal
         if signal is None:
@@ -63,7 +63,7 @@ class ShadowRunner(Generic[ExecutionResultT]):
             )
 
         execution_result = await self._execution_service.execute_signal(
-            signal=_to_execute_signal_request(signal)
+            signal=_to_execute_signal_request(signal),
         )
         return ShadowRunResult(
             request=request,
@@ -76,7 +76,7 @@ class ShadowRunner(Generic[ExecutionResultT]):
 def _to_execute_signal_request(signal: StrategySignal) -> ExecuteSignalRequest:
     if signal.direction not in ("long", "short"):
         raise ValueError(f"Unsupported strategy signal direction: {signal.direction}")
-    direction = cast(Literal["long", "short"], signal.direction)
+    direction = cast("Literal['long', 'short']", signal.direction)
     return ExecuteSignalRequest(
         symbol=signal.symbol,
         direction=direction,

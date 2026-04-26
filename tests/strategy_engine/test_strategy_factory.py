@@ -3,10 +3,13 @@ from __future__ import annotations
 import pytest
 
 from backend.strategy_engine.bb_squeeze_strategy import BBSqueezeStrategy
+from backend.strategy_engine.breakout_strategy import BreakoutStrategy
 from backend.strategy_engine.ema_crossover import EMACrossoverStrategy
+from backend.strategy_engine.ema_pullback_strategy import EMAPullbackStrategy
 from backend.strategy_engine.factory import build_day_trading_strategy, build_scalping_strategy
 from backend.strategy_engine.rsi_divergence_strategy import RSIDivergenceStrategy
 from backend.strategy_engine.rsi_ema_strategy import RSIEMAStrategy
+from backend.strategy_engine.ts_momentum_strategy import TSMomentumStrategy
 from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
 
 
@@ -43,6 +46,24 @@ def test_build_scalping_strategy_returns_rsi_divergence() -> None:
     strategy = build_scalping_strategy(strategy_name="rsi_divergence", min_rrr=1.5)
 
     assert isinstance(strategy, RSIDivergenceStrategy)
+
+
+def test_build_scalping_strategy_returns_ema_pullback() -> None:
+    strategy = build_scalping_strategy(strategy_name="ema_pullback", min_rrr=1.5)
+
+    assert isinstance(strategy, EMAPullbackStrategy)
+
+
+def test_build_scalping_strategy_returns_breakout() -> None:
+    strategy = build_scalping_strategy(strategy_name="breakout", min_rrr=2.0)
+
+    assert isinstance(strategy, BreakoutStrategy)
+
+
+def test_build_scalping_strategy_returns_ts_momentum() -> None:
+    strategy = build_scalping_strategy(strategy_name="ts_momentum", min_rrr=2.0)
+
+    assert isinstance(strategy, TSMomentumStrategy)
 
 
 def test_build_scalping_strategy_is_case_insensitive() -> None:

@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 from loguru import logger
 from sqlalchemy import func, select
@@ -63,7 +63,7 @@ class OrderExecutor:
         # 4. Guard: trade for this signal already in progress?
         if await is_order_already_submitted(session, signal_id):
             raise OrderAlreadySubmittedError(
-                f"Non-terminal trade already exists for signal {signal_id}."
+                f"Non-terminal trade already exists for signal {signal_id}.",
             )
 
         # 3. Fetch equity (simulated in shadow mode)
@@ -74,30 +74,33 @@ class OrderExecutor:
         else:
             balance = await asyncio.to_thread(self._client.get_wallet_balance)
             wallet_balances = self._extract_wallet_balances(balance)
-            equity = float(wallet_balances.get("USDT", Decimal("0")))
+            equity = float(wallet_balances.get("USDT", Decimal(0)))
+
+        effective_risk_pct = self._effective_risk_per_trade_pct()
 
         # 4. Position sizing
         qty_raw = calculate_position_raw(
             equity=equity,
             entry=entry,
             stop=stop,
-            risk_pct=settings.risk_per_trade_pct,
+            risk_pct=effective_risk_pct,
         )
 
         # 5. RRR validation
         if not check_rrr(entry=entry, stop=stop, target=target, min_rrr=settings.min_rrr):
             raise RiskManagerError(
-                f"RRR below minimum {settings.min_rrr} for signal {signal_id}."
+                f"RRR below minimum {settings.min_rrr} for signal {signal_id}.",
             )
 
         # 6. Apply exchange constraints (skipped in shadow — no live instrument data needed)
         qty: float
-        instrument: dict[str, object] | None = None
+        instrument: dict[str, Any] | None = None
         if settings.trading_mode != "shadow":
-            instrument = await asyncio.to_thread(
-                self._client.get_instruments_info, symbol, category
+            instrument = cast(
+                "dict[str, Any]",
+                await asyncio.to_thread(self._client.get_instruments_info, symbol, category),
             )
-            lot = instrument["lotSizeFilter"]
+            lot = cast("dict[str, Any]", instrument["lotSizeFilter"])
             # Spot uses basePrecision; futures/linear use qtyStep
             qty_step = float(lot.get("qtyStep") or lot.get("basePrecision", "0.000001"))
             qty = apply_exchange_constraints(
@@ -121,12 +124,12 @@ class OrderExecutor:
 
         # 7. Max open positions check
         count_result = await session.execute(
-            select(func.count(Trade.id)).where(Trade.status == TradeStatus.POSITION_OPEN)
+            select(func.count(Trade.id)).where(Trade.status == TradeStatus.POSITION_OPEN),
         )
         open_count: int = count_result.scalar() or 0
         if open_count >= settings.max_open_positions:
             raise RiskManagerError(
-                f"Max open positions ({settings.max_open_positions}) already reached."
+                f"Max open positions ({settings.max_open_positions}) already reached.",
             )
 
         await self._ensure_total_exposure_within_limit(session, equity=Decimal(str(equity)))
@@ -146,8 +149,8 @@ class OrderExecutor:
             market_type=MarketType.SPOT,
             mode=TradingMode(settings.trading_mode),
             equity_at_entry=Decimal(str(equity)),
-            risk_amount_usd=Decimal(str(equity * settings.risk_per_trade_pct)),
-            risk_pct=Decimal(str(settings.risk_per_trade_pct)),
+            risk_amount_usd=Decimal(str(equity * effective_risk_pct)),
+            risk_pct=Decimal(str(effective_risk_pct)),
             entry_price=Decimal(str(entry)),
             stop_price=Decimal(str(stop)),
             target_price=Decimal(str(target)),
@@ -380,20 +383,27 @@ class OrderExecutor:
                         TradeStatus.POSITION_OPEN,
                         TradeStatus.POSITION_CLOSE_PENDING,
                         TradeStatus.ORDER_PARTIALLY_FILLED,
-                    ]
-                )
-            )
+                    ],
+                ),
+            ),
         )
-        open_risk = Decimal("0")
+        open_risk = Decimal(0)
         for trade in result.scalars().all():
-            risk_amount = trade.risk_amount_usd or Decimal("0")
+            risk_amount = trade.risk_amount_usd or Decimal(0)
             if trade.status == TradeStatus.ORDER_PARTIALLY_FILLED and trade.qty and trade.filled_qty:
                 risk_amount = risk_amount * (trade.filled_qty / trade.qty)
             open_risk += risk_amount
 
         max_exposure = equity * Decimal(str(settings.max_total_risk_exposure_pct))
-        if open_risk + (equity * Decimal(str(settings.risk_per_trade_pct))) > max_exposure:
+        if open_risk + (equity * Decimal(str(self._effective_risk_per_trade_pct()))) > max_exposure:
             raise RiskManagerError("Total risk exposure limit would be exceeded.")
+
+    @staticmethod
+    def _effective_risk_per_trade_pct() -> float:
+        base_risk_pct = settings.risk_per_trade_pct
+        if settings.canary_mode and settings.trading_mode != "shadow":
+            return base_risk_pct * settings.canary_risk_multiplier
+        return base_risk_pct
 
     @staticmethod
     def _looks_like_post_only_rejection(exc: BybitAPIError) -> bool:
@@ -446,27 +456,27 @@ class OrderExecutor:
         direction: SignalDirection,
         entry: Decimal,
         qty: Decimal,
-        instrument: dict[str, object],
+        instrument: dict[str, Any],
         wallet_balances: dict[str, Decimal],
     ) -> None:
         base_coin = instrument.get("baseCoin")
         quote_coin = instrument.get("quoteCoin")
         if not isinstance(base_coin, str) or not base_coin or not isinstance(quote_coin, str) or not quote_coin:
             raise RiskManagerError(
-                f"Spot instrument metadata missing baseCoin/quoteCoin for {symbol}."
+                f"Spot instrument metadata missing baseCoin/quoteCoin for {symbol}.",
             )
 
         if direction == SignalDirection.LONG:
             required_quote = qty * entry
-            available_quote = wallet_balances.get(quote_coin, Decimal("0"))
+            available_quote = wallet_balances.get(quote_coin, Decimal(0))
             if available_quote < required_quote:
                 raise InsufficientSpotBalanceError(
-                    f"Insufficient spot quote balance for {symbol}: require {required_quote} {quote_coin}, have {available_quote}."
+                    f"Insufficient spot quote balance for {symbol}: require {required_quote} {quote_coin}, have {available_quote}.",
                 )
             return
 
-        available_base = wallet_balances.get(base_coin, Decimal("0"))
+        available_base = wallet_balances.get(base_coin, Decimal(0))
         if available_base < qty:
             raise InsufficientSpotBalanceError(
-                f"Insufficient spot base balance for {symbol}: require {qty} {base_coin}, have {available_base}."
+                f"Insufficient spot base balance for {symbol}: require {qty} {base_coin}, have {available_base}.",
             )
