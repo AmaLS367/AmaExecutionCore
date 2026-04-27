@@ -170,6 +170,7 @@ def test_full_login_flow_returns_access_token_and_sets_cookie(
     assert "access_token" in body
     assert body["token_type"] == "bearer"
     assert "refresh_token" in verify_r.cookies
+    assert "csrf_token" in verify_r.cookies
 
 
 # ---------------------------------------------------------------------------
@@ -177,16 +178,16 @@ def test_full_login_flow_returns_access_token_and_sets_cookie(
 # ---------------------------------------------------------------------------
 
 
-_CSRF_HEADER = {"X-Requested-With": "XMLHttpRequest"}
+_CSRF_HEADER = {"X-CSRF-Token": "test_csrf"}
 
 
-def test_refresh_with_no_cookie_returns_401(
+def test_refresh_with_no_cookie_returns_403(
     sqlite_session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app) as client:
         r = client.post("/admin/auth/refresh", headers=_CSRF_HEADER)
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 def test_refresh_with_valid_cookie_returns_new_access_token(
@@ -196,6 +197,7 @@ def test_refresh_with_valid_cookie_returns_new_access_token(
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app) as client:
         client.cookies.set("refresh_token", refresh_cookie)
+        client.cookies.set("csrf_token", "test_csrf")
         r = client.post("/admin/auth/refresh", headers=_CSRF_HEADER)
     assert r.status_code == 200
     assert "access_token" in r.json()
@@ -207,6 +209,7 @@ def test_refresh_with_garbage_cookie_returns_401(
     app = create_app(session_factory=sqlite_session_factory)
     with TestClient(app) as client:
         client.cookies.set("refresh_token", "garbage")
+        client.cookies.set("csrf_token", "test_csrf")
         r = client.post("/admin/auth/refresh", headers=_CSRF_HEADER)
     assert r.status_code == 401
 

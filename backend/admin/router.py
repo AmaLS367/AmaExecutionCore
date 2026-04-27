@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
+import secrets
 import time
 from typing import Annotated, cast
 
@@ -205,10 +206,19 @@ async def verify_totp(
 
     await _append_audit(factory, row.id, "login_success", ip, user_agent)
     refresh_token = auth.create_refresh_token(username)
+    csrf_token = secrets.token_urlsafe(32)
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=60 * 60 * 24 * 30,
+    )
+    response.set_cookie(
+        key="csrf_token",
+        value=csrf_token,
+        httponly=False,
         secure=True,
         samesite="strict",
         max_age=60 * 60 * 24 * 30,
@@ -220,9 +230,11 @@ async def verify_totp(
 async def refresh_access_token(
     request: Request,
     refresh_token: Annotated[str | None, Cookie()] = None,
+    csrf_token: Annotated[str | None, Cookie()] = None,
 ) -> TokenResponse:
-    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CSRF protection missing header")
+    csrf_header = request.headers.get("X-CSRF-Token")
+    if not csrf_token or not csrf_header or csrf_token != csrf_header:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CSRF token mismatch")
     if refresh_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token provided",
@@ -249,8 +261,14 @@ async def logout(
     request: Request,
     response: Response,
     refresh_token: Annotated[str | None, Cookie()] = None,
+    csrf_token: Annotated[str | None, Cookie()] = None,
     credentials: HTTPAuthorizationCredentials | None = Security(_security),
 ) -> LogoutResponse:
+    if refresh_token:
+        csrf_header = request.headers.get("X-CSRF-Token")
+        if not csrf_token or not csrf_header or csrf_token != csrf_header:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CSRF token mismatch")
+
     redis_client = request.app.state.redis
     if credentials:
         try:
