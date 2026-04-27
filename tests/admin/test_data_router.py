@@ -386,4 +386,7 @@ def test_config_reload_returns_ok(
     token = _access_token()
     response = client.post("/admin/config/reload", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
-    assert response.json() == {"ok": True}
+    assert response.json() == {
+        "ok": True,
+        "message": "Runtime config reload is not supported. Restart the container to apply .env changes.",
+    }
