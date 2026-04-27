@@ -257,7 +257,8 @@ async def refresh_access_token(
 _security = HTTPBearer(auto_error=False)
 
 @router.post("/logout", response_model=LogoutResponse)
-async def logout(
+async def logout(  # noqa: C901
+
     request: Request,
     response: Response,
     refresh_token: Annotated[str | None, Cookie()] = None,

@@ -15,14 +15,14 @@ http {
 
     server {
         listen 443 ssl;
-        server_name vmi3245942.contaboserver.net;
+        server_name ${DOMAIN_NAME};
 
-        ssl_certificate     /etc/letsencrypt/live/vmi3245942.contaboserver.net/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/vmi3245942.contaboserver.net/privkey.pem;
+        ssl_certificate     /etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem;
         ssl_protocols       TLSv1.2 TLSv1.3;
         ssl_ciphers         HIGH:!aNULL:!MD5;
 
-        allow 217.113.30.137;
+        allow ${ADMIN_WHITELIST_IP};
         deny all;
 
         add_header X-Frame-Options "DENY";
@@ -60,7 +60,7 @@ http {
 
     server {
         listen 80;
-        server_name vmi3245942.contaboserver.net;
+        server_name ${DOMAIN_NAME};
         return 301 https://$host$request_uri;
     }
 }
