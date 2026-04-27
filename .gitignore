@@ -91,3 +91,7 @@ frontend/.vite/
 .kiro/
 .cursor/
 .gemini/
+
+# Let's Encrypt ACME webroot (keep directory, ignore challenge files)
+certbot/www/*
+!certbot/www/.gitkeep
