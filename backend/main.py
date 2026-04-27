@@ -258,6 +258,7 @@ async def _autostart_grid(app: FastAPI) -> None:
                 symbol,
                 capital_usdt=settings.grid_capital_usdt,
                 lookback_days=settings.grid_lookback_days,
+                target_n_levels=settings.grid_n_levels,
             )
         except Exception as exc:
             logger.error("Grid auto-start: advisor failed for {}: {}", symbol, exc)

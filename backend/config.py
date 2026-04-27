@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     grid_symbols: list[str] = []
     grid_capital_usdt: float = 20.0
     grid_lookback_days: int = 30
+    grid_n_levels: int = 4
 
     # Strategy selector — overrides all individual _enabled flags when set.
     # Valid values: "grid" | "scalping" | "signal_loop" | "" (manual/disabled)
