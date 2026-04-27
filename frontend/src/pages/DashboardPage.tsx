@@ -60,7 +60,7 @@ export function DashboardPage() {
                   <tr key={t.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/20">
                     <td className="px-6 py-4 font-medium">{t.symbol}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-xs ${t.exchange_side === "buy" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
+                      <span className={`px-2 py-1 rounded text-xs ${t.exchange_side === "Buy" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
                         {t.exchange_side.toUpperCase()}
                       </span>
                     </td>

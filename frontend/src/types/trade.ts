@@ -2,7 +2,7 @@ export interface Trade {
   id: string;
   symbol: string;
   signal_direction: "long" | "short";
-  exchange_side: "buy" | "sell";
+  exchange_side: "Buy" | "Sell";
   market_type: string;
   mode: string;
   status: string;
