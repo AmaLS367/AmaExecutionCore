@@ -14,6 +14,12 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  const csrfMatch = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
+  if (csrfMatch) {
+    config.headers["X-CSRF-Token"] = csrfMatch[1];
+  }
+  
   return config;
 });
 
