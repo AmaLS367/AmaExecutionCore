@@ -85,3 +85,9 @@ admin_panel_plan.md
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+
+.claude/
+
+.kiro/
+.cursor/
+.gemini/
