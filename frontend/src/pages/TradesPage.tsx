@@ -31,7 +31,7 @@ export function TradesPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <SummaryCard title="Total Trades" value={summary?.total_trades.toString() || "0"} />
-        <SummaryCard title="Win Rate" value={`${(summary?.win_rate || 0).toFixed(1)}%`} />
+        <SummaryCard title="Win Rate" value={`${((summary?.win_rate ?? 0) * 100).toFixed(1)}%`} />
         <SummaryCard title="Profit Factor" value={(summary?.profit_factor || 0).toFixed(2)} />
         <SummaryCard title="Total P&L" value={`$${(summary?.total_pnl || 0).toFixed(2)}`} color={summary?.total_pnl && summary.total_pnl < 0 ? "text-red-400" : "text-emerald-400"} />
         <SummaryCard title="Avg Trade" value={`$${(summary?.avg_trade || 0).toFixed(2)}`} color={summary?.avg_trade && summary.avg_trade < 0 ? "text-red-400" : "text-emerald-400"} />
