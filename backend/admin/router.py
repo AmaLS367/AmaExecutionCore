@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import ipaddress
+import time
 from typing import Annotated, cast
 
 import jwt
-from fastapi import APIRouter, Cookie, HTTPException, Request, Response, status
+from fastapi import APIRouter, Cookie, HTTPException, Request, Response, Security, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -240,19 +242,39 @@ async def refresh_access_token(
     return TokenResponse(access_token=auth.create_access_token(username))
 
 
+_security = HTTPBearer(auto_error=False)
+
 @router.post("/logout", response_model=LogoutResponse)
 async def logout(
     request: Request,
     response: Response,
     refresh_token: Annotated[str | None, Cookie()] = None,
+    credentials: HTTPAuthorizationCredentials | None = Security(_security),
 ) -> LogoutResponse:
-    if refresh_token:
+    redis_client = request.app.state.redis
+    if credentials:
         try:
-            token_payload = auth.decode_token(refresh_token, "refresh")
-            jti = str(token_payload.get("jti", ""))
-            if jti:
-                await request.app.state.redis.setex(f"bl:{jti}", 60 * 60 * 24 * 30, "1")
+            acc_payload = auth.decode_token(credentials.credentials, "access")
+            acc_jti = str(acc_payload.get("jti", ""))
+            acc_exp = acc_payload.get("exp")
+            if acc_jti and isinstance(acc_exp, (int, float)):
+                ttl = int(acc_exp - time.time())
+                if ttl > 0:
+                    await redis_client.setex(f"bl:{acc_jti}", ttl, "1")
         except jwt.PyJWTError:
             pass
+
+    if refresh_token:
+        try:
+            ref_payload = auth.decode_token(refresh_token, "refresh")
+            ref_jti = str(ref_payload.get("jti", ""))
+            ref_exp = ref_payload.get("exp")
+            if ref_jti and isinstance(ref_exp, (int, float)):
+                ttl = int(ref_exp - time.time())
+                if ttl > 0:
+                    await redis_client.setex(f"bl:{ref_jti}", ttl, "1")
+        except jwt.PyJWTError:
+            pass
+
     response.delete_cookie("refresh_token")
     return LogoutResponse(ok=True)
