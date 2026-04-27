@@ -22,6 +22,7 @@ from backend.exchange_sync.listener import ws_listener
 from backend.grid_engine.grid_advisor import GridSuggestionService
 from backend.grid_engine.grid_config import GridConfig
 from backend.grid_engine.grid_runner import GridRunner
+from backend.grid_engine.grid_ws_handler import GridOrderFillEvent
 from backend.grid_engine.models import (
     GridSession,
     GridSessionStatus,
@@ -57,6 +58,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     ws_listener.start()
     sync_engine.wire(ws_listener)
     sync_engine.start_reconciliation_worker()
+
+    _event_loop = asyncio.get_running_loop()
+
+    def _grid_on_order(message: dict[str, Any]) -> None:
+        grid_runner_local: GridRunner = app.state.grid_runner
+        for item in message.get("data", []):
+            if item.get("orderStatus") != "Filled":
+                continue
+            event = GridOrderFillEvent(
+                order_id=str(item.get("orderId", "")),
+                side=str(item.get("side", "")),
+                symbol=str(item.get("symbol", "")),
+            )
+            asyncio.run_coroutine_threadsafe(
+                grid_runner_local.handle_order_fill(event),
+                _event_loop,
+            )
+
+    ws_listener.on_order(_grid_on_order)
     spot_exit_monitor_task: asyncio.Task[None] | None = None
     if settings.trading_mode != "shadow" and hasattr(app.state.position_manager, "run_spot_exit_monitor"):
         spot_exit_monitor_task = create_logged_task(
