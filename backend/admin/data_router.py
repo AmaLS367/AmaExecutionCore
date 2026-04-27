@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ipaddress
 from collections.abc import AsyncGenerator
-from datetime import date
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -135,9 +135,15 @@ def make_data_router(
         if symbol:
             stmt = stmt.where(Trade.symbol == symbol)
         if from_date:
-            stmt = stmt.where(Trade.closed_at >= from_date)
+            from_datetime = datetime.combine(from_date, time.min, tzinfo=UTC)
+            stmt = stmt.where(Trade.closed_at >= from_datetime)
         if to_date:
-            stmt = stmt.where(Trade.closed_at <= to_date)
+            to_datetime_exclusive = datetime.combine(
+                to_date + timedelta(days=1),
+                time.min,
+                tzinfo=UTC,
+            )
+            stmt = stmt.where(Trade.closed_at < to_datetime_exclusive)
 
         total = await session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
         offset = (page - 1) * limit
@@ -183,8 +189,11 @@ def make_data_router(
         return data
 
     @router.post("/config/reload")
-    async def config_reload(admin: str = Depends(get_current_admin)) -> dict[str, bool]:
-        return {"ok": True}
+    async def config_reload(admin: str = Depends(get_current_admin)) -> dict[str, bool | str]:
+        return {
+            "ok": True,
+            "message": "Runtime config reload is not supported. Restart the container to apply .env changes.",
+        }
 
     return router
 
@@ -198,7 +207,15 @@ def _trade_to_dict(trade: Trade) -> dict[str, Any]:
         "market_type": trade.market_type.value,
         "mode": trade.mode.value,
         "status": trade.status.value,
+        "entry_price": float(trade.entry_price) if trade.entry_price is not None else None,
+        "stop_price": float(trade.stop_price) if trade.stop_price is not None else None,
+        "target_price": float(trade.target_price) if trade.target_price is not None else None,
+        "qty": float(trade.qty) if trade.qty is not None else None,
+        "expected_rrr": float(trade.expected_rrr) if trade.expected_rrr is not None else None,
+        "risk_amount_usd": float(trade.risk_amount_usd) if trade.risk_amount_usd is not None else None,
+        "risk_pct": float(trade.risk_pct) if trade.risk_pct is not None else None,
         "realized_pnl": float(trade.realized_pnl) if trade.realized_pnl is not None else None,
+        "opened_at": trade.opened_at.isoformat() if trade.opened_at else None,
         "closed_at": trade.closed_at.isoformat() if trade.closed_at else None,
         "created_at": trade.created_at.isoformat() if trade.created_at else None,
     }

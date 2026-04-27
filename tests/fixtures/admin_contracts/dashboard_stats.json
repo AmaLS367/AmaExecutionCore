@@ -1,0 +1,7 @@
+{
+  "equity": 10000.0,
+  "trading_mode": "shadow",
+  "safety_guard_status": "OK",
+  "open_positions_count": 1,
+  "pnl_today": 12.5
+}

@@ -46,8 +46,9 @@ export function GridPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold text-zinc-100">{session.symbol}</span>
                         <span className={`text-[10px] uppercase px-1.5 py-0.5 rounded ${
-                          session.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-400" :
-                          session.status === "PAUSED" ? "bg-amber-500/10 text-amber-400" :
+                          session.status === "active" ? "bg-emerald-500/10 text-emerald-400" :
+                          session.status === "paused" ? "bg-amber-500/10 text-amber-400" :
+                          session.status === "waiting_reentry" ? "bg-blue-500/10 text-blue-400" :
                           "bg-zinc-800 text-zinc-400"
                         }`}>
                           {session.status}
@@ -129,13 +130,13 @@ export function GridPage() {
                         {sessionDetail.slots.map((slot) => (
                           <tr key={slot.id} className="hover:bg-zinc-800/30 bg-zinc-950/50">
                             <td className="px-4 py-3 font-medium text-zinc-300">Level {slot.level}</td>
-                            <td className="px-4 py-3 text-emerald-400">${slot.buy_price.toFixed(2)}</td>
-                            <td className="px-4 py-3 text-red-400">${slot.sell_price.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-emerald-400">${slot.buy_price.toFixed(4)}</td>
+                            <td className="px-4 py-3 text-red-400">${slot.sell_price.toFixed(4)}</td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-0.5 rounded text-[10px] uppercase ${
-                                slot.status === "IDLE" ? "bg-zinc-800 text-zinc-400" :
-                                slot.status.includes("BUY") ? "bg-emerald-500/10 text-emerald-400" :
-                                "bg-red-500/10 text-red-400"
+                                slot.status === "waiting_buy" ? "bg-emerald-500/10 text-emerald-400" :
+                                slot.status === "waiting_sell" ? "bg-red-500/10 text-red-400" :
+                                "bg-zinc-800 text-zinc-400"
                               }`}>
                                 {slot.status}
                               </span>

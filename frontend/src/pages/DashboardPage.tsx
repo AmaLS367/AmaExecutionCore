@@ -45,33 +45,45 @@ export function DashboardPage() {
               <tr>
                 <th className="px-6 py-3">Symbol</th>
                 <th className="px-6 py-3">Side</th>
-                <th className="px-6 py-3">Mode</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3 text-right">Realized P&L</th>
+                <th className="px-6 py-3 text-right">Entry</th>
+                <th className="px-6 py-3 text-right">Stop</th>
+                <th className="px-6 py-3 text-right">Target</th>
+                <th className="px-6 py-3 text-right">Qty</th>
+                <th className="px-6 py-3 text-right">Expected RRR</th>
+                <th className="px-6 py-3 text-right">Opened At</th>
               </tr>
             </thead>
             <tbody>
               {!openTrades?.length ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">No open positions</td>
+                  <td colSpan={8} className="px-6 py-8 text-center text-zinc-500">No open positions</td>
                 </tr>
               ) : (
                 openTrades.map((t) => (
                   <tr key={t.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/20">
                     <td className="px-6 py-4 font-medium">{t.symbol}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-xs ${t.exchange_side === "buy" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
+                      <span className={`px-2 py-1 rounded text-xs ${t.exchange_side === "Buy" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
                         {t.exchange_side.toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-6 py-4">{t.mode.toUpperCase()}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-1 rounded bg-zinc-800 text-zinc-300 text-xs">
-                        {t.status.toUpperCase()}
-                      </span>
+                    <td className="px-6 py-4 text-right">
+                      {formatMoney(t.entry_price)}
                     </td>
-                    <td className={`px-6 py-4 text-right ${t.realized_pnl && t.realized_pnl < 0 ? "text-red-400" : t.realized_pnl && t.realized_pnl > 0 ? "text-emerald-400" : ""}`}>
-                      {t.realized_pnl !== null ? `$${t.realized_pnl.toFixed(2)}` : "-"}
+                    <td className="px-6 py-4 text-right text-red-400">
+                      {formatMoney(t.stop_price)}
+                    </td>
+                    <td className="px-6 py-4 text-right text-emerald-400">
+                      {formatMoney(t.target_price)}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {formatNumber(t.qty, 6)}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {formatNumber(t.expected_rrr, 2)}
+                    </td>
+                    <td className="px-6 py-4 text-right text-zinc-400">
+                      {t.opened_at ? new Date(t.opened_at).toLocaleString() : "-"}
                     </td>
                   </tr>
                 ))
@@ -82,6 +94,22 @@ export function DashboardPage() {
       </div>
     </div>
   );
+}
+
+function formatMoney(value: number | null): string {
+  if (value === null) {
+    return "-";
+  }
+
+  return `$${value.toFixed(4)}`;
+}
+
+function formatNumber(value: number | null, digits: number): string {
+  if (value === null) {
+    return "-";
+  }
+
+  return value.toFixed(digits);
 }
 
 function MetricCard({ title, value, icon, valueColor = "text-zinc-100" }: { title: string; value: string; icon: React.ReactNode; valueColor?: string }) {

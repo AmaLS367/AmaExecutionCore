@@ -6,6 +6,7 @@ import { RefreshCw, Settings2, CheckCircle2, AlertCircle } from "lucide-react";
 export function SettingsPage() {
   const queryClient = useQueryClient();
   const [reloadStatus, setReloadStatus] = useState<"idle" | "success" | "error">("idle");
+  const [reloadMessage, setReloadMessage] = useState<string | null>(null);
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["config"],
@@ -14,14 +15,22 @@ export function SettingsPage() {
 
   const reloadMutation = useMutation({
     mutationFn: configApi.reload,
-    onSuccess: () => {
+    onSuccess: (data) => {
       setReloadStatus("success");
+      setReloadMessage(data.message);
       queryClient.invalidateQueries({ queryKey: ["config"] });
-      setTimeout(() => setReloadStatus("idle"), 3000);
+      setTimeout(() => {
+        setReloadStatus("idle");
+        setReloadMessage(null);
+      }, 5000);
     },
     onError: () => {
       setReloadStatus("error");
-      setTimeout(() => setReloadStatus("idle"), 3000);
+      setReloadMessage("Failed to check configuration reload status.");
+      setTimeout(() => {
+        setReloadStatus("idle");
+        setReloadMessage(null);
+      }, 5000);
     },
   });
 
@@ -39,7 +48,7 @@ export function SettingsPage() {
             className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-4 py-2 rounded-lg transition-colors border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw size={16} className={reloadMutation.isPending ? "animate-spin" : ""} />
-            {reloadMutation.isPending ? "Reloading..." : "Reload Config"}
+            {reloadMutation.isPending ? "Checking..." : "Check Reload Support"}
           </button>
         </div>
 
@@ -47,13 +56,13 @@ export function SettingsPage() {
         {reloadStatus === "success" && (
           <div className="bg-emerald-500/10 border-b border-emerald-500/20 px-6 py-3 flex items-center gap-2 text-emerald-400 text-sm">
             <CheckCircle2 size={16} />
-            Configuration reloaded successfully.
+            {reloadMessage}
           </div>
         )}
         {reloadStatus === "error" && (
           <div className="bg-red-500/10 border-b border-red-500/20 px-6 py-3 flex items-center gap-2 text-red-400 text-sm">
             <AlertCircle size={16} />
-            Failed to reload configuration.
+            {reloadMessage}
           </div>
         )}
 

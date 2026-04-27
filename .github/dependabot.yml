@@ -2,6 +2,7 @@ version: 2
 updates:
   - package-ecosystem: pip
     directory: "/"
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
@@ -16,8 +17,21 @@ updates:
       production-dependencies:
         dependency-type: production
 
+  - package-ecosystem: npm
+    directory: "/frontend"
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - javascript
+
   - package-ecosystem: github-actions
     directory: "/"
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday

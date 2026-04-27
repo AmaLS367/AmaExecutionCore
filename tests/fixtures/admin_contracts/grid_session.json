@@ -1,0 +1,14 @@
+{
+  "id": 1,
+  "symbol": "BTCUSDT",
+  "status": "active",
+  "config": {
+    "symbol": "BTCUSDT",
+    "p_min": 90000.0,
+    "p_max": 100000.0,
+    "n_levels": 4,
+    "capital_usdt": 20.0
+  },
+  "created_at": "2026-04-27T10:00:00+00:00",
+  "stopped_at": null
+}

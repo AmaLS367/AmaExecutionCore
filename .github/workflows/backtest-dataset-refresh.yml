@@ -47,7 +47,7 @@ jobs:
           --output scripts/fixtures/regression/regression_report.json
 
       - name: Create refresh pull request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "chore(backtest): refresh regression datasets"
           title: "chore(backtest): refresh regression datasets"
