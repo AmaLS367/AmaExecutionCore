@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OtpInput from "react-otp-input";
 import { Lock, User, ShieldCheck } from "lucide-react";
-import { authApi } from "../../api/auth";
-import { useAuthStore } from "../../store/authStore";
+import { authApi } from "../api/auth";
+import { useAuthStore } from "../store/authStore";
 
 export function LoginPage() {
   const [step, setStep] = useState<1 | 2>(1);
