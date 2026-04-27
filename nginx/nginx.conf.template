@@ -38,20 +38,20 @@ http {
         }
 
         location /api/ {
-            proxy_pass http://ama_bot:8000/;
+            proxy_pass http://bot:8000/;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
 
         location /api/admin/auth/login {
             limit_req zone=login_limit burst=3 nodelay;
-            proxy_pass http://ama_bot:8000/admin/auth/login;
+            proxy_pass http://bot:8000/admin/auth/login;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
 
         location /api/admin/ws/ {
-            proxy_pass http://ama_bot:8000/admin/ws/;
+            proxy_pass http://bot:8000/admin/ws/;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
