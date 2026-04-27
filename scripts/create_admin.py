@@ -22,14 +22,19 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from backend.admin import auth as admin_auth
 from backend.admin.models import AdminUser
 from backend.config import settings
-from backend.database import Base
 
 
 async def _insert_admin(username: str, password: str) -> str:
     secret = admin_auth.generate_totp_secret()
     engine = create_async_engine(settings.database_url)
+    def _check_table(connection: Any) -> bool:
+        from sqlalchemy import inspect
+        return bool(inspect(connection).has_table("admin_users"))
+
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        has_table = await conn.run_sync(_check_table)
+        if not has_table:
+            raise RuntimeError("admin_users table not found. Run alembic upgrade head first.")
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     async with session_factory() as session:
         user = AdminUser(
