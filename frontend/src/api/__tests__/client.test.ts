@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import axios from "axios";
 import MockAdapter from "axios-mock-adapter";
 import { apiClient } from "../client";
 import { useAuthStore } from "../../store/authStore";
