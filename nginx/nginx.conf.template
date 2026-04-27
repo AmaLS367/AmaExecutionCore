@@ -23,6 +23,7 @@ http {
         ssl_ciphers         HIGH:!aNULL:!MD5;
 
         allow ${ADMIN_WHITELIST_IP};
+        allow ${ADMIN_WHITELIST_IP_2};
         deny all;
 
         add_header X-Frame-Options "DENY";

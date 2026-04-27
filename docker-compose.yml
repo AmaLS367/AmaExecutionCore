@@ -79,7 +79,7 @@ services:
     depends_on:
       - bot
       - ama_frontend
-    command: /bin/sh -c "envsubst '$$DOMAIN_NAME $$ADMIN_WHITELIST_IP' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    command: /bin/sh -c "envsubst '$$DOMAIN_NAME $$ADMIN_WHITELIST_IP $$ADMIN_WHITELIST_IP_2' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
 
 volumes:
   postgres_data:
