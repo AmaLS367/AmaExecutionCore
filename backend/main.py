@@ -266,6 +266,7 @@ async def _autostart_grid(app: FastAPI) -> None:
         session_record = GridSession(
             symbol=config.symbol,
             config_json={
+                "symbol": config.symbol,
                 "p_min": config.p_min,
                 "p_max": config.p_max,
                 "n_levels": config.n_levels,
