@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from typing import NamedTuple, Protocol, cast
 
 import jwt
-from fastapi import APIRouter, WebSocket
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -111,7 +111,7 @@ async def _receive_ws_token(websocket: WebSocket) -> str | None:
     return raw_token
 
 
-def make_ws_router() -> APIRouter:
+def make_ws_router() -> APIRouter:  # noqa: C901
     router = APIRouter(prefix="/admin", tags=["admin-ws"])
 
     @router.websocket("/ws/logs")
@@ -149,8 +149,10 @@ def make_ws_router() -> APIRouter:
                         return
                     next_validation_at = time.monotonic() + _REVALIDATE_INTERVAL_SECONDS
                 await websocket.send_text(log_text)
-        except Exception:
+        except WebSocketDisconnect:
             pass
+        except Exception as e:
+            _root_logger.warning("Unexpected error in ws_logs: %s", e)
         finally:
             _ws_handler.unsubscribe(queue)
 
