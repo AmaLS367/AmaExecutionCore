@@ -48,6 +48,7 @@ export function GridPage() {
                         <span className={`text-[10px] uppercase px-1.5 py-0.5 rounded ${
                           session.status === "active" ? "bg-emerald-500/10 text-emerald-400" :
                           session.status === "paused" ? "bg-amber-500/10 text-amber-400" :
+                          session.status === "waiting_reentry" ? "bg-blue-500/10 text-blue-400" :
                           "bg-zinc-800 text-zinc-400"
                         }`}>
                           {session.status}
@@ -134,7 +135,7 @@ export function GridPage() {
                             <td className="px-4 py-3">
                               <span className={`px-2 py-0.5 rounded text-[10px] uppercase ${
                                 slot.status === "waiting_buy" ? "bg-emerald-500/10 text-emerald-400" :
-                                slot.status === "waiting_sell" ? "bg-amber-500/10 text-amber-400" :
+                                slot.status === "waiting_sell" ? "bg-red-500/10 text-red-400" :
                                 "bg-zinc-800 text-zinc-400"
                               }`}>
                                 {slot.status}
