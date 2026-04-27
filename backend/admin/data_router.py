@@ -189,8 +189,11 @@ def make_data_router(
         return data
 
     @router.post("/config/reload")
-    async def config_reload(admin: str = Depends(get_current_admin)) -> dict[str, bool]:
-        return {"ok": True}
+    async def config_reload(admin: str = Depends(get_current_admin)) -> dict[str, bool | str]:
+        return {
+            "ok": True,
+            "message": "Runtime config reload is not supported. Restart the container to apply .env changes.",
+        }
 
     return router
 

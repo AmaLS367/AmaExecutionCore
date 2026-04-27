@@ -6,6 +6,6 @@ export const configApi = {
 
   reload: () =>
     apiClient
-      .post<{ ok: boolean }>("/admin/config/reload")
+      .post<{ ok: boolean; message: string }>("/admin/config/reload")
       .then((r) => r.data),
 };
