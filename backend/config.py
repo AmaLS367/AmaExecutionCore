@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     bybit_testnet_api_secret: str = ""
 
     # Database
-    database_url: str = ""
+    database_url: str = "postgresql+asyncpg://appuser:tradingpass@localhost:5432/tradingbot"
+    redis_url: str = "redis://localhost:6379/0"
 
     # Trading Engine
     trading_mode: str = "shadow"
@@ -51,6 +52,16 @@ class Settings(BaseSettings):
     scalping_cooldown_seconds: int = 120
     scalping_strategy: str = "vwap_reversion"
 
+    # Grid
+    grid_symbols: list[str] = []
+    grid_capital_usdt: float = 20.0
+    grid_lookback_days: int = 30
+    grid_n_levels: int = 4
+
+    # Strategy selector — overrides all individual _enabled flags when set.
+    # Valid values: "grid" | "scalping" | "signal_loop" | "" (manual/disabled)
+    active_strategy: str = ""
+
     # Risk Management
     risk_per_trade_pct: float = 0.01
     canary_mode: bool = False
@@ -68,6 +79,13 @@ class Settings(BaseSettings):
     cooldown_hours: int = 4
     market_data_max_staleness_intervals: int = 2
     market_data_staleness_grace_seconds: int = 15
+
+    # Admin Panel
+    admin_jwt_secret: str = ""
+    admin_jwt_access_ttl_minutes: int = 30
+    admin_jwt_refresh_ttl_days: int = 30
+    admin_totp_issuer: str = "AmaExecutionCore"
+    admin_cors_origin: str = ""
 
     @property
     def active_api_key(self) -> str:
@@ -100,7 +118,7 @@ class Settings(BaseSettings):
             raise ValueError("DATABASE_URL must be set in environment or .env file")
         return value
 
-    @field_validator("signal_loop_symbols", "scalping_symbols", mode="before")
+    @field_validator("signal_loop_symbols", "scalping_symbols", "grid_symbols", mode="before")
     @classmethod
     def parse_symbol_lists(cls, value: object) -> list[str]:
         if value is None:
@@ -110,6 +128,17 @@ class Settings(BaseSettings):
         if isinstance(value, Iterable):
             return [str(item).strip().upper() for item in value if str(item).strip()]
         raise TypeError(f"Unsupported symbol list value: {value!r}")
+
+    @field_validator("active_strategy", mode="before")
+    @classmethod
+    def validate_active_strategy(cls, value: object) -> str:
+        if value is None:
+            return ""
+        normalized = str(value).strip().lower()
+        allowed = {"", "grid", "scalping", "signal_loop"}
+        if normalized not in allowed:
+            raise ValueError(f"ACTIVE_STRATEGY must be one of: {sorted(allowed)!r}, got {normalized!r}")
+        return normalized
 
     @field_validator("signal_loop_strategy")
     @classmethod

@@ -2,15 +2,16 @@ services:
   bot:
     build: .
     container_name: ama_bot
-    ports:
-      - "8000:8000"
     env_file:
       - .env
     environment:
       # Override DB URL to point to the postgres service
       DATABASE_URL: postgresql+asyncpg://appuser:${POSTGRES_PASSWORD:-tradingpass}@postgres:5432/tradingbot
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
@@ -44,6 +45,40 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: ama_redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ama_frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ama_frontend
+    restart: unless-stopped
+
+  ama_nginx:
+    image: nginx:alpine
+    container_name: ama_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file:
+      - .env
+    volumes:
+      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - bot
+      - ama_frontend
+    command: /bin/sh -c "envsubst '$$DOMAIN_NAME $$ADMIN_WHITELIST_IP' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
 
 volumes:
   postgres_data:

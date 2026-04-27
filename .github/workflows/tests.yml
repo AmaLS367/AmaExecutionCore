@@ -34,6 +34,7 @@ jobs:
           --health-retries 10
     env:
       TEST_POSTGRESQL_URL: postgresql+asyncpg://appuser:tradingpass@localhost:5432/tradingbot_test
+      ADMIN_JWT_SECRET: ci-test-secret-for-admin-panel-jwt-32chars
     steps:
       - uses: actions/checkout@v6
 

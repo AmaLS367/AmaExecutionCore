@@ -4,17 +4,23 @@ import os
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 
+import fakeredis
 import pytest
 import pytest_asyncio
+import redis.asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+redis.asyncio.Redis.from_url = lambda _url, **_kwargs: fakeredis.FakeAsyncRedis(decode_responses=True)
 
 os.environ["ENVIRONMENT"] = "test"
 os.environ["DEBUG"] = "false"
 os.environ["LOG_LEVEL"] = "INFO"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+os.environ["ADMIN_JWT_SECRET"] = "x" * 32
 
-from backend.config import settings
-from backend.database import Base
+
+from backend.config import settings  # noqa: E402
+from backend.database import Base  # noqa: E402
 
 
 @pytest.fixture(autouse=True)

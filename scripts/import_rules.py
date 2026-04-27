@@ -11,13 +11,17 @@ RULE_CODE_FASTAPI_LEAK = "ARCH003"
 RULE_CODE_ROUTER_IMPORT_LEAK = "ARCH004"
 
 FASTAPI_ALLOWED_MODULES = {
+    "backend.admin.data_router",
+    "backend.admin.deps",
+    "backend.admin.router",
+    "backend.admin.ws_logs",
     "backend.api.grid_router",
     "backend.main",
     "backend.position_manager.router",
     "backend.safety_guard.router",
     "backend.signal_execution.router",
 }
-ROUTER_OWNER_MODULES = {"position_manager", "safety_guard", "signal_execution"}
+ROUTER_OWNER_MODULES = {"admin", "position_manager", "safety_guard", "signal_execution"}
 SHARED_MODULES = {"config", "database", "task_utils"}
 DISALLOWED_IMPORTS: dict[str, set[str]] = {
     "exchange_sync": {

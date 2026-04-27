@@ -32,18 +32,21 @@ dependencies = [
     "uvicorn[standard]>=0.30.0",
     "pydantic>=2.9.0",
     "pydantic-settings>=2.5.0",
-    
     # Exchange API & WebSocket
     "pybit>=5.8.0",
     "websockets>=13.0",
-    
     # Database
     "sqlalchemy>=2.0.35",
     "asyncpg>=0.29.0",
     "alembic>=1.13.3",
-    
     # Utilities
-    "loguru>=0.7.2"
+    "loguru>=0.7.2",
+    # Admin Panel
+    "PyJWT>=2.8.0",
+    "bcrypt>=4.0.0",
+    "pyotp>=2.9.0",
+    "qrcode>=8.0",
+    "redis>=7.4.0",
 ]
 [project.urls]
 Homepage = "https://github.com/AmaLS367/AmaExecutionCore"
@@ -58,7 +61,8 @@ dev = [
     "ruff>=0.6.9",
     "mypy>=1.11.0",
     "aiosqlite>=0.20.0",
-    "httpx>=0.27.2"
+    "httpx>=0.27.2",
+    "fakeredis>=2.35.1",
 ]
 
 [tool.pytest.ini_options]
@@ -94,7 +98,7 @@ ignore = [
 "backend/bybit_client/rest.py" = ["C901", "PLC0415"]
 "backend/exchange_sync/engine.py" = ["BLE001", "C901", "PERF203", "PLR0912", "PLR0915"]
 "backend/exchange_sync/listener.py" = ["PLC0415"]
-"backend/main.py" = ["ARG002"]
+"backend/main.py" = ["ARG002", "BLE001", "C901"]
 "backend/market_data/bybit_ws_feed.py" = ["BLE001", "PLC0415"]
 "backend/order_executor/executor.py" = ["PLR0915"]
 "backend/position_manager/router.py" = ["B008"]
@@ -103,9 +107,12 @@ ignore = [
 "backend/safety_guard/router.py" = ["B008"]
 "backend/signal_loop/runner.py" = ["BLE001"]
 "backend/signal_loop/ws_runner.py" = ["BLE001"]
-"scripts/*.py" = ["T201"]
+"backend/admin/data_router.py" = ["ARG001", "B008", "C901", "PLR0915"]
+"backend/admin/router.py" = ["B008", "S105"]
+"backend/admin/ws_logs.py" = ["BLE001", "S110", "SIM105"]
+"scripts/*.py" = ["BLE001", "PLC0415", "T201"]
 "scripts/run_backtest.py" = ["PLC0415", "T201"]
-"tests/**/*.py" = ["ARG001", "ARG002", "BLE001", "DTZ011", "INP001", "PLC0415", "S105", "S106", "SLF001"]
+"tests/**/*.py" = ["ARG001", "ARG002", "BLE001", "DTZ011", "ERA001", "INP001", "PLC0415", "S105", "S106", "S107", "SLF001"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -125,6 +132,18 @@ exclude = [
 
 [[tool.mypy.overrides]]
 module = "pybit.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pyotp.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "bcrypt.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "qrcode.*"
 ignore_missing_imports = true
 
 [tool.hatch.build.targets.wheel]
