@@ -76,7 +76,7 @@ class GridOrderManager:
             symbol=symbol,
             side=side,
             order_type="Limit",
-            qty=_format_qty(qty),
+            qty=_format_qty(qty, price),
             price=_format_price(price),
             is_post_only=True,
         )
@@ -106,8 +106,21 @@ def _format_price(price: float) -> str:
     return f"{price:.{_price_decimals(price)}f}"
 
 
-def _format_qty(qty: float) -> str:
-    return f"{qty:.8f}".rstrip("0").rstrip(".")
+def _qty_decimals(price: float) -> int:
+    """Estimate qty step precision from price magnitude (inverse of price precision)."""
+    if price >= 1000:
+        return 6
+    if price >= 100:
+        return 4
+    if price >= 10:
+        return 3
+    if price >= 1:
+        return 1
+    return 0
+
+
+def _format_qty(qty: float, price: float) -> str:
+    return f"{qty:.{_qty_decimals(price)}f}"
 
 
 def _order_id(payload: dict[str, Any]) -> str | None:
