@@ -198,9 +198,12 @@ def _format_decimal(value: Decimal | None) -> str:
 def _summarize_executions(
     executions: tuple[SimulationExecutionResult, ...],
 ) -> BacktestSummary:
+    executed_executions = tuple(
+        execution for execution in executions if execution.status != "skipped"
+    )
     net_trade_pnls = tuple(
         execution.realized_pnl - execution.fees_paid
-        for execution in executions
+        for execution in executed_executions
     )
     trades = len(net_trade_pnls)
     wins = sum(1 for pnl in net_trade_pnls if pnl > 0)
@@ -250,6 +253,7 @@ async def run_backtests(
             max_hold_candles=case.max_hold_candles,
             risk_amount_usd=100.0,
             fee_rate_per_side=fee_rate_per_side,
+            market_mode="spot",
         )
         runner: HistoricalReplayRunner[SimulationExecutionResult] = HistoricalReplayRunner(
             strategy=cast("SupportsReplayStrategy", strategy),

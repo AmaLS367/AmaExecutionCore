@@ -126,3 +126,43 @@ def test_future_candles_for_step_returns_remaining_tail() -> None:
 
     assert _future_candles_for_step(request, step_index=2) == candles[3:]
     assert _future_candles_for_step(HistoricalReplayRequest(symbol="BTCUSDT", interval="5", snapshots=_snapshots(2)), step_index=0) == ()
+
+
+def test_build_report_includes_spot_execution_counters() -> None:
+    report = _build_report(
+        [
+            type(
+                "Step",
+                (),
+                {"execution": {"status": "skipped", "rejected_short_signal": True}},
+            )(),
+            type(
+                "Step",
+                (),
+                {"execution": {"status": "skipped", "skipped_min_notional": True}},
+            )(),
+            type(
+                "Step",
+                (),
+                {"execution": {"status": "skipped", "skipped_insufficient_capital": True}},
+            )(),
+            type(
+                "Step",
+                (),
+                {
+                    "execution": {
+                        "status": "closed",
+                        "realized_pnl": "10",
+                        "slippage": "1",
+                        "ambiguous_candle": True,
+                    },
+                },
+            )(),
+        ],
+    )
+
+    assert report.metrics.closed_trades == 1
+    assert report.counters.rejected_short_signals == 1
+    assert report.counters.skipped_min_notional == 1
+    assert report.counters.skipped_insufficient_capital == 1
+    assert report.counters.ambiguous_candles == 1

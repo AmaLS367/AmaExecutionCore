@@ -80,9 +80,18 @@ class HistoricalReplaySlippageSummary:
 
 
 @dataclass(slots=True, frozen=True)
+class HistoricalReplayCounters:
+    rejected_short_signals: int = 0
+    skipped_min_notional: int = 0
+    skipped_insufficient_capital: int = 0
+    ambiguous_candles: int = 0
+
+
+@dataclass(slots=True, frozen=True)
 class HistoricalReplayReport:
     metrics: HistoricalReplayMetrics
     slippage: HistoricalReplaySlippageSummary | None
+    counters: HistoricalReplayCounters
 
 
 @dataclass(slots=True, frozen=True)
@@ -305,17 +314,8 @@ def _build_candle_replay_steps(
 def _build_report(
     steps: list[HistoricalReplayStep[ExecutionResultT]],
 ) -> HistoricalReplayReport:
-    realized_pnls: list[Decimal] = []
-    slippages: list[Decimal] = []
-    for step in steps:
-        if step.execution is None:
-            continue
-        realized_pnl = _coerce_decimal(_read_metric(step.execution, "realized_pnl"))
-        if realized_pnl is not None:
-            realized_pnls.append(realized_pnl)
-        slippage = _coerce_decimal(_read_metric(step.execution, "slippage"))
-        if slippage is not None:
-            slippages.append(slippage)
+    counters = _collect_report_counters(steps)
+    realized_pnls, slippages = _collect_trade_outputs(steps)
 
     winning_trades = [pnl for pnl in realized_pnls if pnl > 0]
     losing_trades = [pnl for pnl in realized_pnls if pnl < 0]
@@ -347,13 +347,69 @@ def _build_report(
             max_drawdown=max_drawdown,
         ),
         slippage=slippage_summary,
+        counters=counters,
     )
+
+
+def _collect_report_counters(
+    steps: list[HistoricalReplayStep[ExecutionResultT]],
+) -> HistoricalReplayCounters:
+    rejected_short_signals = 0
+    skipped_min_notional = 0
+    skipped_insufficient_capital = 0
+    ambiguous_candles = 0
+    for step in steps:
+        if step.execution is None:
+            continue
+        if _read_bool(step.execution, "rejected_short_signal"):
+            rejected_short_signals += 1
+        if _read_bool(step.execution, "skipped_min_notional"):
+            skipped_min_notional += 1
+        if _read_bool(step.execution, "skipped_insufficient_capital"):
+            skipped_insufficient_capital += 1
+        if _read_bool(step.execution, "ambiguous_candle"):
+            ambiguous_candles += 1
+    return HistoricalReplayCounters(
+        rejected_short_signals=rejected_short_signals,
+        skipped_min_notional=skipped_min_notional,
+        skipped_insufficient_capital=skipped_insufficient_capital,
+        ambiguous_candles=ambiguous_candles,
+    )
+
+
+def _collect_trade_outputs(
+    steps: list[HistoricalReplayStep[ExecutionResultT]],
+) -> tuple[list[Decimal], list[Decimal]]:
+    realized_pnls: list[Decimal] = []
+    slippages: list[Decimal] = []
+    for step in steps:
+        if step.execution is None or not _execution_was_executed(step.execution):
+            continue
+        realized_pnl = _coerce_decimal(_read_metric(step.execution, "realized_pnl"))
+        if realized_pnl is not None:
+            realized_pnls.append(realized_pnl)
+        slippage = _coerce_decimal(_read_metric(step.execution, "slippage"))
+        if slippage is not None:
+            slippages.append(slippage)
+    return realized_pnls, slippages
 
 
 def _read_metric(execution: object, field_name: str) -> object | None:
     if isinstance(execution, Mapping):
         return execution.get(field_name)
     return getattr(execution, field_name, None)
+
+
+def _read_bool(execution: object, field_name: str) -> bool:
+    value = _read_metric(execution, field_name)
+    return value is True
+
+
+def _execution_was_executed(execution: object) -> bool:
+    status = _read_metric(execution, "status")
+    if isinstance(status, str):
+        return status != "skipped"
+    return True
 
 
 def _track_execution(
@@ -367,6 +423,8 @@ def _track_execution(
     cooldown_candles: int,
     hard_pause_consecutive_losses: int,
 ) -> None:
+    if not _execution_was_executed(execution):
+        return
     close_step = _resolve_close_step(execution=execution, step_index=step_index)
     state.open_positions[signal.symbol] = ReplayOpenPosition(
         symbol=signal.symbol,

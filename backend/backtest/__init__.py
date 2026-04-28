@@ -10,6 +10,7 @@ from backend.backtest.gate import (
     serialize_evaluation,
 )
 from backend.backtest.replay_runner import (
+    HistoricalReplayCounters,
     HistoricalReplayMetrics,
     HistoricalReplayReport,
     HistoricalReplayRequest,
@@ -29,6 +30,7 @@ __all__ = [
     "BacktestScenario",
     "BacktestThresholdProfile",
     "DemoRunner",
+    "HistoricalReplayCounters",
     "HistoricalReplayMetrics",
     "HistoricalReplayReport",
     "HistoricalReplayRequest",
