@@ -56,14 +56,14 @@ This document explains all environment variables found in the `.env.example` / `
 |---|---|---|---|
 | `SIGNAL_LOOP_ENABLED` | `bool` | `False` | Enables the REST-polled autonomous strategy loop for day-trading intervals. |
 | `SIGNAL_LOOP_SYMBOLS` | `list[str]` | `[]` | Comma-separated symbols evaluated by the signal loop, for example `BTCUSDT,ETHUSDT`. |
-| `SIGNAL_LOOP_STRATEGY` | `string` | `rsi_ema` | Day-trading strategy used by the signal loop. Supported values: `rsi_ema`, `ema_crossover`. |
+| `SIGNAL_LOOP_STRATEGY` | `string` | `ema_crossover` | Day-trading strategy used by the signal loop. Supported values: `ema_crossover`. |
 | `SIGNAL_LOOP_INTERVAL` | `string` | `15` | Bybit kline interval used by the signal loop. |
 | `SIGNAL_LOOP_COOLDOWN_SECONDS` | `int` | `300` | Per-symbol entry cooldown after the runner submits a signal. |
 | `SIGNAL_LOOP_MAX_SYMBOLS_CONCURRENT` | `int` | `5` | Concurrency cap for parallel per-symbol strategy evaluations. |
 
 Day-trading defaults:
 
-- `SIGNAL_LOOP_STRATEGY=rsi_ema`
+- `SIGNAL_LOOP_STRATEGY=ema_crossover`
 - `SIGNAL_LOOP_INTERVAL=15`
 - `RISK_PER_TRADE_PCT=0.005`
 - `MIN_RRR=1.5`
@@ -73,8 +73,6 @@ Day-trading defaults:
 - `MAX_DAILY_LOSS_PCT=0.02`
 - `HARD_PAUSE_CONSECUTIVE_LOSSES=4`
 - `COOLDOWN_HOURS=2`
-
-`rsi_ema` targets `max(1.5, MIN_RRR)` internally so the generated target remains compatible with the execution-side RRR guard.
 
 ## ⚡ Scalping
 

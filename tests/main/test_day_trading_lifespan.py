@@ -46,14 +46,18 @@ def test_create_app_lifespan_builds_configured_day_trading_strategy(
 
     strategy_calls: list[tuple[str, float]] = []
 
-    def _fake_build_day_trading_strategy(*, strategy_name: str, min_rrr: float) -> _DummyStrategy:
+    def _fake_build_day_trading_strategy(
+        *,
+        strategy_name: str,
+        min_rrr: float,
+    ) -> _DummyStrategy:
         strategy_calls.append((strategy_name, min_rrr))
         return _DummyStrategy()
 
     settings.signal_loop_enabled = True
     settings.signal_loop_symbols = ["BTCUSDT"]
     settings.signal_loop_interval = "15"
-    settings.signal_loop_strategy = "rsi_ema"
+    settings.signal_loop_strategy = "ema_crossover"
     settings.min_rrr = 2.0
     settings.scalping_enabled = False
     settings.scalping_symbols = []
@@ -75,6 +79,6 @@ def test_create_app_lifespan_builds_configured_day_trading_strategy(
     app = create_app(session_factory=sqlite_session_factory, rest_client=NoopRestClient())
 
     with TestClient(app):
-        assert strategy_calls == [("rsi_ema", 2.0)]
+        assert strategy_calls == [("ema_crossover", 2.0)]
         assert _RecordingSignalLoopRunner.last_init is not None
         assert _RecordingSignalLoopRunner.last_init["interval"] == "15"

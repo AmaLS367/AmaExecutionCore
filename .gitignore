@@ -77,7 +77,10 @@ venv.bak/
 trading_bot_plan.md
 roadmap.md
 artifacts/
+tmp_outputs/
+docs/superpowers/
 admin_panel_plan.md
+ama_execution_core_context.txt
 # Added by code-review-graph
 .code-review-graph/
 
@@ -86,8 +89,8 @@ frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 
+# Agents
 .claude/
-
 .kiro/
 .cursor/
 .gemini/

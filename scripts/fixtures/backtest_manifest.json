@@ -3,12 +3,27 @@
     "regression": "regression",
     "live": "live"
   },
+  "active_strategy_suites": {
+    "regime_grid_v1": "regime_grid_gate",
+    "vwap_reversion_v1": "vwap_reversion_research"
+  },
   "suites": {
     "smoke": ["grid_xrpusdt_smoke"],
     "regression": [
       "grid_xrpusdt_regression",
       "grid_solusdt_regression",
       "grid_ethusdt_regression"
+    ],
+    "regime_grid_gate": [
+      "grid_xrpusdt_regression",
+      "grid_solusdt_regression",
+      "grid_ethusdt_regression"
+    ],
+    "vwap_reversion_research": [
+      "vwap_reversion_btcusdt_15m",
+      "vwap_reversion_ethusdt_15m",
+      "vwap_reversion_solusdt_15m",
+      "vwap_reversion_xrpusdt_15m"
     ],
     "live": [
       "grid_xrpusdt_regression",

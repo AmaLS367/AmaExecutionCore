@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     # Signal loop
     signal_loop_enabled: bool = False
     signal_loop_symbols: list[str] = []
-    signal_loop_strategy: str = "rsi_ema"
+    signal_loop_strategy: str = "ema_crossover"
     signal_loop_interval: str = "15"
     signal_loop_cooldown_seconds: int = 300
     signal_loop_max_symbols_concurrent: int = 5

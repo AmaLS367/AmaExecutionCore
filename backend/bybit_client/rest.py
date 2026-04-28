@@ -335,6 +335,36 @@ class BybitRESTClient:
         items: list[dict[str, Any]] = result.get("list", [])
         return items
 
+    def get_executions(
+        self,
+        *,
+        category: str,
+        symbol: str,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        logger.debug(
+            "Fetching executions. symbol={} category={} limit={}",
+            symbol,
+            category,
+            limit,
+        )
+        try:
+            result = self._unwrap(
+                self._session.get_executions(
+                    category=category,
+                    symbol=symbol,
+                    limit=limit,
+                ),
+            )
+        except BybitAPIError:
+            raise
+        except Exception as exc:
+            raise BybitConnectionError(
+                f"Failed to fetch executions for {symbol}: {exc}",
+            ) from exc
+        items: list[dict[str, Any]] = result.get("list", [])
+        return items
+
     @staticmethod
     def _parse_kline_item(item: Any) -> BybitKline:
         if not isinstance(item, list) or len(item) < 7:

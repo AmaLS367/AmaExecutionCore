@@ -9,22 +9,19 @@ from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from loguru import logger
 
-from backend.backtest import evaluate_scenario, load_manifest, serialize_evaluation
-from backend.backtest.datasets import (
-    SupportsKlineFetch,
-    candles_for_lookback,
-    fetch_candles_with_retry,
-    load_dataset,
-)
-from backend.bybit_client.rest import BybitRESTClient
-from backend.grid_engine.grid_backtester import RawCandle, run_grid_backtest
-from backend.grid_engine.grid_config import GridConfig
-from backend.grid_engine.grid_metrics import GridBacktestResult, evaluate_grid_backtest
-from scripts.validate_grid_backtest import _backtest_days, _candle_close, _load_fixture
+_SCRIPT_ACTIVE_STRATEGY_ENV = os.environ.get("ACTIVE_STRATEGY")
+if _SCRIPT_ACTIVE_STRATEGY_ENV is not None:
+    os.environ.pop("ACTIVE_STRATEGY", None)
+
+if TYPE_CHECKING:
+    from backend.backtest.datasets import SupportsKlineFetch
+    from backend.grid_engine.grid_backtester import RawCandle
+    from backend.grid_engine.grid_config import GridConfig
+    from backend.grid_engine.grid_metrics import GridBacktestResult
 
 GateMode = Literal["regression", "live"]
 
@@ -82,6 +79,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "--suite",
         help="Optional manifest suite name. If omitted, default_suites[mode] is used when present.",
     )
+    parser.add_argument(
+        "--active-strategy",
+        help="Optional active strategy name resolved through manifest.active_strategy_suites.",
+    )
     parser.add_argument("--output", type=Path)
     parser.add_argument("--fee-rate-per-side", type=float, default=0.001)
     return parser
@@ -131,10 +132,26 @@ async def run_manifest_gate(
     output_path: Path,
     fee_rate_per_side: float,
     suite: str | None = None,
+    active_strategy: str | None = None,
     client: SupportsKlineFetch | None = None,
 ) -> dict[str, object]:
+    # Import after stripping ACTIVE_STRATEGY from the process env so backend.config
+    # does not validate the script-only selector value as a runtime strategy.
+    from backend.backtest import evaluate_scenario, load_manifest, serialize_evaluation
+    from backend.backtest.datasets import (
+        candles_for_lookback,
+        fetch_candles_with_retry,
+        load_dataset,
+    )
+    from backend.bybit_client.rest import BybitRESTClient
+
     raw_manifest = _load_raw_manifest(manifest_path)
-    selected_names = _selected_names_for_suite(raw_manifest, suite=suite, mode=mode)
+    resolved_suite, selected_names = _resolve_suite_selection(
+        raw_manifest,
+        suite=suite,
+        active_strategy=active_strategy,
+        mode=mode,
+    )
     manifest = load_manifest(manifest_path)
     repo_root = _resolve_repo_root(manifest_path)
     results: list[dict[str, object]] = []
@@ -216,7 +233,7 @@ async def run_manifest_gate(
     _validate_selected_names(selected_names=selected_names, results=results)
     report: dict[str, object] = {
         "mode": mode,
-        "suite": suite,
+        "suite": resolved_suite,
         "manifest": str(manifest_path.as_posix()),
         "generated_at": datetime.now(UTC).isoformat(),
         "fee_rate_per_side": str(fee_rate_per_side),
@@ -237,13 +254,20 @@ def _load_raw_manifest(path: Path) -> dict[str, object]:
     return {str(key): value for key, value in raw_payload.items()}
 
 
-def _selected_names_for_suite(
+def _resolve_suite_selection(
     raw_manifest: Mapping[str, object],
     *,
     suite: str | None,
+    active_strategy: str | None,
     mode: GateMode,
-) -> set[str] | None:
-    resolved_suite = suite
+) -> tuple[str | None, set[str] | None]:
+    resolved_suite = _normalize_selector_name(suite)
+    normalized_active_strategy = _normalize_selector_name(active_strategy)
+    if resolved_suite is None and normalized_active_strategy is not None:
+        resolved_suite = _suite_for_active_strategy(
+            raw_manifest,
+            active_strategy=normalized_active_strategy,
+        )
     if resolved_suite is None:
         default_suites = raw_manifest.get("default_suites")
         if isinstance(default_suites, Mapping):
@@ -251,18 +275,52 @@ def _selected_names_for_suite(
             if isinstance(raw_default, str):
                 resolved_suite = raw_default
     if resolved_suite is None:
-        return None
+        return None, None
 
+    return resolved_suite, _selected_names_for_suite(raw_manifest, suite=resolved_suite)
+
+
+def _normalize_selector_name(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
+def _suite_for_active_strategy(
+    raw_manifest: Mapping[str, object],
+    *,
+    active_strategy: str,
+) -> str:
+    raw_strategy_suites = raw_manifest.get("active_strategy_suites", {})
+    if not isinstance(raw_strategy_suites, Mapping):
+        raise TypeError("active_strategy_suites must be an object.")
+    strategy_suites = {str(key): value for key, value in raw_strategy_suites.items()}
+    raw_suite = strategy_suites.get(active_strategy)
+    if not isinstance(raw_suite, str) or not raw_suite:
+        available = sorted(name for name in strategy_suites if name)
+        raise ValueError(
+            f"Unknown active strategy: {active_strategy}. "
+            f"Available active strategies: {', '.join(available)}",
+        )
+    return raw_suite
+
+
+def _selected_names_for_suite(
+    raw_manifest: Mapping[str, object],
+    *,
+    suite: str,
+) -> set[str]:
     suites = raw_manifest.get("suites")
     if not isinstance(suites, Mapping):
         raise TypeError("Manifest suite requested, but manifest does not define suites.")
-    raw_names = suites.get(resolved_suite)
+    raw_names = suites.get(suite)
     if not isinstance(raw_names, list) or not raw_names:
-        raise ValueError(f"Manifest suite {resolved_suite!r} must define at least one scenario.")
+        raise ValueError(f"Manifest suite {suite!r} must define at least one scenario.")
     selected: set[str] = set()
     for raw_name in raw_names:
         if not isinstance(raw_name, str) or not raw_name:
-            raise TypeError(f"Manifest suite {resolved_suite!r} contains invalid scenario name.")
+            raise TypeError(f"Manifest suite {suite!r} contains invalid scenario name.")
         selected.add(raw_name)
     return selected
 
@@ -335,6 +393,10 @@ def _evaluate_grid_scenario(
     scenario: GridBacktestScenario,
     profile: GridThresholdProfile,
 ) -> GridScenarioEvaluation:
+    from backend.grid_engine.grid_backtester import run_grid_backtest
+    from backend.grid_engine.grid_metrics import evaluate_grid_backtest
+    from scripts.validate_grid_backtest import _backtest_days, _load_fixture
+
     candles = _load_fixture(
         _resolve_dataset_path(
             manifest_path=manifest_path,
@@ -378,6 +440,9 @@ def _grid_config_for_candles(
     scenario: GridBacktestScenario,
     candles: Sequence[RawCandle],
 ) -> GridConfig:
+    from backend.grid_engine.grid_config import GridConfig
+    from scripts.validate_grid_backtest import _candle_close
+
     if not candles:
         raise ValueError(f"{scenario.name} has no candles.")
     start_price = _candle_close(candles[0])
@@ -395,6 +460,10 @@ def _grid_profitable_window_rate(
     scenario: GridBacktestScenario,
     candles: Sequence[RawCandle],
 ) -> float | None:
+    from backend.grid_engine.grid_backtester import run_grid_backtest
+    from backend.grid_engine.grid_metrics import evaluate_grid_backtest
+    from scripts.validate_grid_backtest import _backtest_days
+
     if scenario.walk_forward_days is None and scenario.walk_forward_windows is None:
         return None
     if scenario.walk_forward_days is None or scenario.walk_forward_windows is None:
@@ -548,6 +617,7 @@ async def main() -> None:
         output_path=_resolve_output_path(output=args.output, mode=args.mode),
         fee_rate_per_side=args.fee_rate_per_side,
         suite=args.suite,
+        active_strategy=args.active_strategy or _SCRIPT_ACTIVE_STRATEGY_ENV,
     )
 
 
