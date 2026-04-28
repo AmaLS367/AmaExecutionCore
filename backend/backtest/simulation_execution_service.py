@@ -81,8 +81,8 @@ class SimulationExecutionService:
             },
         }
 
-        if fee_rate_per_side is not None and legacy_fee_shortcut:
-            fee_rate_decimal = Decimal(str(fee_rate_per_side))
+        fee_rate_decimal = Decimal(str(fee_rate_per_side)) if fee_rate_per_side is not None else None
+        if fee_rate_decimal is not None and legacy_fee_shortcut:
             self._maker_fee_rate = fee_rate_decimal
             self._taker_fee_rate = fee_rate_decimal
             self._maker_fill_probability = 1.0
@@ -91,8 +91,8 @@ class SimulationExecutionService:
             self._one_bar_execution_delay = False
             return
 
-        self._maker_fee_rate = maker_fee_rate
-        self._taker_fee_rate = taker_fee_rate
+        self._maker_fee_rate = fee_rate_decimal if fee_rate_decimal is not None else maker_fee_rate
+        self._taker_fee_rate = fee_rate_decimal if fee_rate_decimal is not None else taker_fee_rate
         self._maker_fill_probability = maker_fill_probability
         self._spread_bps = spread_bps
         self._slippage_bps = slippage_bps

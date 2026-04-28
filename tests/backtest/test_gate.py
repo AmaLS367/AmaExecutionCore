@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from backend.backtest.gate import (
+    BacktestScenario,
     BacktestThresholdProfile,
     ScenarioEvaluation,
     ScenarioMetrics,
@@ -168,6 +169,73 @@ def test_serialize_evaluation_includes_spot_execution_counters() -> None:
     assert serialized["skipped_min_notional"] == 3
     assert serialized["skipped_insufficient_capital"] == 4
     assert serialized["ambiguous_candles"] == 5
+
+
+def test_calculate_metrics_excludes_skipped_executions_from_trade_stats() -> None:
+    from backend.backtest.gate import _calculate_metrics
+    from backend.backtest.replay_runner import (
+        HistoricalReplayCounters,
+        HistoricalReplayMetrics,
+        HistoricalReplayReport,
+    )
+
+    scenario = BacktestScenario(
+        name="btc_vwap",
+        family="scalping",
+        strategy="vwap_reversion",
+        symbol="BTCUSDT",
+        interval="5",
+        lookback_days=365,
+        live_lookback_days=180,
+        dataset_path="fixture.json",
+        risk_amount_usd=100.0,
+        starting_equity_usd=10_000.0,
+        max_hold_candles=20,
+        min_rrr=1.5,
+        regression_profile="regression_v1",
+        live_profile="regression_v1",
+    )
+    metrics = _calculate_metrics(
+        scenario=scenario,
+        executions=(
+            SimulationExecutionResult(
+                realized_pnl=Decimal(0),
+                fees_paid=Decimal(0),
+                slippage=Decimal(0),
+                exit_reason="rejected_short",
+                hold_candles=0,
+                status="skipped",
+                rejected_short_signal=True,
+            ),
+            SimulationExecutionResult(
+                realized_pnl=Decimal(10),
+                fees_paid=Decimal(1),
+                slippage=Decimal("0.1"),
+                exit_reason="tp_hit",
+                hold_candles=1,
+                status="closed",
+            ),
+        ),
+        report=HistoricalReplayReport(
+            metrics=HistoricalReplayMetrics(
+                closed_trades=1,
+                winning_trades=1,
+                losing_trades=0,
+                expectancy=Decimal(9),
+                win_rate=Decimal(1),
+                profit_factor=None,
+                max_drawdown=Decimal(0),
+            ),
+            slippage=None,
+            counters=HistoricalReplayCounters(rejected_short_signals=1),
+        ),
+    )
+
+    assert metrics.closed_trades == 1
+    assert metrics.winning_trades == 1
+    assert metrics.net_pnl == Decimal(9)
+    assert metrics.fees_paid == Decimal(1)
+    assert metrics.rejected_short_signals == 1
 
 
 @pytest.mark.asyncio

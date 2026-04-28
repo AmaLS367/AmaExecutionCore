@@ -343,6 +343,33 @@ async def test_realistic_execution_defaults_keep_delay_with_fee_rate() -> None:
 
 
 @pytest.mark.asyncio
+async def test_realistic_execution_keeps_fee_override() -> None:
+    service = SimulationExecutionService(
+        max_hold_candles=5,
+        risk_amount_usd=100.0,
+        fee_rate_per_side=0.001,
+        maker_fill_probability=1.0,
+        spread_bps=Decimal(0),
+        slippage_bps=Decimal(0),
+        one_bar_execution_delay=False,
+    )
+
+    result = await service.execute_replay_signal(
+        signal=ExecuteSignalRequest(
+            symbol="BTCUSDT",
+            direction="long",
+            entry=100.0,
+            stop=95.0,
+            target=110.0,
+        ),
+        future_candles=_build_candles([102.0, 111.0], [99.0, 100.0], [101.0, 109.0]),
+        step_index=0,
+    )
+
+    assert result.fees_paid == Decimal("4.2")
+
+
+@pytest.mark.asyncio
 async def test_spot_mode_rejects_short_signals() -> None:
     service = SimulationExecutionService(max_hold_candles=5, risk_amount_usd=100.0)
 

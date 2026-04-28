@@ -234,16 +234,19 @@ def _calculate_metrics(
     executions: tuple[SimulationExecutionResult, ...],
     report: HistoricalReplayReport,
 ) -> ScenarioMetrics:
+    executed_executions = tuple(
+        execution for execution in executions if execution.status != "skipped"
+    )
     net_trade_pnls = tuple(
         execution.realized_pnl - execution.fees_paid
-        for execution in executions
+        for execution in executed_executions
     )
     closed_trades = len(net_trade_pnls)
     winning_trades = sum(1 for pnl in net_trade_pnls if pnl > 0)
     gross_wins = sum((pnl for pnl in net_trade_pnls if pnl > 0), Decimal(0))
     gross_losses = sum((abs(pnl) for pnl in net_trade_pnls if pnl < 0), Decimal(0))
     net_pnl = sum(net_trade_pnls, Decimal(0))
-    fees_paid = sum((execution.fees_paid for execution in executions), Decimal(0))
+    fees_paid = sum((execution.fees_paid for execution in executed_executions), Decimal(0))
 
     win_rate = None
     expectancy = None
