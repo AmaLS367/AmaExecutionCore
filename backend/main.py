@@ -96,6 +96,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             strategy=build_day_trading_strategy(
                 strategy_name=settings.signal_loop_strategy,
                 min_rrr=settings.min_rrr,
+                signal_interval=settings.signal_loop_interval,
+                htf_interval=settings.signal_loop_htf_interval,
+                htf_ema_period=settings.signal_loop_htf_ema_period,
             ),
         )
         signal_loop_runner = SignalLoopRunner(

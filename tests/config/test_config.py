@@ -65,6 +65,13 @@ def test_signal_loop_strategy_is_normalized_and_must_not_be_empty() -> None:
         _base_settings(signal_loop_strategy="   ")
 
 
+def test_signal_loop_htf_defaults_are_configured() -> None:
+    settings = _base_settings()
+
+    assert settings.signal_loop_htf_interval == "240"
+    assert settings.signal_loop_htf_ema_period == 50
+
+
 @pytest.mark.parametrize(
     ("kwargs", "message"),
     [

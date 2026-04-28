@@ -56,8 +56,10 @@ This document explains all environment variables found in the `.env.example` / `
 |---|---|---|---|
 | `SIGNAL_LOOP_ENABLED` | `bool` | `False` | Enables the REST-polled autonomous strategy loop for day-trading intervals. |
 | `SIGNAL_LOOP_SYMBOLS` | `list[str]` | `[]` | Comma-separated symbols evaluated by the signal loop, for example `BTCUSDT,ETHUSDT`. |
-| `SIGNAL_LOOP_STRATEGY` | `string` | `rsi_ema` | Day-trading strategy used by the signal loop. Supported values: `rsi_ema`, `ema_crossover`. |
+| `SIGNAL_LOOP_STRATEGY` | `string` | `rsi_ema` | Day-trading strategy used by the signal loop. Supported values: `rsi_ema`, `rsi_ema_spot_v2`, `ema_crossover`. |
 | `SIGNAL_LOOP_INTERVAL` | `string` | `15` | Bybit kline interval used by the signal loop. |
+| `SIGNAL_LOOP_HTF_INTERVAL` | `string` | `240` | Higher-timeframe interval used by `rsi_ema_spot_v2`. Set to an empty string to disable the HTF filter. |
+| `SIGNAL_LOOP_HTF_EMA_PERIOD` | `int` | `50` | EMA period used by the `rsi_ema_spot_v2` higher-timeframe trend filter. |
 | `SIGNAL_LOOP_COOLDOWN_SECONDS` | `int` | `300` | Per-symbol entry cooldown after the runner submits a signal. |
 | `SIGNAL_LOOP_MAX_SYMBOLS_CONCURRENT` | `int` | `5` | Concurrency cap for parallel per-symbol strategy evaluations. |
 
@@ -65,6 +67,8 @@ Day-trading defaults:
 
 - `SIGNAL_LOOP_STRATEGY=rsi_ema`
 - `SIGNAL_LOOP_INTERVAL=15`
+- `SIGNAL_LOOP_HTF_INTERVAL=240`
+- `SIGNAL_LOOP_HTF_EMA_PERIOD=50`
 - `RISK_PER_TRADE_PCT=0.005`
 - `MIN_RRR=1.5`
 - `MAX_OPEN_POSITIONS=2`

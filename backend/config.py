@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     signal_loop_symbols: list[str] = []
     signal_loop_strategy: str = "rsi_ema"
     signal_loop_interval: str = "15"
+    signal_loop_htf_interval: str = "240"
+    signal_loop_htf_ema_period: int = 50
     signal_loop_cooldown_seconds: int = 300
     signal_loop_max_symbols_concurrent: int = 5
 

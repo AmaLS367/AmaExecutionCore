@@ -56,8 +56,10 @@
 |---|---|---|---|
 | `SIGNAL_LOOP_ENABLED` | `bool` | `False` | Включает автономный цикл стратегий на основе REST-опроса для day-trading интервалов. |
 | `SIGNAL_LOOP_SYMBOLS` | `list[str]` | `[]` | Список символов через запятую, например `BTCUSDT,ETHUSDT`. |
-| `SIGNAL_LOOP_STRATEGY` | `string` | `rsi_ema` | Day-trading стратегия для signal loop. Поддерживаемые значения: `rsi_ema`, `ema_crossover`. |
+| `SIGNAL_LOOP_STRATEGY` | `string` | `rsi_ema` | Day-trading стратегия для signal loop. Поддерживаемые значения: `rsi_ema`, `rsi_ema_spot_v2`, `ema_crossover`. |
 | `SIGNAL_LOOP_INTERVAL` | `string` | `15` | Интервал Bybit kline, используемый циклом сигналов. |
+| `SIGNAL_LOOP_HTF_INTERVAL` | `string` | `240` | Интервал старшего таймфрейма для `rsi_ema_spot_v2`. Пустая строка отключает HTF-фильтр. |
+| `SIGNAL_LOOP_HTF_EMA_PERIOD` | `int` | `50` | Период EMA для HTF trend filter в `rsi_ema_spot_v2`. |
 | `SIGNAL_LOOP_COOLDOWN_SECONDS` | `int` | `300` | Пауза после входа по каждому символу. |
 | `SIGNAL_LOOP_MAX_SYMBOLS_CONCURRENT` | `int` | `5` | Ограничение параллельных оценок стратегии по символам. |
 
@@ -65,6 +67,8 @@
 
 - `SIGNAL_LOOP_STRATEGY=rsi_ema`
 - `SIGNAL_LOOP_INTERVAL=15`
+- `SIGNAL_LOOP_HTF_INTERVAL=240`
+- `SIGNAL_LOOP_HTF_EMA_PERIOD=50`
 - `RISK_PER_TRADE_PCT=0.005`
 - `MIN_RRR=1.5`
 - `MAX_OPEN_POSITIONS=2`
