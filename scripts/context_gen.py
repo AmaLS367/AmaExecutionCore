@@ -34,9 +34,9 @@ IGNORE_FILES = {
 
 
 def generate_context() -> None:
-    output_file = Path("ama_execution_core_context.txt")
+    output_path = Path("ama_execution_core_context.txt")
 
-    with output_file.open("w", encoding="utf-8") as outfile:
+    with output_path.open("w", encoding="utf-8") as outfile:
         for root, dirs, files in os.walk("."):
             dirs[:] = sorted(d for d in dirs if d not in IGNORE_DIRS)
             root_path = Path(root)
@@ -56,7 +56,7 @@ def generate_context() -> None:
                     except Exception as e:
                         outfile.write(f"Error reading file: {e}")
 
-    print(f"Ready. File {output_file} created.")
+    print(f"Ready. File {output_path} created.")
 
 
 if __name__ == "__main__":
