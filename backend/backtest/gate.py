@@ -8,6 +8,7 @@ from typing import Literal, cast
 
 from backend.backtest.metrics import calculate_max_drawdown
 from backend.backtest.replay_runner import (
+    HistoricalReplayReport,
     HistoricalReplayRequest,
     HistoricalReplayRunner,
     SupportsReplayExecutionContext,
@@ -231,7 +232,7 @@ def _calculate_metrics(
     *,
     scenario: BacktestScenario,
     executions: tuple[SimulationExecutionResult, ...],
-    report: object,
+    report: HistoricalReplayReport,
 ) -> ScenarioMetrics:
     net_trade_pnls = tuple(
         execution.realized_pnl - execution.fees_paid
