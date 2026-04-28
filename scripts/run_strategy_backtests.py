@@ -198,9 +198,12 @@ def _format_decimal(value: Decimal | None) -> str:
 def _summarize_executions(
     executions: tuple[SimulationExecutionResult, ...],
 ) -> BacktestSummary:
+    executed_executions = tuple(
+        execution for execution in executions if execution.status != "skipped"
+    )
     net_trade_pnls = tuple(
         execution.realized_pnl - execution.fees_paid
-        for execution in executions
+        for execution in executed_executions
     )
     trades = len(net_trade_pnls)
     wins = sum(1 for pnl in net_trade_pnls if pnl > 0)

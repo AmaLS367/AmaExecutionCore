@@ -370,6 +370,61 @@ async def test_realistic_execution_keeps_fee_override() -> None:
 
 
 @pytest.mark.asyncio
+async def test_long_target_taker_exit_spread_is_worse_than_raw_target() -> None:
+    service = SimulationExecutionService(
+        max_hold_candles=5,
+        risk_amount_usd=100.0,
+        maker_fill_probability=0.0,
+        spread_bps=Decimal(100),
+        slippage_bps=Decimal(0),
+        one_bar_execution_delay=False,
+    )
+
+    result = await service.execute_replay_signal(
+        signal=ExecuteSignalRequest(
+            symbol="BTCUSDT",
+            direction="long",
+            entry=100.0,
+            stop=95.0,
+            target=110.0,
+        ),
+        future_candles=_build_candles([111.0], [99.0], [110.0]),
+        step_index=0,
+    )
+
+    assert result.exit_reason == "tp_hit"
+    assert result.exit_price < Decimal("110.0")
+
+
+@pytest.mark.asyncio
+async def test_short_target_taker_exit_spread_is_worse_than_raw_target() -> None:
+    service = SimulationExecutionService(
+        max_hold_candles=5,
+        risk_amount_usd=100.0,
+        maker_fill_probability=0.0,
+        spread_bps=Decimal(100),
+        slippage_bps=Decimal(0),
+        one_bar_execution_delay=False,
+        market_mode="derivatives",
+    )
+
+    result = await service.execute_replay_signal(
+        signal=ExecuteSignalRequest(
+            symbol="BTCUSDT",
+            direction="short",
+            entry=100.0,
+            stop=105.0,
+            target=90.0,
+        ),
+        future_candles=_build_candles([101.0], [89.0], [90.0]),
+        step_index=0,
+    )
+
+    assert result.exit_reason == "tp_hit"
+    assert result.exit_price > Decimal("90.0")
+
+
+@pytest.mark.asyncio
 async def test_spot_mode_rejects_short_signals() -> None:
     service = SimulationExecutionService(max_hold_candles=5, risk_amount_usd=100.0)
 
@@ -404,6 +459,34 @@ async def test_min_notional_skip_works() -> None:
     result = await service.execute_replay_signal(
         signal=ExecuteSignalRequest(
             symbol="BTCUSDT",
+            direction="long",
+            entry=100.0,
+            stop=50.0,
+            target=120.0,
+        ),
+        future_candles=_build_candles([121.0], [99.0], [120.0]),
+        step_index=2,
+    )
+
+    assert result.status == "skipped"
+    assert result.skipped_min_notional is True
+
+
+@pytest.mark.asyncio
+async def test_unknown_symbol_uses_default_min_notional() -> None:
+    service = SimulationExecutionService(
+        max_hold_candles=5,
+        risk_amount_usd=1.0,
+        default_min_notional=Decimal(7),
+        one_bar_execution_delay=False,
+        maker_fill_probability=1.0,
+        spread_bps=Decimal(0),
+        slippage_bps=Decimal(0),
+    )
+
+    result = await service.execute_replay_signal(
+        signal=ExecuteSignalRequest(
+            symbol="ADAUSDT",
             direction="long",
             entry=100.0,
             stop=50.0,

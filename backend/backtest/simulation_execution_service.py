@@ -10,6 +10,7 @@ from backend.market_data.contracts import MarketCandle
 from backend.signal_execution.schemas import ExecuteSignalRequest
 
 MarketMode = Literal["spot", "derivatives"]
+ExecutionSide = Literal["buy", "sell"]
 
 _DEFAULT_SPOT_MIN_NOTIONALS: dict[str, Decimal] = {
     "BTCUSDT": Decimal(5),
@@ -229,7 +230,7 @@ class SimulationExecutionService:
         entry_fee_rate = self._maker_fee_rate if entry_is_maker else self._taker_fee_rate
         entry_price = self._apply_spread(
             price=raw_entry_price,
-            direction=signal.direction,
+            side=self._entry_side(signal.direction),
             bps=self._spread_bps / Decimal(2) if not entry_is_maker else Decimal(0),
         )
         stop = Decimal(str(signal.stop))
@@ -371,7 +372,7 @@ class SimulationExecutionService:
         raw_exit_price = prepared_execution.target
         exit_price = self._apply_spread(
             price=raw_exit_price,
-            direction=signal.direction,
+            side=self._exit_side(signal.direction),
             bps=self._spread_bps / Decimal(2) if not exit_is_maker else Decimal(0),
         )
         return self._build_result(
@@ -488,13 +489,23 @@ class SimulationExecutionService:
         self,
         *,
         price: Decimal,
-        direction: str,
+        side: ExecutionSide,
         bps: Decimal,
     ) -> Decimal:
         move = (price * bps) / Decimal(10000)
-        if direction == "long":
+        if side == "buy":
             return price + move
         return price - move
+
+    def _entry_side(self, direction: str) -> ExecutionSide:
+        if direction == "long":
+            return "buy"
+        return "sell"
+
+    def _exit_side(self, direction: str) -> ExecutionSide:
+        if direction == "long":
+            return "sell"
+        return "buy"
 
     def _apply_slippage(
         self,
