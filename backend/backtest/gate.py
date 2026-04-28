@@ -68,6 +68,10 @@ class ScenarioMetrics:
     max_drawdown_pct: Decimal | None
     net_pnl: Decimal
     fees_paid: Decimal
+    rejected_short_signals: int
+    skipped_min_notional: int
+    skipped_insufficient_capital: int
+    ambiguous_candles: int
 
 
 @dataclass(slots=True, frozen=True)
@@ -149,6 +153,8 @@ async def evaluate_scenario(
         max_hold_candles=scenario.max_hold_candles,
         risk_amount_usd=scenario.risk_amount_usd,
         fee_rate_per_side=fee_rate_per_side,
+        market_mode="spot",
+        virtual_equity_usd=scenario.starting_equity_usd,
     )
     runner: HistoricalReplayRunner[SimulationExecutionResult] = HistoricalReplayRunner(
         strategy=cast("SupportsReplayStrategy", strategy),
@@ -173,6 +179,7 @@ async def evaluate_scenario(
             for step in replay_result.steps
             if step.execution is not None
         ),
+        report=replay_result.report,
     )
     failure_reasons = _evaluate_profile(metrics=metrics, profile=profile)
     return ScenarioEvaluation(
@@ -224,6 +231,7 @@ def _calculate_metrics(
     *,
     scenario: BacktestScenario,
     executions: tuple[SimulationExecutionResult, ...],
+    report: object,
 ) -> ScenarioMetrics:
     net_trade_pnls = tuple(
         execution.realized_pnl - execution.fees_paid
@@ -263,6 +271,10 @@ def _calculate_metrics(
         max_drawdown_pct=max_drawdown_pct,
         net_pnl=net_pnl,
         fees_paid=fees_paid,
+        rejected_short_signals=getattr(report.counters, "rejected_short_signals", 0),
+        skipped_min_notional=getattr(report.counters, "skipped_min_notional", 0),
+        skipped_insufficient_capital=getattr(report.counters, "skipped_insufficient_capital", 0),
+        ambiguous_candles=getattr(report.counters, "ambiguous_candles", 0),
     )
 
 def _evaluate_profile(

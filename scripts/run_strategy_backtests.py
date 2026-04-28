@@ -250,6 +250,7 @@ async def run_backtests(
             max_hold_candles=case.max_hold_candles,
             risk_amount_usd=100.0,
             fee_rate_per_side=fee_rate_per_side,
+            market_mode="spot",
         )
         runner: HistoricalReplayRunner[SimulationExecutionResult] = HistoricalReplayRunner(
             strategy=cast("SupportsReplayStrategy", strategy),
