@@ -9,8 +9,6 @@ from backend.strategy_engine.contracts import BaseStrategy
 from backend.strategy_engine.ema_crossover import EMACrossoverStrategy
 from backend.strategy_engine.ema_pullback_strategy import EMAPullbackStrategy
 from backend.strategy_engine.rsi_divergence_strategy import RSIDivergenceStrategy
-from backend.strategy_engine.rsi_ema_spot_v2_strategy import RSIEMASpotV2Strategy
-from backend.strategy_engine.rsi_ema_strategy import RSIEMAStrategy
 from backend.strategy_engine.ts_momentum_strategy import TSMomentumStrategy
 from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
 from backend.strategy_engine.vwap_reversion_v2 import VWAPReversionStrategyV2
@@ -20,23 +18,8 @@ def build_day_trading_strategy(
     *,
     strategy_name: str,
     min_rrr: float,
-    signal_interval: str = "15",
-    htf_interval: str = "240",
-    htf_ema_period: int = 50,
 ) -> BaseStrategy[MarketSnapshot]:
     normalized_name = strategy_name.strip().lower()
-    if normalized_name == "rsi_ema":
-        target_rrr = max(1.5, min_rrr)
-        return RSIEMAStrategy(min_rrr=min_rrr, target_rrr=target_rrr)
-    if normalized_name == "rsi_ema_spot_v2":
-        target_rrr = max(1.5, min_rrr)
-        return RSIEMASpotV2Strategy(
-            signal_interval=signal_interval,
-            htf_interval=htf_interval,
-            htf_ema_period=htf_ema_period,
-            min_rrr=min_rrr,
-            target_rrr=target_rrr,
-        )
     if normalized_name == "ema_crossover":
         return EMACrossoverStrategy(min_rrr=min_rrr)
     raise ValueError(f"Unknown day-trading strategy: {strategy_name!r}")

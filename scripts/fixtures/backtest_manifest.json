@@ -8,10 +8,7 @@
     "regression": [
       "grid_xrpusdt_regression",
       "grid_solusdt_regression",
-      "grid_ethusdt_regression",
-      "rsi_ema_btcusdt_15m",
-      "rsi_ema_ethusdt_15m",
-      "rsi_ema_solusdt_15m"
+      "grid_ethusdt_regression"
     ],
     "live": [
       "grid_xrpusdt_regression",
@@ -92,20 +89,6 @@
     }
   ],
   "profiles": {
-    "regression_rsi_ema_v1": {
-      "min_closed_trades": 30,
-      "min_win_rate": 0.51,
-      "min_profit_factor": 1.1,
-      "require_positive_expectancy": true,
-      "max_drawdown_pct": 0.25
-    },
-    "live_rsi_ema_v1": {
-      "min_closed_trades": 15,
-      "min_win_rate": 0.51,
-      "min_profit_factor": 1.05,
-      "require_positive_expectancy": true,
-      "max_drawdown_pct": 0.3
-    },
     "regression_vwap_reversion_v1": {
       "min_closed_trades": 80,
       "min_win_rate": 0.6,
@@ -122,54 +105,6 @@
     }
   },
   "scenarios": [
-    {
-      "name": "rsi_ema_btcusdt_15m",
-      "family": "day_trading",
-      "strategy": "rsi_ema",
-      "symbol": "BTCUSDT",
-      "interval": "15",
-      "lookback_days": 365,
-      "live_lookback_days": 90,
-      "dataset_path": "scripts/fixtures/regression/btcusdt_15m_365d.json.gz",
-      "risk_amount_usd": 100.0,
-      "starting_equity_usd": 10000.0,
-      "max_hold_candles": 20,
-      "min_rrr": 1.5,
-      "regression_profile": "regression_rsi_ema_v1",
-      "live_profile": "live_rsi_ema_v1"
-    },
-    {
-      "name": "rsi_ema_ethusdt_15m",
-      "family": "day_trading",
-      "strategy": "rsi_ema",
-      "symbol": "ETHUSDT",
-      "interval": "15",
-      "lookback_days": 365,
-      "live_lookback_days": 90,
-      "dataset_path": "scripts/fixtures/regression/ethusdt_15m_365d.json.gz",
-      "risk_amount_usd": 100.0,
-      "starting_equity_usd": 10000.0,
-      "max_hold_candles": 20,
-      "min_rrr": 1.5,
-      "regression_profile": "regression_rsi_ema_v1",
-      "live_profile": "live_rsi_ema_v1"
-    },
-    {
-      "name": "rsi_ema_solusdt_15m",
-      "family": "day_trading",
-      "strategy": "rsi_ema",
-      "symbol": "SOLUSDT",
-      "interval": "15",
-      "lookback_days": 365,
-      "live_lookback_days": 90,
-      "dataset_path": "scripts/fixtures/regression/solusdt_15m_365d.json.gz",
-      "risk_amount_usd": 100.0,
-      "starting_equity_usd": 10000.0,
-      "max_hold_candles": 20,
-      "min_rrr": 1.5,
-      "regression_profile": "regression_rsi_ema_v1",
-      "live_profile": "live_rsi_ema_v1"
-    },
     {
       "name": "vwap_reversion_btcusdt_15m",
       "family": "scalping",

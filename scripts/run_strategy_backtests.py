@@ -151,7 +151,7 @@ BACKTEST_CASES: tuple[BacktestCase, ...] = (
     ),
     BacktestCase(
         family="day_trading",
-        strategy_name="rsi_ema",
+        strategy_name="ema_crossover",
         interval="15",
         lookback_days=90,
         min_rrr=2.0,

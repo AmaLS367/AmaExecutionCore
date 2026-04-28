@@ -105,8 +105,7 @@ This is the execution helper used by:
 `scripts/run_backtest.py` is the day-trading entry point:
 
 - defaults to `--interval 15`
-- defaults to `--strategy rsi_ema`
-- also supports `--strategy ema_crossover`
+- defaults to `--strategy ema_crossover`
 - uses `SimulationExecutionService` so replay metrics come from future-candle TP/SL/timeout outcomes rather than production `ExecutionService` responses
 
 Current validation defaults:

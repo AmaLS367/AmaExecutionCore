@@ -677,41 +677,9 @@ EMA 9/21 was designed for 4h–daily swing trading. On 15m:
 The strategy is adequate as a **placeholder** while the infrastructure is built,
 but should be replaced or supplemented.
 
-### Recommended addition: RSI + EMA Confluence
+### Removed candidate: RSI + EMA Confluence
 
-`backend/strategy_engine/rsi_ema_strategy.py`
-
-Logic (15m timeframe):
-- Use EMA 20 as trend filter (price must be above EMA for longs, below for shorts)
-- RSI(14) must be pulling back from extreme:
-  - LONG: RSI crossed below 40, then back above 40 (oversold bounce)
-  - SHORT: RSI crossed above 60, then back below 60 (overbought rejection)
-- Entry at close of the RSI confirmation candle
-- Stop: below the swing low of the last 3 candles (LONG) / above swing high (SHORT)
-- Target: 1.5× risk from entry (RRR 1.5 — tighter than EMA but with higher win rate)
-
-Required candle count: 30 (20 for EMA warm-up + 14 for RSI + buffer)
-
-This strategy has better real-world behavior than pure crossover because:
-- RSI bounce confirms momentum has reversed (not just lagging EMAs crossing)
-- The trend filter (price vs EMA20) avoids counter-trend entries in strong moves
-
-### Implementation interface
-
-All strategies implement the same interface — no changes to the pipeline:
-
-```python
-class RSIEMAStrategy(BaseStrategy[MarketSnapshot]):
-    def __init__(self, ema_period: int = 20, rsi_period: int = 14,
-                 rsi_oversold: float = 40.0, rsi_overbought: float = 60.0,
-                 min_rrr: float = 1.5) -> None: ...
-
-    @property
-    def required_candle_count(self) -> int:
-        return self._ema_period + self._rsi_period + 5
-
-    async def generate_signal(self, snapshot: MarketSnapshot) -> StrategySignal | None: ...
-```
+The RSI + EMA confluence candidate and its spot-v2 variant were removed after fixture validation failed to produce a viable trade distribution. Do not restore this strategy without a fresh feasibility sweep that passes per-symbol trade count, win-rate, profit-factor, and positive-expectancy thresholds before implementation.
 
 ---
 

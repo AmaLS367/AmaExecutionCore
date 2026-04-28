@@ -57,19 +57,12 @@ def test_parse_symbol_lists_rejects_unsupported_values() -> None:
 
 
 def test_signal_loop_strategy_is_normalized_and_must_not_be_empty() -> None:
-    settings = _base_settings(signal_loop_strategy=" RSI_EMA ")
+    settings = _base_settings(signal_loop_strategy=" EMA_CROSSOVER ")
 
-    assert settings.signal_loop_strategy == "rsi_ema"
+    assert settings.signal_loop_strategy == "ema_crossover"
 
     with pytest.raises(ValidationError, match="SIGNAL_LOOP_STRATEGY must not be empty"):
         _base_settings(signal_loop_strategy="   ")
-
-
-def test_signal_loop_htf_defaults_are_configured() -> None:
-    settings = _base_settings()
-
-    assert settings.signal_loop_htf_interval == "240"
-    assert settings.signal_loop_htf_ema_period == 50
 
 
 @pytest.mark.parametrize(

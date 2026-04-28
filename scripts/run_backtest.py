@@ -69,7 +69,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--candles", type=int)
     parser.add_argument("--lookback-days", type=int)
     parser.add_argument("--family", default="day_trading", choices=("day_trading", "scalping"))
-    parser.add_argument("--strategy", default="rsi_ema")
+    parser.add_argument("--strategy", default="ema_crossover")
     parser.add_argument("--min-rrr", type=float, default=1.5)
     parser.add_argument("--risk-amount", type=float, default=100.0)
     parser.add_argument("--max-hold", type=int, default=20)

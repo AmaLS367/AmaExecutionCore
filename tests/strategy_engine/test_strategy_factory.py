@@ -8,28 +8,8 @@ from backend.strategy_engine.ema_crossover import EMACrossoverStrategy
 from backend.strategy_engine.ema_pullback_strategy import EMAPullbackStrategy
 from backend.strategy_engine.factory import build_day_trading_strategy, build_scalping_strategy
 from backend.strategy_engine.rsi_divergence_strategy import RSIDivergenceStrategy
-from backend.strategy_engine.rsi_ema_spot_v2_strategy import RSIEMASpotV2Strategy
-from backend.strategy_engine.rsi_ema_strategy import RSIEMAStrategy
 from backend.strategy_engine.ts_momentum_strategy import TSMomentumStrategy
 from backend.strategy_engine.vwap_reversion_strategy import VWAPReversionStrategy
-
-
-def test_build_day_trading_strategy_returns_rsi_ema_strategy() -> None:
-    strategy = build_day_trading_strategy(strategy_name="rsi_ema", min_rrr=2.0)
-
-    assert isinstance(strategy, RSIEMAStrategy)
-
-
-def test_build_day_trading_strategy_returns_rsi_ema_spot_v2_strategy() -> None:
-    strategy = build_day_trading_strategy(
-        strategy_name="rsi_ema_spot_v2",
-        min_rrr=2.0,
-        signal_interval="15",
-        htf_interval="240",
-        htf_ema_period=20,
-    )
-
-    assert isinstance(strategy, RSIEMASpotV2Strategy)
 
 
 def test_build_day_trading_strategy_returns_ema_crossover_strategy() -> None:
