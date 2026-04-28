@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 IGNORE_DIRS = {
     ".git",
@@ -33,24 +34,24 @@ IGNORE_FILES = {
 
 
 def generate_context() -> None:
-    output_file = "ama_execution_core_context.txt"
+    output_file = Path("ama_execution_core_context.txt")
 
-    with open(output_file, "w", encoding="utf-8") as outfile:
+    with output_file.open("w", encoding="utf-8") as outfile:
         for root, dirs, files in os.walk("."):
             dirs[:] = sorted(d for d in dirs if d not in IGNORE_DIRS)
+            root_path = Path(root)
 
             for file in sorted(files):
                 if file in IGNORE_FILES:
                     continue
 
-                _, ext = os.path.splitext(file)
+                path = root_path / file
+                ext = path.suffix
                 if ext in INCLUDE_EXT or file == "Dockerfile":
-                    path = os.path.join(root, file)
-
                     outfile.write(f"\n{'=' * 20}\nFILE: {path}\n{'=' * 20}\n")
 
                     try:
-                        with open(path, encoding="utf-8") as infile:
+                        with path.open(encoding="utf-8") as infile:
                             outfile.write(infile.read())
                     except Exception as e:
                         outfile.write(f"Error reading file: {e}")

@@ -128,6 +128,7 @@ exclude = [
     "\\.tmp_pytest/.*",
     "pytest_tmp_full/.*",
     "pytest_tmp_full2/.*",
+    "tmp_outputs/.*",
 ]
 
 [[tool.mypy.overrides]]

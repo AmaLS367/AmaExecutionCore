@@ -135,6 +135,8 @@ async def run_manifest_gate(
     active_strategy: str | None = None,
     client: SupportsKlineFetch | None = None,
 ) -> dict[str, object]:
+    # Import after stripping ACTIVE_STRATEGY from the process env so backend.config
+    # does not validate the script-only selector value as a runtime strategy.
     from backend.backtest import evaluate_scenario, load_manifest, serialize_evaluation
     from backend.backtest.datasets import (
         candles_for_lookback,

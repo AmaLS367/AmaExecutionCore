@@ -28,11 +28,7 @@ def main() -> None:
 
     print("\n--- Open XRPUSDT orders ---")
     try:
-        response = client._session.get_open_orders(  # noqa: SLF001
-            category="spot",
-            symbol="XRPUSDT",
-        )
-        orders = response.get("result", {}).get("list", [])
+        orders = client.get_open_orders(category="spot", symbol="XRPUSDT")
         print(f"Open orders: {len(orders)}")
         for order in orders:
             print(
@@ -45,12 +41,11 @@ def main() -> None:
 
     print("\n--- Recent XRPUSDT executions ---")
     try:
-        response = client._session.get_executions(  # noqa: SLF001
+        executions = client.get_executions(
             category="spot",
             symbol="XRPUSDT",
             limit=5,
         )
-        executions = response.get("result", {}).get("list", [])
         for execution in executions:
             print(
                 f"  side={execution.get('side')} qty={execution.get('execQty')} "
