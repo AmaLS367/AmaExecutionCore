@@ -27,6 +27,7 @@ class SimulationExecutionResult:
     slippage: Decimal
     exit_reason: str
     hold_candles: int
+    qty: Decimal = Decimal(0)
     closed_at_step: int = 0
     entry_price: Decimal = Decimal(0)
     exit_price: Decimal = Decimal(0)
@@ -194,6 +195,7 @@ class SimulationExecutionService:
             ),
             fees_paid=fees_paid,
             slippage=slippage,
+            qty=qty,
             exit_reason=exit_reason,
             hold_candles=hold_candles,
             closed_at_step=closed_at_step,
