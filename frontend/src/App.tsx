@@ -9,6 +9,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { TradesPage } from "./pages/TradesPage";
 import { GridPage } from "./pages/GridPage";
+import { BacktestReportsPage } from "./pages/BacktestReportsPage";
 import { LogsPage } from "./pages/LogsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 
@@ -49,6 +50,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/" element={<DashboardPage />} />
+              <Route path="/backtests" element={<BacktestReportsPage />} />
               <Route path="/trades" element={<TradesPage />} />
               <Route path="/grid" element={<GridPage />} />
               <Route path="/logs" element={<LogsPage />} />
