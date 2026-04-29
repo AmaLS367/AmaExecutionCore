@@ -16,7 +16,8 @@ type AggregatedMonthlyPoint = {
   pnl: number;
   trades: number;
   wins: number;
-  profitFactors: number[];
+  grossProfit: number;
+  grossLoss: number;
 };
 
 export function BacktestReportsPage() {
@@ -71,7 +72,7 @@ export function BacktestReportsPage() {
     passed: passedCount,
     failed: scenarios.length - passedCount,
     totalTrades: sumNumberField(tradeScenarios, "closed_trades"),
-    averageProfitFactor: averageNumericStringField(tradeScenarios, "profit_factor"),
+    averageProfitFactor: aggregateProfitFactor(tradeScenarios),
     totalPnl: sumNumericStringField(tradeScenarios, "total_pnl"),
     totalFees: sumNumericStringField(tradeScenarios, "fees_paid"),
     totalSlippage: sumNumericStringField(tradeScenarios, "slippage_paid"),
@@ -213,7 +214,7 @@ export function BacktestReportsPage() {
                       <td className="px-6 py-4 text-right">
                         {point.trades > 0 ? `${((point.wins / point.trades) * 100).toFixed(1)}%` : "—"}
                       </td>
-                      <td className="px-6 py-4 text-right">{formatProfitFactor(averageProfitFactor(point.profitFactors))}</td>
+                      <td className="px-6 py-4 text-right">{formatProfitFactor(profitFactorFromGross(point.grossProfit, point.grossLoss))}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -314,29 +315,33 @@ function sumNumberField(
   return hasValue ? total : null;
 }
 
-function averageNumericStringField(
-  scenarios: BacktestScenarioResult[],
-  field: "profit_factor",
-): number | null {
-  return averageProfitFactor(
-    scenarios
-      .map((scenario) => parseNumericString(scenario[field]))
-      .filter((value): value is number => value !== null),
-  );
-}
+function aggregateProfitFactor(scenarios: BacktestScenarioResult[]): number | null {
+  let grossProfit = 0;
+  let grossLoss = 0;
+  let hasValue = false;
 
-function averageProfitFactor(values: number[]): number | null {
-  if (!values.length) {
+  for (const scenario of scenarios) {
+    const scenarioGrossProfit = parseNumericString(scenario.gross_profit);
+    const scenarioGrossLoss = parseNumericString(scenario.gross_loss);
+    if (scenarioGrossProfit === null || scenarioGrossLoss === null) {
+      continue;
+    }
+    grossProfit += scenarioGrossProfit;
+    grossLoss += scenarioGrossLoss;
+    hasValue = true;
+  }
+
+  if (!hasValue) {
     return null;
   }
-  if (values.every((value) => value === Number.POSITIVE_INFINITY)) {
-    return Number.POSITIVE_INFINITY;
+  return profitFactorFromGross(grossProfit, grossLoss);
+}
+
+function profitFactorFromGross(grossProfit: number, grossLoss: number): number | null {
+  if (grossLoss === 0) {
+    return grossProfit === 0 ? null : Number.POSITIVE_INFINITY;
   }
-  const finiteValues = values.filter((value) => Number.isFinite(value));
-  if (!finiteValues.length) {
-    return Number.POSITIVE_INFINITY;
-  }
-  return finiteValues.reduce((total, value) => total + value, 0) / finiteValues.length;
+  return grossProfit / grossLoss;
 }
 
 function aggregateMonthlySeries(scenarios: BacktestScenarioResult[]): AggregatedMonthlyPoint[] {
@@ -345,14 +350,16 @@ function aggregateMonthlySeries(scenarios: BacktestScenarioResult[]): Aggregated
     for (const point of scenario.monthly_pnl ?? []) {
       const pnl = parseNumericString(point.pnl);
       const winRate = parseNumericString(point.win_rate);
-      const profitFactor = parseNumericString(point.profit_factor);
       const bucket = byMonth.get(point.month) ?? {
         month: point.month,
         pnl: 0,
         trades: 0,
         wins: 0,
-        profitFactors: [],
+        grossProfit: 0,
+        grossLoss: 0,
       };
+      const grossProfit = parseNumericString(point.gross_profit);
+      const grossLoss = parseNumericString(point.gross_loss);
       if (pnl !== null && pnl !== Number.POSITIVE_INFINITY) {
         bucket.pnl += pnl;
       }
@@ -360,8 +367,11 @@ function aggregateMonthlySeries(scenarios: BacktestScenarioResult[]): Aggregated
       if (winRate !== null) {
         bucket.wins += winRate * point.trades;
       }
-      if (profitFactor !== null) {
-        bucket.profitFactors.push(profitFactor);
+      if (grossProfit !== null && grossProfit !== Number.POSITIVE_INFINITY) {
+        bucket.grossProfit += grossProfit;
+      }
+      if (grossLoss !== null && grossLoss !== Number.POSITIVE_INFINITY) {
+        bucket.grossLoss += grossLoss;
       }
       byMonth.set(point.month, bucket);
     }

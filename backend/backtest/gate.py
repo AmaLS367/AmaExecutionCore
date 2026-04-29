@@ -63,6 +63,8 @@ class BacktestManifest:
 class ScenarioMetrics:
     closed_trades: int
     winning_trades: int
+    gross_profit: Decimal
+    gross_loss: Decimal
     win_rate: Decimal | None
     expectancy: Decimal | None
     profit_factor: Decimal | None
@@ -87,6 +89,8 @@ class MonthlyPnlPoint:
     month: str
     pnl: Decimal
     trades: int
+    gross_profit: Decimal
+    gross_loss: Decimal
     win_rate: Decimal | None
     profit_factor: Decimal | None
     max_drawdown_pct: Decimal | None
@@ -304,12 +308,14 @@ def _calculate_metrics(
     metrics = ScenarioMetrics(
         closed_trades=closed_trades,
         winning_trades=winning_trades,
+        gross_profit=gross_wins,
+        gross_loss=gross_losses,
         win_rate=win_rate,
         expectancy=expectancy,
         profit_factor=profit_factor,
         max_drawdown=max_drawdown,
         max_drawdown_pct=max_drawdown_pct,
-        total_pnl=net_pnl,
+        total_pnl=sum((execution.realized_pnl for execution in executed_executions), Decimal(0)),
         net_pnl=net_pnl,
         fees_paid=fees_paid,
         slippage_paid=slippage_paid,
@@ -383,6 +389,8 @@ def _build_monthly_point(
         month=month,
         pnl=pnl,
         trades=trades,
+        gross_profit=gross_wins,
+        gross_loss=gross_losses,
         win_rate=win_rate,
         profit_factor=profit_factor,
         max_drawdown_pct=max_drawdown_pct,

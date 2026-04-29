@@ -2,6 +2,8 @@ export interface MonthlyPnlPoint {
   month: string;
   pnl: string;
   trades: number;
+  gross_profit: string;
+  gross_loss: string;
   win_rate: string | null;
   profit_factor: string | null;
   max_drawdown_pct: string | null;
@@ -27,6 +29,8 @@ export interface BacktestScenarioResult {
   profile?: string;
   closed_trades?: number;
   winning_trades?: number;
+  gross_profit?: string | null;
+  gross_loss?: string | null;
   win_rate?: string | null;
   expectancy?: string | null;
   profit_factor?: string | null;

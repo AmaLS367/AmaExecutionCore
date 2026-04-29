@@ -141,6 +141,8 @@ def test_serialize_evaluation_includes_spot_execution_counters() -> None:
         month="2024-01",
         pnl=Decimal(10),
         trades=1,
+        gross_profit=Decimal(12),
+        gross_loss=Decimal(0),
         win_rate=Decimal(1),
         profit_factor=Decimal(2),
         max_drawdown_pct=Decimal("0.01"),
@@ -156,12 +158,14 @@ def test_serialize_evaluation_includes_spot_execution_counters() -> None:
         metrics=ScenarioMetrics(
             closed_trades=1,
             winning_trades=1,
+            gross_profit=Decimal(12),
+            gross_loss=Decimal(0),
             win_rate=Decimal(1),
             expectancy=Decimal(10),
             profit_factor=Decimal(2),
             max_drawdown=Decimal(1),
             max_drawdown_pct=Decimal("0.01"),
-            total_pnl=Decimal(10),
+            total_pnl=Decimal(12),
             net_pnl=Decimal(10),
             fees_paid=Decimal(1),
             slippage_paid=Decimal("0.25"),
@@ -190,6 +194,8 @@ def test_serialize_evaluation_includes_spot_execution_counters() -> None:
             "month": "2024-01",
             "pnl": "10",
             "trades": 1,
+            "gross_profit": "12",
+            "gross_loss": "0",
             "win_rate": "1",
             "profit_factor": "2",
             "max_drawdown_pct": "0.01",
@@ -262,8 +268,10 @@ def test_calculate_metrics_excludes_skipped_executions_from_trade_stats() -> Non
 
     assert metrics.closed_trades == 1
     assert metrics.winning_trades == 1
+    assert metrics.gross_profit == Decimal(9)
+    assert metrics.gross_loss == Decimal(0)
     assert metrics.net_pnl == Decimal(9)
-    assert metrics.total_pnl == Decimal(9)
+    assert metrics.total_pnl == Decimal(10)
     assert metrics.fees_paid == Decimal(1)
     assert metrics.rejected_short_signals == 1
     assert metrics.monthly_pnl
@@ -329,6 +337,7 @@ def test_calculate_metrics_reports_monthly_timestamp_limitations() -> None:
     assert metrics.monthly_pnl == ()
     assert metrics.best_month is None
     assert metrics.worst_month is None
+    assert metrics.total_pnl == Decimal(10)
     assert limitations == (
         "btc_vwap: excluded 1 closed trades from monthly_pnl because close timestamps could not be resolved.",
     )
