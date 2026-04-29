@@ -9,6 +9,7 @@ import pytest
 from backend.backtest.gate import (
     BacktestScenario,
     BacktestThresholdProfile,
+    MonthlyPnlPoint,
     ScenarioEvaluation,
     ScenarioMetrics,
     SimulationExecutionResult,
@@ -136,6 +137,14 @@ async def test_evaluate_scenario_uses_scalping_strategy_factory(
 
 
 def test_serialize_evaluation_includes_spot_execution_counters() -> None:
+    january = MonthlyPnlPoint(
+        month="2024-01",
+        pnl=Decimal(10),
+        trades=1,
+        win_rate=Decimal(1),
+        profit_factor=Decimal(2),
+        max_drawdown_pct=Decimal("0.01"),
+    )
     evaluation = ScenarioEvaluation(
         name="btc_vwap",
         family="scalping",
@@ -152,12 +161,18 @@ def test_serialize_evaluation_includes_spot_execution_counters() -> None:
             profit_factor=Decimal(2),
             max_drawdown=Decimal(1),
             max_drawdown_pct=Decimal("0.01"),
+            total_pnl=Decimal(10),
             net_pnl=Decimal(10),
             fees_paid=Decimal(1),
+            slippage_paid=Decimal("0.25"),
             rejected_short_signals=2,
             skipped_min_notional=3,
             skipped_insufficient_capital=4,
             ambiguous_candles=5,
+            monthly_pnl=(january,),
+            best_month=january,
+            worst_month=january,
+            oos_result=None,
         ),
         passed=True,
         failure_reasons=(),
@@ -169,6 +184,19 @@ def test_serialize_evaluation_includes_spot_execution_counters() -> None:
     assert serialized["skipped_min_notional"] == 3
     assert serialized["skipped_insufficient_capital"] == 4
     assert serialized["ambiguous_candles"] == 5
+    assert serialized["slippage_paid"] == "0.25"
+    assert serialized["monthly_pnl"] == [
+        {
+            "month": "2024-01",
+            "pnl": "10",
+            "trades": 1,
+            "win_rate": "1",
+            "profit_factor": "2",
+            "max_drawdown_pct": "0.01",
+        },
+    ]
+    assert serialized["best_month"] == serialized["monthly_pnl"][0]
+    assert serialized["worst_month"] == serialized["monthly_pnl"][0]
 
 
 def test_calculate_metrics_excludes_skipped_executions_from_trade_stats() -> None:
@@ -195,8 +223,9 @@ def test_calculate_metrics_excludes_skipped_executions_from_trade_stats() -> Non
         regression_profile="regression_v1",
         live_profile="regression_v1",
     )
-    metrics = _calculate_metrics(
+    metrics, limitations = _calculate_metrics(
         scenario=scenario,
+        candles=_candles(),
         executions=(
             SimulationExecutionResult(
                 realized_pnl=Decimal(0),
@@ -234,8 +263,75 @@ def test_calculate_metrics_excludes_skipped_executions_from_trade_stats() -> Non
     assert metrics.closed_trades == 1
     assert metrics.winning_trades == 1
     assert metrics.net_pnl == Decimal(9)
+    assert metrics.total_pnl == Decimal(9)
     assert metrics.fees_paid == Decimal(1)
     assert metrics.rejected_short_signals == 1
+    assert metrics.monthly_pnl
+    assert metrics.best_month is not None
+    assert limitations == ()
+
+
+def test_calculate_metrics_reports_monthly_timestamp_limitations() -> None:
+    from backend.backtest.gate import _calculate_metrics
+    from backend.backtest.replay_runner import (
+        HistoricalReplayCounters,
+        HistoricalReplayMetrics,
+        HistoricalReplayReport,
+    )
+
+    scenario = BacktestScenario(
+        name="btc_vwap",
+        family="scalping",
+        strategy="vwap_reversion",
+        symbol="BTCUSDT",
+        interval="5",
+        lookback_days=365,
+        live_lookback_days=180,
+        dataset_path="fixture.json",
+        risk_amount_usd=100.0,
+        starting_equity_usd=10_000.0,
+        max_hold_candles=20,
+        min_rrr=1.5,
+        regression_profile="regression_v1",
+        live_profile="regression_v1",
+    )
+
+    metrics, limitations = _calculate_metrics(
+        scenario=scenario,
+        candles=_candles(),
+        executions=(
+            SimulationExecutionResult(
+                realized_pnl=Decimal(10),
+                fees_paid=Decimal(1),
+                slippage=Decimal("0.2"),
+                qty=Decimal(2),
+                exit_reason="tp_hit",
+                hold_candles=1,
+                closed_at_step=999,
+                status="closed",
+            ),
+        ),
+        report=HistoricalReplayReport(
+            metrics=HistoricalReplayMetrics(
+                closed_trades=1,
+                winning_trades=1,
+                losing_trades=0,
+                expectancy=Decimal(9),
+                win_rate=Decimal(1),
+                profit_factor=None,
+                max_drawdown=Decimal(0),
+            ),
+            slippage=None,
+            counters=HistoricalReplayCounters(),
+        ),
+    )
+
+    assert metrics.monthly_pnl == ()
+    assert metrics.best_month is None
+    assert metrics.worst_month is None
+    assert limitations == (
+        "btc_vwap: excluded 1 closed trades from monthly_pnl because close timestamps could not be resolved.",
+    )
 
 
 @pytest.mark.asyncio
