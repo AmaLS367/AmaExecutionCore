@@ -21,9 +21,13 @@ def load_latest_backtest_report() -> dict[str, object] | None:
     if not candidates:
         return None
 
-    latest_path = max(candidates, key=lambda path: path.stat().st_mtime)
-    payload = json.loads(latest_path.read_text(encoding="utf-8"))
-    return normalize_backtest_report_payload(payload, source_path=latest_path)
+    for candidate in sorted(candidates, key=lambda path: path.stat().st_mtime, reverse=True):
+        try:
+            payload = json.loads(candidate.read_text(encoding="utf-8"))
+            return normalize_backtest_report_payload(payload, source_path=candidate)
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            continue
+    return None
 
 
 def normalize_backtest_report_payload(
