@@ -104,6 +104,13 @@ async def test_run_manifest_gate_regression_uses_fixture_dataset(
     )
 
     assert report["all_passed"] is True
+    assert report["strategy_name"] == "vwap_reversion"
+    assert report["suite_name"] is None
+    assert report["metadata"] == {
+        "report_format_version": 2,
+        "limitations": [],
+    }
+    assert report["scenarios"] == report["results"]
     assert output_path.exists()
 
 

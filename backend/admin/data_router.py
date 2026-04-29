@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
 from backend.admin import stats as admin_stats
+from backend.admin.backtest_reports import load_latest_backtest_report
 from backend.admin.deps import get_current_admin
 from backend.admin.models import AdminUser, AuditLog
 from backend.config import settings
@@ -178,6 +179,21 @@ def make_data_router(
         if gs is None:
             raise HTTPException(status_code=404, detail="Grid session not found")
         return _grid_session_to_dict(gs, include_slots=True)
+
+    # ------------------------------------------------------------------ Backtest Reports
+
+    @router.get("/backtest/reports/latest")
+    async def backtest_report_latest(
+        admin: str = Depends(get_current_admin),
+    ) -> dict[str, Any]:
+        del admin
+        report = load_latest_backtest_report()
+        if report is None:
+            return {
+                "available": False,
+                "message": "No backtest report found.",
+            }
+        return report
 
     # ------------------------------------------------------------------ Config
 

@@ -1,10 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, List, Grid3x3, ScrollText, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, List, Grid3x3, ScrollText, Settings, LogOut, FileText } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { authApi } from "../../api/auth";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/backtests", label: "Backtests", icon: FileText },
   { to: "/trades", label: "Trades", icon: List },
   { to: "/grid", label: "Grid", icon: Grid3x3 },
   { to: "/logs", label: "Logs", icon: ScrollText },

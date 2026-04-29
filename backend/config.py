@@ -86,6 +86,7 @@ class Settings(BaseSettings):
     admin_jwt_refresh_ttl_days: int = 30
     admin_totp_issuer: str = "AmaExecutionCore"
     admin_cors_origin: str = ""
+    backtest_reports_dir: str = "artifacts"
 
     @property
     def active_api_key(self) -> str:

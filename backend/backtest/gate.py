@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import defaultdict
 from dataclasses import asdict, dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -62,17 +63,37 @@ class BacktestManifest:
 class ScenarioMetrics:
     closed_trades: int
     winning_trades: int
+    gross_profit: Decimal
+    gross_loss: Decimal
     win_rate: Decimal | None
     expectancy: Decimal | None
     profit_factor: Decimal | None
     max_drawdown: Decimal | None
     max_drawdown_pct: Decimal | None
+    total_pnl: Decimal
     net_pnl: Decimal
     fees_paid: Decimal
+    slippage_paid: Decimal
     rejected_short_signals: int
     skipped_min_notional: int
     skipped_insufficient_capital: int
     ambiguous_candles: int
+    monthly_pnl: tuple[MonthlyPnlPoint, ...]
+    best_month: MonthlyPnlPoint | None
+    worst_month: MonthlyPnlPoint | None
+    oos_result: dict[str, object] | None
+
+
+@dataclass(slots=True, frozen=True)
+class MonthlyPnlPoint:
+    month: str
+    pnl: Decimal
+    trades: int
+    gross_profit: Decimal
+    gross_loss: Decimal
+    win_rate: Decimal | None
+    profit_factor: Decimal | None
+    max_drawdown_pct: Decimal | None
 
 
 @dataclass(slots=True, frozen=True)
@@ -87,6 +108,7 @@ class ScenarioEvaluation:
     metrics: ScenarioMetrics
     passed: bool
     failure_reasons: tuple[str, ...]
+    limitations: tuple[str, ...] = ()
 
 
 def load_manifest(path: Path) -> BacktestManifest:
@@ -173,8 +195,9 @@ async def evaluate_scenario(
         ),
     )
 
-    metrics = _calculate_metrics(
+    metrics, limitations = _calculate_metrics(
         scenario=scenario,
+        candles=candles,
         executions=tuple(
             step.execution
             for step in replay_result.steps
@@ -194,6 +217,7 @@ async def evaluate_scenario(
         metrics=metrics,
         passed=not failure_reasons,
         failure_reasons=failure_reasons,
+        limitations=limitations,
     )
 
 
@@ -210,7 +234,7 @@ def serialize_evaluation(evaluation: ScenarioEvaluation) -> dict[str, object]:
         "failure_reasons": list(evaluation.failure_reasons),
     }
     for key, value in asdict(evaluation.metrics).items():
-        payload[key] = str(value) if isinstance(value, Decimal) else value
+        payload[key] = _serialize_metric_value(value)
     return payload
 
 
@@ -231,9 +255,10 @@ def _build_strategy(scenario: BacktestScenario) -> object:
 def _calculate_metrics(
     *,
     scenario: BacktestScenario,
+    candles: tuple[MarketCandle, ...],
     executions: tuple[SimulationExecutionResult, ...],
     report: HistoricalReplayReport,
-) -> ScenarioMetrics:
+) -> tuple[ScenarioMetrics, tuple[str, ...]]:
     executed_executions = tuple(
         execution for execution in executions if execution.status != "skipped"
     )
@@ -247,6 +272,10 @@ def _calculate_metrics(
     gross_losses = sum((abs(pnl) for pnl in net_trade_pnls if pnl < 0), Decimal(0))
     net_pnl = sum(net_trade_pnls, Decimal(0))
     fees_paid = sum((execution.fees_paid for execution in executed_executions), Decimal(0))
+    slippage_paid = sum(
+        (execution.slippage * execution.qty for execution in executed_executions),
+        Decimal(0),
+    )
 
     win_rate = None
     expectancy = None
@@ -265,21 +294,122 @@ def _calculate_metrics(
     if scenario.starting_equity_usd > 0:
         max_drawdown_pct = max_drawdown / Decimal(str(scenario.starting_equity_usd))
 
-    return ScenarioMetrics(
+    monthly_pnl, best_month, worst_month, unresolved_monthly_points = _build_monthly_pnl(
+        scenario=scenario,
+        candles=candles,
+        executions=executed_executions,
+    )
+    limitations: list[str] = []
+    if unresolved_monthly_points > 0:
+        limitations.append(
+            f"{scenario.name}: excluded {unresolved_monthly_points} closed trades from monthly_pnl because close timestamps could not be resolved.",
+        )
+
+    metrics = ScenarioMetrics(
         closed_trades=closed_trades,
         winning_trades=winning_trades,
+        gross_profit=gross_wins,
+        gross_loss=gross_losses,
         win_rate=win_rate,
         expectancy=expectancy,
         profit_factor=profit_factor,
         max_drawdown=max_drawdown,
         max_drawdown_pct=max_drawdown_pct,
+        total_pnl=sum((execution.realized_pnl for execution in executed_executions), Decimal(0)),
         net_pnl=net_pnl,
         fees_paid=fees_paid,
+        slippage_paid=slippage_paid,
         rejected_short_signals=getattr(report.counters, "rejected_short_signals", 0),
         skipped_min_notional=getattr(report.counters, "skipped_min_notional", 0),
         skipped_insufficient_capital=getattr(report.counters, "skipped_insufficient_capital", 0),
         ambiguous_candles=getattr(report.counters, "ambiguous_candles", 0),
+        monthly_pnl=monthly_pnl,
+        best_month=best_month,
+        worst_month=worst_month,
+        oos_result=None,
     )
+    return metrics, tuple(limitations)
+
+
+def _build_monthly_pnl(
+    *,
+    scenario: BacktestScenario,
+    candles: tuple[MarketCandle, ...],
+    executions: tuple[SimulationExecutionResult, ...],
+) -> tuple[tuple[MonthlyPnlPoint, ...], MonthlyPnlPoint | None, MonthlyPnlPoint | None, int]:
+    by_month: dict[str, list[SimulationExecutionResult]] = defaultdict(list)
+    unresolved = 0
+
+    for execution in executions:
+        close_step = execution.closed_at_step
+        if close_step < 0 or close_step >= len(candles):
+            unresolved += 1
+            continue
+        month = candles[close_step].opened_at.strftime("%Y-%m")
+        by_month[month].append(execution)
+
+    monthly_points = tuple(
+        _build_monthly_point(
+            scenario=scenario,
+            month=month,
+            executions=tuple(month_executions),
+        )
+        for month, month_executions in sorted(by_month.items())
+    )
+    best_month = max(monthly_points, key=lambda item: item.pnl) if monthly_points else None
+    worst_month = min(monthly_points, key=lambda item: item.pnl) if monthly_points else None
+    return monthly_points, best_month, worst_month, unresolved
+
+
+def _build_monthly_point(
+    *,
+    scenario: BacktestScenario,
+    month: str,
+    executions: tuple[SimulationExecutionResult, ...],
+) -> MonthlyPnlPoint:
+    net_trade_pnls = tuple(
+        execution.realized_pnl - execution.fees_paid
+        for execution in executions
+    )
+    trades = len(net_trade_pnls)
+    wins = sum(1 for pnl in net_trade_pnls if pnl > 0)
+    gross_wins = sum((pnl for pnl in net_trade_pnls if pnl > 0), Decimal(0))
+    gross_losses = sum((abs(pnl) for pnl in net_trade_pnls if pnl < 0), Decimal(0))
+    pnl = sum(net_trade_pnls, Decimal(0))
+    win_rate = Decimal(wins) / Decimal(trades) if trades else None
+    if gross_losses == 0:
+        profit_factor = None if gross_wins == 0 else Decimal("Infinity")
+    else:
+        profit_factor = gross_wins / gross_losses
+    max_drawdown = calculate_max_drawdown(net_trade_pnls)
+    max_drawdown_pct = None
+    if scenario.starting_equity_usd > 0:
+        max_drawdown_pct = max_drawdown / Decimal(str(scenario.starting_equity_usd))
+    return MonthlyPnlPoint(
+        month=month,
+        pnl=pnl,
+        trades=trades,
+        gross_profit=gross_wins,
+        gross_loss=gross_losses,
+        win_rate=win_rate,
+        profit_factor=profit_factor,
+        max_drawdown_pct=max_drawdown_pct,
+    )
+
+
+def _serialize_metric_value(value: object) -> object:
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, tuple):
+        return [_serialize_metric_value(item) for item in value]
+    if isinstance(value, list):
+        return [_serialize_metric_value(item) for item in value]
+    if isinstance(value, dict):
+        return {
+            str(key): _serialize_metric_value(item)
+            for key, item in value.items()
+        }
+    return value
 
 def _evaluate_profile(
     *,

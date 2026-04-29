@@ -63,6 +63,8 @@ class GridScenarioEvaluation:
     profile: str
     metrics: GridBacktestResult
     profitable_window_rate: float | None
+    walk_forward_days: int | None
+    walk_forward_windows: int | None
     passed: bool
     failure_reasons: tuple[str, ...]
 
@@ -155,6 +157,7 @@ async def run_manifest_gate(
     manifest = load_manifest(manifest_path)
     repo_root = _resolve_repo_root(manifest_path)
     results: list[dict[str, object]] = []
+    report_limitations: list[str] = []
     live_client = client
     if mode == "live" and live_client is None:
         live_client = BybitRESTClient()
@@ -200,6 +203,7 @@ async def run_manifest_gate(
         )
         serialized = serialize_evaluation(evaluation)
         results.append(serialized)
+        report_limitations.extend(evaluation.limitations)
         status = "PASS" if evaluation.passed else "FAIL"
         print(
             f"[{status}] {scenario.name} symbol={scenario.symbol} interval={scenario.interval} "
@@ -231,15 +235,15 @@ async def run_manifest_gate(
         )
 
     _validate_selected_names(selected_names=selected_names, results=results)
-    report: dict[str, object] = {
-        "mode": mode,
-        "suite": resolved_suite,
-        "manifest": str(manifest_path.as_posix()),
-        "generated_at": datetime.now(UTC).isoformat(),
-        "fee_rate_per_side": str(fee_rate_per_side),
-        "all_passed": all(bool(item["passed"]) for item in results),
-        "results": results,
-    }
+    report = _build_manifest_report(
+        active_strategy=active_strategy,
+        mode=mode,
+        manifest_path=manifest_path,
+        fee_rate_per_side=fee_rate_per_side,
+        resolved_suite=resolved_suite,
+        results=results,
+        report_limitations=report_limitations,
+    )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     if not report["all_passed"]:
@@ -420,6 +424,8 @@ def _evaluate_grid_scenario(
         profile=profile.name,
         metrics=metrics,
         profitable_window_rate=profitable_window_rate,
+        walk_forward_days=scenario.walk_forward_days,
+        walk_forward_windows=scenario.walk_forward_windows,
         passed=not failure_reasons,
         failure_reasons=failure_reasons,
     )
@@ -533,6 +539,18 @@ def _evaluate_grid_profile(
 
 
 def _serialize_grid_evaluation(evaluation: GridScenarioEvaluation) -> dict[str, object]:
+    oos_result: dict[str, object] | None = None
+    if (
+        evaluation.profitable_window_rate is not None
+        or evaluation.walk_forward_days is not None
+        or evaluation.walk_forward_windows is not None
+    ):
+        oos_result = {
+            "type": "walk_forward",
+            "profitable_window_rate": evaluation.profitable_window_rate,
+            "walk_forward_days": evaluation.walk_forward_days,
+            "walk_forward_windows": evaluation.walk_forward_windows,
+        }
     payload: dict[str, object] = {
         "name": evaluation.name,
         "engine": "grid",
@@ -541,6 +559,7 @@ def _serialize_grid_evaluation(evaluation: GridScenarioEvaluation) -> dict[str, 
         "passed": evaluation.passed,
         "failure_reasons": list(evaluation.failure_reasons),
         "profitable_window_rate": evaluation.profitable_window_rate,
+        "oos_result": oos_result,
     }
     payload |= asdict(evaluation.metrics)
     return payload
@@ -557,6 +576,56 @@ def _validate_selected_names(
     missing = selected_names - observed
     if missing:
         raise ValueError(f"Manifest suite references unknown scenarios: {sorted(missing)}")
+
+
+def _resolve_report_strategy_name(
+    *,
+    active_strategy: str | None,
+    results: Sequence[Mapping[str, object]],
+) -> str:
+    normalized_active_strategy = _normalize_selector_name(active_strategy)
+    if normalized_active_strategy is not None:
+        return normalized_active_strategy
+    strategies = {
+        str(item["strategy"]).strip()
+        for item in results
+        if isinstance(item.get("strategy"), str)
+        and str(item["strategy"]).strip()
+    }
+    if len(strategies) == 1:
+        return next(iter(strategies))
+    return "mixed"
+
+
+def _build_manifest_report(
+    *,
+    active_strategy: str | None,
+    mode: GateMode,
+    manifest_path: Path,
+    fee_rate_per_side: float,
+    resolved_suite: str | None,
+    results: list[dict[str, object]],
+    report_limitations: list[str],
+) -> dict[str, object]:
+    return {
+        "strategy_name": _resolve_report_strategy_name(
+            active_strategy=active_strategy,
+            results=results,
+        ),
+        "suite_name": resolved_suite,
+        "mode": mode,
+        "suite": resolved_suite,
+        "manifest": str(manifest_path.as_posix()),
+        "generated_at": datetime.now(UTC).isoformat(),
+        "fee_rate_per_side": str(fee_rate_per_side),
+        "all_passed": all(bool(item["passed"]) for item in results),
+        "metadata": {
+            "report_format_version": 2,
+            "limitations": sorted(set(report_limitations)),
+        },
+        "scenarios": results,
+        "results": results,
+    }
 
 
 def _mapping_payload(raw_value: object, label: str) -> Mapping[str, object]:

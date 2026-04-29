@@ -60,6 +60,7 @@ def reset_settings() -> Generator[None, None, None]:
         "market_data_max_staleness_intervals": settings.market_data_max_staleness_intervals,
         "market_data_staleness_grace_seconds": settings.market_data_staleness_grace_seconds,
         "max_trades_per_day": settings.max_trades_per_day,
+        "backtest_reports_dir": settings.backtest_reports_dir,
     }
     if os.environ.get("AMA_RUN_TESTNET_E2E") != "1":
         settings.bybit_testnet_api_key = ""
