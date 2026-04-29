@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -304,6 +306,101 @@ def test_grid_sessions_requires_auth(
 ) -> None:
     client = _make_app(sqlite_session_factory)
     assert client.get("/admin/grid/sessions").status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# GET /admin/backtest/reports/latest
+# ---------------------------------------------------------------------------
+
+
+def test_backtest_report_latest_returns_empty_state_when_missing(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+    tmp_path: Path,
+) -> None:
+    settings.backtest_reports_dir = tmp_path.as_posix()
+
+    client = _make_app(sqlite_session_factory)
+    token = _access_token()
+    response = client.get(
+        "/admin/backtest/reports/latest",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "available": False,
+        "message": "No backtest report found.",
+    }
+
+
+def test_backtest_report_latest_returns_latest_report(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+    tmp_path: Path,
+) -> None:
+    settings.backtest_reports_dir = tmp_path.as_posix()
+    older = tmp_path / "backtest-old.json"
+    latest = tmp_path / "backtest-new.json"
+    older.write_text(
+        json.dumps(
+            {
+                "mode": "regression",
+                "suite": "older",
+                "generated_at": "2026-04-29T00:00:00+00:00",
+                "all_passed": True,
+                "results": [],
+            },
+        ),
+        encoding="utf-8",
+    )
+    latest.write_text(
+        json.dumps(
+            {
+                "strategy_name": "regime_grid_v1",
+                "suite_name": "regime_grid_gate",
+                "mode": "regression",
+                "generated_at": "2026-04-29T00:00:01+00:00",
+                "all_passed": False,
+                "metadata": {"report_format_version": 2, "limitations": []},
+                "scenarios": [{"name": "grid_xrpusdt_regression", "passed": False, "failure_reasons": ["x"]}],
+                "results": [{"name": "grid_xrpusdt_regression", "passed": False, "failure_reasons": ["x"]}],
+            },
+        ),
+        encoding="utf-8",
+    )
+
+    client = _make_app(sqlite_session_factory)
+    token = _access_token()
+    response = client.get(
+        "/admin/backtest/reports/latest",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["strategy_name"] == "regime_grid_v1"
+    assert data["suite_name"] == "regime_grid_gate"
+    assert data["metadata"]["report_format_version"] == 2
+    assert data["metadata"]["source_file"] == "backtest-new.json"
+
+
+def test_backtest_report_latest_does_not_support_path_traversal(
+    sqlite_session_factory: async_sessionmaker[AsyncSession],
+    tmp_path: Path,
+) -> None:
+    settings.backtest_reports_dir = tmp_path.as_posix()
+
+    client = _make_app(sqlite_session_factory)
+    token = _access_token()
+    response = client.get(
+        "/admin/backtest/reports/latest?path=../../etc/passwd",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "available": False,
+        "message": "No backtest report found.",
+    }
 
 
 # ---------------------------------------------------------------------------
